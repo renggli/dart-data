@@ -134,7 +134,7 @@ class FaddeevLeVerrierEngine {
     final c = result.coefficients;
     final lVar = Variable(lambda);
 
-    var poly = n == 1 ? lVar : Pow(lVar, RationalNumber(n));
+    var poly = n == 1 ? lVar : Pow.of(lVar, RationalNumber(n));
 
     for (var k = 1; k <= n; k++) {
       final ck = c[k - 1];
@@ -144,7 +144,7 @@ class FaddeevLeVerrierEngine {
           ? ck
           : (power == 1
                 ? (ck * lVar)
-                : (ck * Pow(lVar, RationalNumber(power))));
+                : (ck * Pow.of(lVar, RationalNumber(power))));
       poly = poly - term;
     }
 

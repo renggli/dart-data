@@ -11,6 +11,7 @@ import '../calculus/differentiation.dart';
 import '../calculus/integration/integration.dart';
 import '../calculus/linear_form.dart';
 import '../compiler.dart';
+import '../functions/fn.dart';
 import '../type/expr_data_type.dart';
 import 'system.dart';
 import 'univariate.dart';
@@ -74,13 +75,13 @@ Expr _solveOde(
     );
   }
   final Expr eq;
-  if (equation is Equal) {
-    eq = equation.left - equation.right;
-  } else if (equation is RelationalExpr) {
+  if (equation case Relational(op: RelOp.equal, :final left, :final right)) {
+    eq = left - right;
+  } else if (equation is Relational) {
     throw ArgumentError.value(
       equation,
       'equation',
-      'Expected an Equal equation or algebraic expression, got $equation.',
+      'Expected an equality Relational equation or algebraic expression, got $equation.',
     );
   } else {
     eq = equation;
@@ -164,7 +165,7 @@ Expr _solveOde(
         final p = (-lin.a).simplify(assumptions: assumptions);
         final q = lin.b.simplify(assumptions: assumptions);
         final pInt = p.integrate(independent, assumptions: assumptions);
-        final mu = Pow(Constant.e, pInt).simplify(assumptions: assumptions);
+        final mu = Pow.of(Constant.e, pInt).simplify(assumptions: assumptions);
         final muQ = (mu * q).simplify(assumptions: assumptions);
         final muQInt = muQ.integrate(independent, assumptions: assumptions);
         ySol = ((muQInt + Variable(constant)) / mu).simplify(
@@ -374,7 +375,7 @@ Expr _replaceFirstDerivative(
       if (base == Constant.e ||
           isPositiveExpr(base, assumptions: Assumptions.none)) {
         for (final t in terms) {
-          collectFactor(Pow(base, t));
+          collectFactor(Pow.of(base, t));
         }
         return;
       }
@@ -402,12 +403,12 @@ Expr _replaceFirstDerivative(
   final fx = switch (xFactors) {
     [] => IntegerNumber.one,
     [final single] => single,
-    _ => Mul(xFactors),
+    _ => Mul.of(xFactors),
   };
   final gy = switch (yFactors) {
     [] => IntegerNumber.one,
     [final single] => single,
-    _ => Mul(yFactors),
+    _ => Mul.of(yFactors),
   };
 
   return (fx: fx, gy: gy);
@@ -548,7 +549,7 @@ Expr _buildHomogeneousSolution(
       final r = (-b / (IntegerNumber.two * a)).simplify(
         assumptions: assumptions,
       );
-      return ((c1 + c2 * xVar) * Pow(Constant.e, r * xVar)).simplify(
+      return ((c1 + c2 * xVar) * Pow.of(Constant.e, r * xVar)).simplify(
         assumptions: assumptions,
       );
     }
@@ -556,20 +557,22 @@ Expr _buildHomogeneousSolution(
       final alpha = (-b / (IntegerNumber.two * a)).simplify(
         assumptions: assumptions,
       );
-      final beta = (Pow(-delta, FractionNumber.half) / (IntegerNumber.two * a))
-          .simplify(assumptions: assumptions);
-      return (Pow(Constant.e, alpha * xVar) *
-              (c1 * Cos(beta * xVar) + c2 * Sin(beta * xVar)))
+      final beta =
+          (Pow.of(-delta, FractionNumber.half) / (IntegerNumber.two * a))
+              .simplify(assumptions: assumptions);
+      return (Pow.of(Constant.e, alpha * xVar) *
+              (c1 * Fn.cos(beta * xVar) + c2 * Fn.sin(beta * xVar)))
           .simplify(assumptions: assumptions);
     }
-    final sqrtDelta = Pow(delta, FractionNumber.half);
+    final sqrtDelta = Pow.of(delta, FractionNumber.half);
     final r1 = ((-b - sqrtDelta) / (IntegerNumber.two * a)).simplify(
       assumptions: assumptions,
     );
     final r2 = ((-b + sqrtDelta) / (IntegerNumber.two * a)).simplify(
       assumptions: assumptions,
     );
-    return (c1 * Pow(Constant.e, r1 * xVar) + c2 * Pow(Constant.e, r2 * xVar))
+    return (c1 * Pow.of(Constant.e, r1 * xVar) +
+            c2 * Pow.of(Constant.e, r2 * xVar))
         .simplify(assumptions: assumptions);
   }
 
@@ -581,7 +584,7 @@ Expr _buildHomogeneousSolution(
     if (isZeroExpr(aj)) continue;
     final rPow = j == 0
         ? IntegerNumber.one
-        : (j == 1 ? rVar : Pow(rVar, IntegerNumber.of(j)));
+        : (j == 1 ? rVar : Pow.of(rVar, IntegerNumber.of(j)));
     charPoly = charPoly + aj * rPow;
   }
   charPoly = charPoly.simplify(assumptions: assumptions);
@@ -619,12 +622,12 @@ Expr _buildHomogeneousSolution(
       handledMult += mult;
       final expTerm = isZeroExpr(alpha)
           ? IntegerNumber.one
-          : Pow(Constant.e, alpha * xVar);
+          : Pow.of(Constant.e, alpha * xVar);
       for (var k = 0; k < mult; k++) {
         final ck = Variable(constName(constIdx++));
         final xPow = k == 0
             ? IntegerNumber.one
-            : (k == 1 ? xVar : Pow(xVar, IntegerNumber.of(k)));
+            : (k == 1 ? xVar : Pow.of(xVar, IntegerNumber.of(k)));
         yh = yh + ck * xPow * expTerm;
       }
       continue;
@@ -657,27 +660,31 @@ Expr _buildHomogeneousSolution(
           : beta;
       final expTerm = isZeroExpr(alpha)
           ? IntegerNumber.one
-          : Pow(Constant.e, alpha * xVar);
+          : Pow.of(Constant.e, alpha * xVar);
       for (var k = 0; k < pairMult; k++) {
         final cA = Variable(constName(constIdx++));
         final cB = Variable(constName(constIdx++));
         final xPow = k == 0
             ? IntegerNumber.one
-            : (k == 1 ? xVar : Pow(xVar, IntegerNumber.of(k)));
+            : (k == 1 ? xVar : Pow.of(xVar, IntegerNumber.of(k)));
         yh =
             yh +
             xPow *
                 expTerm *
-                (cA * Cos(chosenBeta * xVar) + cB * Sin(chosenBeta * xVar));
+                (cA * Fn.cos(chosenBeta * xVar) +
+                    cB * Fn.sin(chosenBeta * xVar));
       }
     } else {
       handledMult += mult;
-      final expTerm = Pow(Constant.e, (alpha + ComplexNumber.i * beta) * xVar);
+      final expTerm = Pow.of(
+        Constant.e,
+        (alpha + ComplexNumber.i * beta) * xVar,
+      );
       for (var k = 0; k < mult; k++) {
         final ck = Variable(constName(constIdx++));
         final xPow = k == 0
             ? IntegerNumber.one
-            : (k == 1 ? xVar : Pow(xVar, IntegerNumber.of(k)));
+            : (k == 1 ? xVar : Pow.of(xVar, IntegerNumber.of(k)));
         yh = yh + ck * xPow * expTerm;
       }
     }
@@ -762,7 +769,7 @@ Expr _particularSolutionNthOrder(
     if (aj is Number && aj.isZero) continue;
     final rPow = j == 0
         ? IntegerNumber.one
-        : (j == 1 ? rVar : Pow(rVar, IntegerNumber.of(j)));
+        : (j == 1 ? rVar : Pow.of(rVar, IntegerNumber.of(j)));
     charPoly = charPoly + aj * rPow;
   }
   charPoly = charPoly.simplify(assumptions: assumptions);
@@ -813,10 +820,10 @@ Expr _particularSolutionNthOrder(
 
     final qCos = group.cosTerms.isEmpty
         ? IntegerNumber.zero
-        : Add(group.cosTerms).simplify(assumptions: assumptions);
+        : Add.of(group.cosTerms).simplify(assumptions: assumptions);
     final qSin = group.sinTerms.isEmpty
         ? IntegerNumber.zero
-        : Add(group.sinTerms).simplify(assumptions: assumptions);
+        : Add.of(group.sinTerms).simplify(assumptions: assumptions);
 
     final degCos = qCos is Number && qCos.isZero
         ? 0
@@ -850,7 +857,7 @@ Expr _particularSolutionNthOrder(
       unknowns.add(aName);
       final xPow = k == 0
           ? IntegerNumber.one
-          : (k == 1 ? xVar : Pow(xVar, IntegerNumber.of(k)));
+          : (k == 1 ? xVar : Pow.of(xVar, IntegerNumber.of(k)));
       polyA = polyA + Variable(aName) * xPow;
       if (isTrig) {
         final bName = _freshOdeVar(usedVars, '_ub_$k');
@@ -861,10 +868,10 @@ Expr _particularSolutionNthOrder(
 
     final xShift = s == 0
         ? IntegerNumber.one
-        : (s == 1 ? xVar : Pow(xVar, IntegerNumber.of(s)));
+        : (s == 1 ? xVar : Pow.of(xVar, IntegerNumber.of(s)));
     final expFactor = (alpha is Number && alpha.isZero)
         ? IntegerNumber.one
-        : Pow(Constant.e, alpha * xVar);
+        : Pow.of(Constant.e, alpha * xVar);
 
     final Expr ypAnsatz;
     final Expr forcing;
@@ -874,8 +881,8 @@ Expr _particularSolutionNthOrder(
       );
       forcing = (qCos * expFactor).simplify(assumptions: assumptions);
     } else {
-      final cosBx = Cos(beta * xVar);
-      final sinBx = Sin(beta * xVar);
+      final cosBx = Fn.cos(beta * xVar);
+      final sinBx = Fn.sin(beta * xVar);
       ypAnsatz = (xShift * expFactor * (polyA * cosBx + polyB * sinBx))
           .simplify(assumptions: assumptions);
       forcing = (expFactor * (qCos * cosBx + qSin * sinBx)).simplify(
@@ -900,7 +907,7 @@ Expr _particularSolutionNthOrder(
 
     var residual = lhs - forcing;
     if (!(alpha is Number && alpha.isZero)) {
-      residual = residual * Pow(Constant.e, -alpha * xVar);
+      residual = residual * Pow.of(Constant.e, -alpha * xVar);
     }
     residual = residual
         .expand(assumptions: assumptions)
@@ -920,8 +927,8 @@ Expr _particularSolutionNthOrder(
     } else {
       final ocName = _freshOdeVar(usedVars, '_oc');
       final osName = _freshOdeVar(usedVars, '_os');
-      final cosBx = Cos(beta * xVar).simplify(assumptions: assumptions);
-      final sinBx = Sin(beta * xVar).simplify(assumptions: assumptions);
+      final cosBx = Fn.cos(beta * xVar).simplify(assumptions: assumptions);
+      final sinBx = Fn.sin(beta * xVar).simplify(assumptions: assumptions);
       Expr replaceTrig(Expr e) {
         if (e == cosBx) return Variable(ocName);
         if (e == sinBx) return Variable(osName);
@@ -975,7 +982,7 @@ List<({Expr poly, Expr alpha, Expr beta, bool isSin})>? _parseForcingTerm(
   final factors = term is Mul ? term.factors : [term];
   final polyFactors = <Expr>[];
   var alpha = IntegerNumber.zero as Expr;
-  Expr? trigFactor;
+  Call? trigFactor;
 
   for (final f in factors) {
     if (!f.dependsOn(independent)) {
@@ -987,11 +994,13 @@ List<({Expr poly, Expr alpha, Expr beta, bool isSin})>? _parseForcingTerm(
       if (lin == null) return null;
       alpha = (alpha + lin.a).simplify(assumptions: assumptions);
       if (!(lin.b is Number && (lin.b as Number).isZero)) {
-        polyFactors.add(Pow(Constant.e, lin.b));
+        polyFactors.add(Pow.of(Constant.e, lin.b));
       }
       continue;
     }
-    if ((f is Sin || f is Cos) && trigFactor == null) {
+    if (f is Call &&
+        (f.id == FunctionId.sin || f.id == FunctionId.cos) &&
+        trigFactor == null) {
       trigFactor = f;
       continue;
     }
@@ -1004,32 +1013,33 @@ List<({Expr poly, Expr alpha, Expr beta, bool isSin})>? _parseForcingTerm(
 
   final poly = polyFactors.isEmpty
       ? IntegerNumber.one
-      : Mul(polyFactors).simplify(assumptions: assumptions);
+      : Mul.of(polyFactors).simplify(assumptions: assumptions);
 
   if (trigFactor == null) {
     return [(poly: poly, alpha: alpha, beta: IntegerNumber.zero, isSin: false)];
   }
 
-  final arg = trigFactor is Cos ? trigFactor.expr : (trigFactor as Sin).expr;
+  final arg = trigFactor.args[0];
   final lin = arg.matchLinear(independent);
   if (lin == null || (lin.a is Number && (lin.a as Number).isZero)) {
     return null;
   }
   final beta = lin.a;
   final phi = lin.b;
+  final isSinFactor = trigFactor.id == FunctionId.sin;
   if (phi is Number && phi.isZero) {
-    return [(poly: poly, alpha: alpha, beta: beta, isSin: trigFactor is Sin)];
+    return [(poly: poly, alpha: alpha, beta: beta, isSin: isSinFactor)];
   }
-  if (trigFactor is Cos) {
+  if (!isSinFactor) {
     return [
       (
-        poly: (poly * Cos(phi)).simplify(assumptions: assumptions),
+        poly: (poly * Fn.cos(phi)).simplify(assumptions: assumptions),
         alpha: alpha,
         beta: beta,
         isSin: false,
       ),
       (
-        poly: (-poly * Sin(phi)).simplify(assumptions: assumptions),
+        poly: (-poly * Fn.sin(phi)).simplify(assumptions: assumptions),
         alpha: alpha,
         beta: beta,
         isSin: true,
@@ -1038,13 +1048,13 @@ List<({Expr poly, Expr alpha, Expr beta, bool isSin})>? _parseForcingTerm(
   } else {
     return [
       (
-        poly: (poly * Cos(phi)).simplify(assumptions: assumptions),
+        poly: (poly * Fn.cos(phi)).simplify(assumptions: assumptions),
         alpha: alpha,
         beta: beta,
         isSin: true,
       ),
       (
-        poly: (poly * Sin(phi)).simplify(assumptions: assumptions),
+        poly: (poly * Fn.sin(phi)).simplify(assumptions: assumptions),
         alpha: alpha,
         beta: beta,
         isSin: false,

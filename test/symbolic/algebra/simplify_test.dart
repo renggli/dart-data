@@ -45,26 +45,32 @@ void main() {
           2,
           point: IntegerNumber.one + IntegerNumber.zero,
         ).simplify(),
-      ).equals(const OrderTerm('x', 2, point: IntegerNumber.one));
+      ).equals(OrderTerm('x', 2, point: IntegerNumber.one));
 
-      check(Sinh(IntegerNumber.zero).simplify()).equals(IntegerNumber.zero);
-      check(Cosh(IntegerNumber.zero).simplify()).equals(IntegerNumber.one);
-      check(Tanh(IntegerNumber.zero).simplify()).equals(IntegerNumber.zero);
-      check(Asinh(IntegerNumber.zero).simplify()).equals(IntegerNumber.zero);
-      check(Acosh(IntegerNumber.one).simplify()).equals(IntegerNumber.zero);
-      check(Atanh(IntegerNumber.zero).simplify()).equals(IntegerNumber.zero);
-      check(LambertW(IntegerNumber.zero).simplify()).equals(IntegerNumber.zero);
-      check(Erf(IntegerNumber.zero).simplify()).equals(IntegerNumber.zero);
-      check(Erfc(IntegerNumber.zero).simplify()).equals(IntegerNumber.one);
-      check(Gamma(IntegerNumber.of(4)).simplify()).equals(IntegerNumber.of(6));
-      check(Beta(IntegerNumber.two, IntegerNumber.of(3)).simplify())
+      check(Fn.sinh(IntegerNumber.zero).simplify()).equals(IntegerNumber.zero);
+      check(Fn.cosh(IntegerNumber.zero).simplify()).equals(IntegerNumber.one);
+      check(Fn.tanh(IntegerNumber.zero).simplify()).equals(IntegerNumber.zero);
+      check(Fn.asinh(IntegerNumber.zero).simplify()).equals(IntegerNumber.zero);
+      check(Fn.acosh(IntegerNumber.one).simplify()).equals(IntegerNumber.zero);
+      check(Fn.atanh(IntegerNumber.zero).simplify()).equals(IntegerNumber.zero);
+      check(Fn.lambertW(IntegerNumber.zero).simplify())
+          .equals(IntegerNumber.zero);
+      check(Fn.erf(IntegerNumber.zero).simplify()).equals(IntegerNumber.zero);
+      check(Fn.erfc(IntegerNumber.zero).simplify()).equals(IntegerNumber.one);
+      check(Fn.gamma(IntegerNumber.of(4)).simplify())
+          .equals(IntegerNumber.of(6));
+      check(Fn.beta(IntegerNumber.two, IntegerNumber.of(3)).simplify())
           .equals(RationalNumber(1, 12));
 
-      check(LessThan(IntegerNumber.one, IntegerNumber.two).simplify())
-          .equals(IntegerNumber.one);
+      check(
+        Relational.lessThan(IntegerNumber.one, IntegerNumber.two).simplify(),
+      ).equals(IntegerNumber.one);
       check(
         Piecewise([
-          (relation: LessThan(IntegerNumber.one, IntegerNumber.two), expr: x),
+          (
+            relation: Relational.lessThan(IntegerNumber.one, IntegerNumber.two),
+            expr: x,
+          ),
         ]).simplify(),
       ).equals(x);
       check(Integral(IntegerNumber.zero, 'x').simplify())
@@ -84,7 +90,7 @@ void main() {
       check(Expr.parse('0^(-1)').simplify()).equals(Constant.undefined);
       check(Expr.parse('ln(0)').simplify()).equals(-Constant.infinity);
       check(Expr.parse('ln(-1)').simplify())
-          .equals(Mul([ComplexNumber.i, Constant.pi]));
+          .equals(Mul.of([ComplexNumber.i, Constant.pi]));
     });
 
     test('domain-aware radical and power simplifications', () {
@@ -174,28 +180,29 @@ void main() {
     });
 
     test('isReal fail-safe checks on negative bases and arguments', () {
-      check(Pow(IntegerNumber.negativeOne, FractionNumber.half).isReal).isFalse;
-      check(Ln(IntegerNumber.negativeOne).isReal).isFalse;
-      check(Asin(IntegerNumber.two).isReal).isFalse;
-      check(Acos(IntegerNumber.two).isReal).isFalse;
-      check(Atanh(IntegerNumber.two).isReal).isFalse;
-      check(Acosh(IntegerNumber.zero).isReal).isFalse;
+      check(Pow.of(IntegerNumber.negativeOne, FractionNumber.half).isReal)
+          .isFalse;
+      check(Fn.ln(IntegerNumber.negativeOne).isReal).isFalse;
+      check(Fn.asin(IntegerNumber.two).isReal).isFalse;
+      check(Fn.acos(IntegerNumber.two).isReal).isFalse;
+      check(Fn.atanh(IntegerNumber.two).isReal).isFalse;
+      check(Fn.acosh(IntegerNumber.zero).isReal).isFalse;
     });
 
     test('conjugate distributes over entire special functions', () {
       const z = Variable('z');
       for (final fn in [
-        Erfi(z),
-        FresnelS(z),
-        FresnelC(z),
-        SinIntegral(z),
-        SinhIntegral(z),
+        Fn.erfi(z),
+        Fn.fresnelS(z),
+        Fn.fresnelC(z),
+        Fn.si(z),
+        Fn.shi(z),
       ]) {
-        final conj = Conjugate(fn).simplify();
+        final conj = Fn.conj(fn).simplify();
         check(conj.toString()).not(.it()..startsWith('conj('));
       }
-      check(Conjugate(Erfi(ComplexNumber.i)).simplify())
-          .equals(Erfi(-ComplexNumber.i).simplify());
+      check(Fn.conj(Fn.erfi(ComplexNumber.i)).simplify())
+          .equals(Fn.erfi(-ComplexNumber.i).simplify());
     });
 
     test('memoization preserves DAG equivalence and unchanged leaves', () {
@@ -204,9 +211,9 @@ void main() {
       check(e.simplify(assumptions: Assumptions.real))
           .equals(Expr.parse('(1 + sin(x))^5').simplify());
 
-      final fn = VariableFunction('f', const [x]);
+      final fn = Call.symbolic('f', const [x]);
       check(identical(fn.simplify(assumptions: Assumptions.real), fn)).isTrue;
-      const ord = OrderTerm('x', 2);
+      final ord = OrderTerm('x', 2);
       check(identical(ord.simplify(assumptions: Assumptions.real), ord)).isTrue;
     });
 

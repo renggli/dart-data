@@ -33,15 +33,15 @@ void main() {
 
     test('computes Stirling numbers of the second kind S(n, k)', () {
       final s = stirlingSecondKind(5);
-      check(s[0][0]).equals(Integer.one);
-      check(s[3][1]).equals(Integer.one);
-      check(s[3][2]).equals(const Integer(3));
-      check(s[3][3]).equals(Integer.one);
-      check(s[4][2]).equals(const Integer(7));
-      check(s[4][3]).equals(const Integer(6));
-      check(s[5][2]).equals(const Integer(15));
-      check(s[5][3]).equals(const Integer(25));
-      check(s[5][4]).equals(const Integer(10));
+      check(s[0][0]).equals(BigInt.one);
+      check(s[3][1]).equals(BigInt.one);
+      check(s[3][2]).equals(BigInt.from(3));
+      check(s[3][3]).equals(BigInt.one);
+      check(s[4][2]).equals(BigInt.from(7));
+      check(s[4][3]).equals(BigInt.from(6));
+      check(s[5][2]).equals(BigInt.from(15));
+      check(s[5][3]).equals(BigInt.from(25));
+      check(s[5][4]).equals(BigInt.from(10));
     });
   });
 }

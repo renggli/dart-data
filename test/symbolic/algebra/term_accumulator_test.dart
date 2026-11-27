@@ -26,9 +26,9 @@ void main() {
       check(acc.terms).isEmpty;
 
       acc.add(
-        Mul([
+        Mul.of([
           IntegerNumber.negativeOne,
-          Add([const Variable('x'), IntegerNumber.two]),
+          Add.of([const Variable('x'), IntegerNumber.two]),
         ]),
       );
       acc.add(const Variable('x'), const RealNumber(1.0));
@@ -55,12 +55,12 @@ void main() {
     test('extractPolynomialCoefficients handles multivariate and non-polynomial cases', () {
       final acc = MonomialAccumulator(assumptions: Assumptions.none);
       acc.add(Expr.parse('a * x^2 + 2 * b * x^2 + c * x + d + 3 * e'));
-      acc.add(Pow(const Variable('x'), const RealNumber(3.0)));
+      acc.add(Pow.of(const Variable('x'), const RealNumber(3.0)));
       // Nested Mul inside base
       acc.addDecomposed(
         IntegerNumber.one,
-        Mul([
-          Mul([const Variable('k'), const Variable('x')]),
+        Mul.of([
+          Mul.of([const Variable('k'), const Variable('x')]),
           const Variable('x'),
         ]),
       );
@@ -77,7 +77,7 @@ void main() {
         Expr.parse('1 / x'),
         Expr.parse('x ^ y'),
         Expr.parse('y * sin(x)'),
-        Pow(Sin(const Variable('x')), IntegerNumber.two),
+        Pow.of(Fn.sin(const Variable('x')), IntegerNumber.two),
       ]) {
         final badAcc = MonomialAccumulator(assumptions: Assumptions.none)
           ..add(bad);
@@ -92,29 +92,31 @@ void main() {
       check(MonomialAccumulator.negateMonomial(IntegerNumber.of(3)))
           .equals(IntegerNumber.of(-3));
       check(
-        MonomialAccumulator.negateMonomial(Mul([IntegerNumber.negativeOne, x])),
+        MonomialAccumulator.negateMonomial(
+          Mul.of([IntegerNumber.negativeOne, x]),
+        ),
       ).equals(x);
       check(
         MonomialAccumulator.negateMonomial(
-          Mul([IntegerNumber.negativeOne, x, y]),
+          Mul.of([IntegerNumber.negativeOne, x, y]),
         ).toString(),
       ).equals('x * y');
       check(
-        MonomialAccumulator.negateMonomial(Mul([IntegerNumber.two, x]))
+        MonomialAccumulator.negateMonomial(Mul.of([IntegerNumber.two, x]))
             .toString(),
       ).equals('-2 * x');
-      check(MonomialAccumulator.negateMonomial(Mul([x, y])))
-          .equals(Mul([IntegerNumber.negativeOne, x, y]));
+      check(MonomialAccumulator.negateMonomial(Mul.of([x, y])))
+          .equals(Mul.of([IntegerNumber.negativeOne, x, y]));
 
       final collected = <Expr>[];
       MonomialAccumulator.collectTerms(
-        Mul([
+        Mul.of([
           IntegerNumber.negativeOne,
-          Add([
+          Add.of([
             x,
-            Mul([
+            Mul.of([
               IntegerNumber.negativeOne,
-              Add([y, IntegerNumber.one]),
+              Add.of([y, IntegerNumber.one]),
             ]),
           ]),
         ]),
@@ -199,14 +201,14 @@ void main() {
 
         // When num/den simplifies to a negative ratio (scalar or Mul), logs are not merged
         final negRatioLogs1 =
-            (Ln(const Variable('x')) -
-                    Ln(IntegerNumber.of(-2) * const Variable('x')))
+            (Fn.ln(const Variable('x')) -
+                    Fn.ln(IntegerNumber.of(-2) * const Variable('x')))
                 .simplify(assumptions: posAssumptions);
         check(negRatioLogs1).isA<Add>();
 
         final negRatioLogs2 =
-            (Ln(const Variable('x')) -
-                    Ln(IntegerNumber.of(-2) * const Variable('y')))
+            (Fn.ln(const Variable('x')) -
+                    Fn.ln(IntegerNumber.of(-2) * const Variable('y')))
                 .simplify(assumptions: posAssumptions);
         check(negRatioLogs2).isA<Add>();
       },
@@ -246,40 +248,39 @@ void main() {
   group('OrderTerm absorption and term decomposition helpers', () {
     test('absorbs polynomial and shifted terms into OrderTerm', () {
       check(
-        (Expr.parse('1 + x + x^2 + x^3') + const OrderTerm('x', 2))
+        (Expr.parse('1 + x + x^2 + x^3') + OrderTerm('x', 2))
             .simplify()
             .toString(),
       ).equals('1 + x + O(x^2)');
-      check((IntegerNumber.of(5) + const OrderTerm('x', 0)).simplify())
-          .equals(const OrderTerm('x', 0));
+      check((IntegerNumber.of(5) + OrderTerm('x', 0)).simplify())
+          .equals(OrderTerm('x', 0));
 
       // Shifted OrderTerm around point = 1
-      const shiftedOrd = OrderTerm('x', 2, point: IntegerNumber.one);
-      final shiftedSum = Add([
+      final shiftedOrd = OrderTerm('x', 2, point: IntegerNumber.one);
+      final shiftedSum = Add.of([
         IntegerNumber.one,
         const Variable('x') - IntegerNumber.one,
-        Pow(const Variable('x') - IntegerNumber.one, IntegerNumber.two),
-        Mul([
+        Pow.of(const Variable('x') - IntegerNumber.one, IntegerNumber.two),
+        Mul.of([
           const Variable('y'),
-          Pow(const Variable('x') - IntegerNumber.one, IntegerNumber.of(3)),
+          Pow.of(const Variable('x') - IntegerNumber.one, IntegerNumber.of(3)),
         ]),
         shiftedOrd,
       ]).simplify();
       check(shiftedSum.toString()).equals('x + O((x - 1)^2)');
 
-      final zeroShifted = Add([
+      final zeroShifted = Add.of([
         IntegerNumber.of(5),
-        Mul([const Variable('y'), const Variable('x') - IntegerNumber.one]),
-        const OrderTerm('x', 0, point: IntegerNumber.one),
+        Mul.of([const Variable('y'), const Variable('x') - IntegerNumber.one]),
+        OrderTerm('x', 0, point: IntegerNumber.one),
       ]).simplify();
-      check(zeroShifted)
-          .equals(const OrderTerm('x', 0, point: IntegerNumber.one));
+      check(zeroShifted).equals(OrderTerm('x', 0, point: IntegerNumber.one));
 
       // Multiple distinct OrderTerms are sorted deterministically
-      final multiOrd = Add([
-        const OrderTerm('y', 2),
-        const OrderTerm('x', 2, point: IntegerNumber.one),
-        const OrderTerm('x', 2),
+      final multiOrd = Add.of([
+        OrderTerm('y', 2),
+        OrderTerm('x', 2, point: IntegerNumber.one),
+        OrderTerm('x', 2),
       ]).simplify();
       check(multiOrd.toString()).equals('O(x^2) + O((x - 1)^2) + O(y^2)');
     });
@@ -291,75 +292,84 @@ void main() {
 
       check(decomposeTerm(IntegerNumber.of(5)))
           .equals((IntegerNumber.of(5), IntegerNumber.one));
-      check(decomposeTerm(Mul([IntegerNumber.two, IntegerNumber.of(3)])))
+      check(decomposeTerm(Mul.of([IntegerNumber.two, IntegerNumber.of(3)])))
           .equals((IntegerNumber.of(6), IntegerNumber.one));
       final (coeff1, _) = decomposeTerm(
-        Mul([
+        Mul.of([
           IntegerNumber.two,
-          Mul([IntegerNumber.of(3), x, y]),
+          Mul.of([IntegerNumber.of(3), x, y]),
         ]),
       );
       check(coeff1).equals(IntegerNumber.of(6));
 
       check(splitNumeratorDenominator(RationalNumber(3, 4)))
           .equals((IntegerNumber.of(3), IntegerNumber.of(4)));
-      check(splitNumeratorDenominator(Pow(x, IntegerNumber.negativeOne)))
+      check(splitNumeratorDenominator(Pow.of(x, IntegerNumber.negativeOne)))
           .equals((IntegerNumber.one, x));
-      check(splitNumeratorDenominator(Pow(x, IntegerNumber.of(-2))))
-          .equals((IntegerNumber.one, Pow(x, IntegerNumber.two)));
+      check(splitNumeratorDenominator(Pow.of(x, IntegerNumber.of(-2))))
+          .equals((IntegerNumber.one, Pow.of(x, IntegerNumber.two)));
       final (num1, _) = splitNumeratorDenominator(
-        Mul([
+        Mul.of([
           FractionNumber.half,
-          Pow(x, IntegerNumber.negativeOne),
-          Pow(y, IntegerNumber.of(-2)),
+          Pow.of(x, IntegerNumber.negativeOne),
+          Pow.of(y, IntegerNumber.of(-2)),
         ]),
       );
       check(num1).equals(IntegerNumber.one);
       final (num2, _) = splitNumeratorDenominator(
-        Mul([RationalNumber(3, 4), x, y, Pow(z, IntegerNumber.negativeOne)]),
+        Mul.of([
+          RationalNumber(3, 4),
+          x,
+          y,
+          Pow.of(z, IntegerNumber.negativeOne),
+        ]),
       );
       check(num2.toString()).equals('3 * x * y');
       check(
-        splitNumeratorDenominator(Mul([x, Pow(y, IntegerNumber.negativeOne)])),
+        splitNumeratorDenominator(
+          Mul.of([x, Pow.of(y, IntegerNumber.negativeOne)]),
+        ),
       ).equals((x, y));
-      check(splitNumeratorDenominator(Mul([x, y])))
-          .equals((Mul([x, y]), IntegerNumber.one));
+      check(splitNumeratorDenominator(Mul.of([x, y])))
+          .equals((Mul.of([x, y]), IntegerNumber.one));
       check(splitNumeratorDenominator(x)).equals((x, IntegerNumber.one));
 
       // RealNumber exponents in Pythagorean identities and polynomialDegree
-      final realTrig = Add([
-        Pow(Sin(x), const RealNumber(2.0)),
-        Pow(Cos(x), const RealNumber(2.0)),
+      final realTrig = Add.of([
+        Pow.of(Fn.sin(x), const RealNumber(2.0)),
+        Pow.of(Fn.cos(x), const RealNumber(2.0)),
       ]).simplify();
       check(realTrig).equals(const RealNumber(1.0));
 
-      final realTrigUnequal = Add([
-        Mul([IntegerNumber.two, Pow(Sin(x), const RealNumber(2.0))]),
-        Pow(Cos(x), const RealNumber(2.0)),
+      final realTrigUnequal = Add.of([
+        Mul.of([IntegerNumber.two, Pow.of(Fn.sin(x), const RealNumber(2.0))]),
+        Pow.of(Fn.cos(x), const RealNumber(2.0)),
       ]).simplify();
       check(realTrigUnequal.toString()).contains('1.0');
 
-      final realHyperbolic = Add([
-        Pow(Cosh(x), const RealNumber(2.0)),
-        Mul([IntegerNumber.negativeOne, Pow(Sinh(x), const RealNumber(2.0))]),
+      final realHyperbolic = Add.of([
+        Pow.of(Fn.cosh(x), const RealNumber(2.0)),
+        Mul.of([
+          IntegerNumber.negativeOne,
+          Pow.of(Fn.sinh(x), const RealNumber(2.0)),
+        ]),
       ]).simplify();
       check(realHyperbolic).equals(const RealNumber(1.0));
 
-      check(polynomialDegree(Pow(x, const RealNumber(3.0)), 'x')).equals(3);
+      check(polynomialDegree(Pow.of(x, const RealNumber(3.0)), 'x')).equals(3);
 
       final accUndef = MonomialAccumulator(assumptions: Assumptions.none)
         ..addDecomposed(IntegerNumber.one, Constant.undefined);
       check(accUndef.build()).equals(Constant.undefined);
 
+      check((ComplexNumber.i * Constant.infinity).simplify())
+          .equals(Mul.of([ComplexNumber.i, Constant.infinity]));
       check(
-        (ComplexNumber.i * Constant.infinity).simplify(),
-      ).equals(Mul([ComplexNumber.i, Constant.infinity], isSimplified: true));
-      check(
-        Add([
+        Add.of([
           const Variable('y'),
-          const OrderTerm('x', 0, point: IntegerNumber.one),
+          OrderTerm('x', 0, point: IntegerNumber.one),
         ]).simplify(),
-      ).equals(const OrderTerm('x', 0, point: IntegerNumber.one));
+      ).equals(OrderTerm('x', 0, point: IntegerNumber.one));
     });
   });
 }

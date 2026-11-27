@@ -1,17 +1,16 @@
 part of '../ast.dart';
 
-/// Named mathematical constant (such as `pi`, `e`, `oo`, or `undefined`).
+/// Named mathematical constant (such as `pi`, `e`, `infinity`, or `undefined`).
 ///
-/// Named constants are opaque symbolic entities during algebraic manipulation
-/// (they do not fold into floating-point approximations during simplification),
-/// while providing their numerical [value] during evaluation or compilation.
+/// Named constants are opaque symbolic entities during algebraic manipulation,
+/// providing their numerical [value] during evaluation or approximation.
 final class Constant extends Expr {
   /// Creates a named mathematical constant with [name] and numerical [value].
   const new(this.name, this.value, {String? latex, String? mathMl})
     : latex = latex ?? name,
       mathMl = mathMl ?? '<mi>$name</mi>';
 
-  /// Archimedes' constant `pi ≈3.141592653589793`.
+  /// Archimedes' constant `pi ≈ 3.141592653589793`.
   static const pi = Constant(
     'pi',
     Complex(math.pi),
@@ -19,10 +18,10 @@ final class Constant extends Expr {
     mathMl: '<mi>π</mi>',
   );
 
-  /// Euler's number `e ≈2.718281828459045`.
+  /// Euler's number `e ≈ 2.718281828459045`.
   static const e = Constant('e', Complex(math.e));
 
-  /// Positive infinity `+oo`.
+  /// Positive infinity `+infinity`.
   static const infinity = Constant(
     'infinity',
     Complex(double.infinity),
@@ -30,7 +29,7 @@ final class Constant extends Expr {
     mathMl: '<mi>∞</mi>',
   );
 
-  /// Indeterminate / undefined mathematical result (such as `0 / 0` or `oo- oo`).
+  /// Indeterminate / undefined mathematical result (e.g. `0 / 0`, `oo - oo`).
   static const undefined = Constant(
     'undefined',
     Complex.nan,
@@ -51,7 +50,13 @@ final class Constant extends Expr {
   final String mathMl;
 
   @override
-  bool get isSimplified => true;
+  int get flags => (!value.isNaN && value.b != 0.0) ? kFlagHasComplex : 0;
+
+  @override
+  int get nodeCount => 1;
+
+  @override
+  int get structuralTag => 1;
 
   /// Whether this constant is strictly real-valued (`Im(value) = 0`).
   @override

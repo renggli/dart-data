@@ -1,5 +1,5 @@
 import '../ast.dart';
-import '../number/integer.dart';
+import '../functions/fn.dart';
 
 /// Strips a leading negative sign from [term] for subtraction reconstruction in
 /// additive sums (`a + (-b) -> a - b`), returning the positive remainder or
@@ -11,11 +11,7 @@ Expr? stripLeadingNegative(Expr term) => switch (term) {
     ComplexNumber.of(IntegerNumber.zero, imaginary.neg()),
   Mul(factors: [final RealNumeric first, ...final rest])
       when first.isNegative =>
-    switch ((first.neg(), rest)) {
-      (RealNumeric(isOne: true), [final single]) => single,
-      (RealNumeric(isOne: true), _) => Mul(rest),
-      (final posFirst, _) => Mul([posFirst, ...rest]),
-    },
+    Mul.of([first.neg(), ...rest]),
   Mul(
     factors: [
       ComplexNumber(real: RealNumeric(isZero: true), :final imaginary),
@@ -23,7 +19,7 @@ Expr? stripLeadingNegative(Expr term) => switch (term) {
     ],
   )
       when imaginary.isNegative =>
-    Mul([ComplexNumber.of(IntegerNumber.zero, imaginary.neg()), ...rest]),
+    Mul.of([ComplexNumber.of(IntegerNumber.zero, imaginary.neg()), ...rest]),
   _ => null,
 };
 
@@ -46,13 +42,13 @@ partitionMulFraction(List<Expr> factors) {
           isNegative = !isNegative;
         }
         final absNum = numerator.abs();
-        if (!absNum.isOne) {
+        if (absNum != BigInt.one) {
           numFactors.add(IntegerNumber(absNum));
         }
         denFactors.add(IntegerNumber(denominator));
       case Pow(:final base, exponent: final IntegerNumber exp)
           when exp.isNegative:
-        denFactors.add(exp.isNegativeOne ? base : Pow(base, exp.neg()));
+        denFactors.add(exp.isNegativeOne ? base : Pow.raw(base, exp.neg()));
       default:
         numFactors.add(f);
     }
@@ -77,26 +73,35 @@ partitionMulFraction(List<Expr> factors) {
   );
 }
 
-/// Matches positive integer powers (`k >=2`) of standard elementary functions
+/// Matches positive integer powers (`k >= 2`) of standard elementary functions
 /// (`sin^k(x)`, `cos^k(x)`, `tan^k(x)`, `sinh^k(x)`, `cosh^k(x)`, `tanh^k(x)`, `ln^k(x)`).
 ({String name, String latexCmd, Expr argument})? matchFunctionPower(
   Expr base,
   Expr exponent,
 ) {
-  if (exponent is! IntegerNumber || exponent.value < Integer.two) {
+  if (exponent is! IntegerNumber || exponent.value < _two) {
     return null;
   }
-  return switch (base) {
-    Sin(:final expr) => (name: 'sin', latexCmd: r'\sin', argument: expr),
-    Cos(:final expr) => (name: 'cos', latexCmd: r'\cos', argument: expr),
-    Tan(:final expr) => (name: 'tan', latexCmd: r'\tan', argument: expr),
-    Sinh(:final expr) => (name: 'sinh', latexCmd: r'\sinh', argument: expr),
-    Cosh(:final expr) => (name: 'cosh', latexCmd: r'\cosh', argument: expr),
-    Tanh(:final expr) => (name: 'tanh', latexCmd: r'\tanh', argument: expr),
-    Ln(:final expr) => (name: 'ln', latexCmd: r'\ln', argument: expr),
-    _ => null,
-  };
+  if (base case Call(:final spec, args: [final inner])) {
+    return switch (spec.id) {
+      FunctionId.sin ||
+      FunctionId.cos ||
+      FunctionId.tan ||
+      FunctionId.sinh ||
+      FunctionId.cosh ||
+      FunctionId.tanh ||
+      FunctionId.ln => (
+        name: spec.name,
+        latexCmd: spec.latexName ?? '\\${spec.name}',
+        argument: inner,
+      ),
+      _ => null,
+    };
+  }
+  return null;
 }
+
+final BigInt _two = BigInt.two;
 
 /// Whether the explicit multiplication dot (`\cdot`, `&#x22c5;`) can be omitted
 /// in favor of a thin space between adjacent factors [left] and [right].
@@ -125,10 +130,12 @@ bool startsWithNumber(Expr expr) => switch (expr) {
   Pow(:final base, :final exponent) =>
     base != Constant.e &&
         !(exponent is RationalNumber &&
-            exponent.numerator == Integer.one &&
-            exponent.denominator >= Integer.two) &&
+            exponent.numerator == BigInt.one &&
+            exponent.denominator >= _two) &&
         startsWithNumber(base),
-  Factorial(:final expr) => startsWithNumber(expr),
+  Call(id: FunctionId.factorial, args: [final inner]) => startsWithNumber(
+    inner,
+  ),
   _ => false,
 };
 
@@ -138,18 +145,13 @@ Expr leftmostMulFactor(Expr expr) => switch (expr) {
   _ => expr,
 };
 
+/// Whether [expr] is a `Call` to [Fn.mod].
+bool isModCall(Expr expr) => expr is Call && expr.id == FunctionId.mod;
+
 /// Whether [right] requires parentheses when appearing after a binary `-` sign.
 bool needsSubRightParens(Expr right) => switch (right) {
-  Add() ||
-  Mod() ||
-  RelationalExpr() ||
-  Piecewise() ||
-  Integral() ||
-  Derivative() ||
-  Limit() ||
-  Sum() ||
-  Product() ||
-  RootSum() => true,
+  Add() || Relational() || Piecewise() || BinderExpr() => true,
+  Call(id: FunctionId.mod) => true,
   ComplexNumber(:final real) when !real.isZero => true,
   _ when startsWithNegative(right) => true,
   _ => false,
@@ -157,23 +159,16 @@ bool needsSubRightParens(Expr right) => switch (right) {
 
 /// Whether [left] requires parentheses as the first factor of a product.
 bool needsMulLeftParens(Expr left) => switch (left) {
-  Add() ||
-  Mod() ||
-  RelationalExpr() ||
-  Piecewise() ||
-  Integral() ||
-  Derivative() ||
-  Limit() ||
-  Sum() ||
-  Product() ||
-  RootSum() => true,
+  Add() || Relational() || Piecewise() || BinderExpr() => true,
+  Call(id: FunctionId.mod) => true,
   ComplexNumber(:final real) when !real.isZero => true,
   _ => false,
 };
 
 /// Whether [right] requires parentheses as a subsequent factor of a product.
 bool needsMulRightParens(Expr right) => switch (right) {
-  Add() || Mod() || RelationalExpr() || Piecewise() => true,
+  Add() || Relational() || Piecewise() => true,
+  Call(id: FunctionId.mod) => true,
   ComplexNumber(:final real) when !real.isZero => true,
   _ when startsWithNegative(right) => true,
   _ => false,
@@ -183,18 +178,12 @@ bool needsMulRightParens(Expr right) => switch (right) {
 bool needsPowBaseParens(Expr base) => switch (base) {
   Add() ||
   Mul() ||
-  Mod() ||
-  RelationalExpr() ||
+  Relational() ||
   FractionNumber() ||
-  Factorial() ||
   Piecewise() ||
-  Integral() ||
-  Derivative() ||
-  Limit() ||
-  Sum() ||
-  Product() ||
-  RootSum() ||
+  BinderExpr() ||
   RealNumeric(isNegative: true) => true,
+  Call(id: FunctionId.mod || FunctionId.factorial) => true,
   ComplexNumber(:final real, :final imaginary)
       when !real.isZero || !imaginary.isOne =>
     true,
@@ -205,16 +194,8 @@ bool needsPowBaseParens(Expr base) => switch (base) {
 
 /// Whether [expr] requires parentheses when preceded by a unary `-` sign.
 bool needsNegOperandParens(Expr expr) => switch (expr) {
-  Add() ||
-  Mod() ||
-  RelationalExpr() ||
-  Piecewise() ||
-  Integral() ||
-  Derivative() ||
-  Limit() ||
-  Sum() ||
-  Product() ||
-  RootSum() => true,
+  Add() || Relational() || Piecewise() || BinderExpr() => true,
+  Call(id: FunctionId.mod) => true,
   ComplexNumber(:final real) when !real.isZero => true,
   _ when startsWithNegative(expr) => true,
   _ => false,

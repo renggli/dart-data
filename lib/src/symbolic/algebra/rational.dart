@@ -2,7 +2,6 @@ import '../../linear/matrix.dart';
 import '../assumptions.dart';
 import '../ast.dart';
 import '../linear/bareiss.dart';
-import '../number/integer.dart';
 import '../type/expr_data_type.dart';
 import 'expand.dart';
 import 'factor.dart';
@@ -12,7 +11,6 @@ import 'simplify.dart';
 import 'simplify/additive.dart';
 import 'simplify/multiplicative.dart';
 import 'simplify/power.dart';
-import 'structural_order.dart';
 import 'term_accumulator.dart';
 
 /// Result of univariate polynomial long division `A(x) = Q(x) B(x) + R(x)`.
@@ -286,7 +284,7 @@ extension RationalFunctionExtension on Expr {
     for (final MapEntry(key: factorBase, value: mult) in rawFactors.entries) {
       if (!factorBase.dependsOn(variable)) {
         constFactors.add(
-          mult == 1 ? factorBase : Pow(factorBase, IntegerNumber.of(mult)),
+          mult == 1 ? factorBase : Pow.of(factorBase, IntegerNumber.of(mult)),
         );
       } else {
         final coeffs = extractPolynomialCoefficients(factorBase, variable);
@@ -294,7 +292,7 @@ extension RationalFunctionExtension on Expr {
         final deg = maxPolynomialDegree(coeffs);
         if (deg <= 0) {
           constFactors.add(
-            mult == 1 ? factorBase : Pow(factorBase, IntegerNumber.of(mult)),
+            mult == 1 ? factorBase : Pow.of(factorBase, IntegerNumber.of(mult)),
           );
         } else {
           polyFactors.add((base: factorBase, multiplicity: mult, degree: deg));
@@ -342,7 +340,7 @@ extension RationalFunctionExtension on Expr {
           if (exp == 1) {
             cofactorParts.add(fJ.base);
           } else if (exp > 1) {
-            cofactorParts.add(Pow(fJ.base, IntegerNumber.of(exp)));
+            cofactorParts.add(Pow.of(fJ.base, IntegerNumber.of(exp)));
           }
         }
         final cofactorExpr = cofactorParts.isEmpty
@@ -410,7 +408,7 @@ extension RationalFunctionExtension on Expr {
                 ? IntegerNumber.one
                 : m == 1
                 ? xVar
-                : Pow(xVar, IntegerNumber.of(m));
+                : Pow.of(xVar, IntegerNumber.of(m));
             numTerms.add(
               m == 0
                   ? coeff
@@ -421,10 +419,10 @@ extension RationalFunctionExtension on Expr {
         if (numTerms.isNotEmpty) {
           final numPoly = numTerms.length == 1
               ? numTerms.first
-              : Add(numTerms).simplify(assumptions: assumptions);
+              : Add.of(numTerms).simplify(assumptions: assumptions);
           final denPow = k == 1
               ? fI.base
-              : Pow(fI.base, IntegerNumber.of(k), isSimplified: true);
+              : Pow.of(fI.base, IntegerNumber.of(k));
           pfTerms.add(
             cancelFactoredFraction(
               _factorPolynomial(numPoly, assumptions),
@@ -438,7 +436,7 @@ extension RationalFunctionExtension on Expr {
     return switch (pfTerms) {
       [] => IntegerNumber.zero,
       [final single] => single,
-      _ => Add(pfTerms).simplify(assumptions: assumptions),
+      _ => Add.of(pfTerms).simplify(assumptions: assumptions),
     };
   }
 }
@@ -507,7 +505,7 @@ Expr _togetherPow(Expr base, Expr exponent, Assumptions assumptions) {
 }
 
 Expr _togetherAdd(List<Expr> terms, Assumptions assumptions) {
-  final decomposed = <({Expr num, Integer denScalar, Map<Expr, int> denMap})>[];
+  final decomposed = <({Expr num, BigInt denScalar, Map<Expr, int> denMap})>[];
   var hasDenominator = false;
 
   for (final term in terms) {
@@ -530,7 +528,7 @@ Expr _togetherAdd(List<Expr> terms, Assumptions assumptions) {
       scalar = scalar.neg();
     }
     final q = scalar.denominator;
-    if (!q.isOne) {
+    if (q != BigInt.one) {
       adjNum = simplifyMul([
         IntegerNumber(q),
         adjNum,
@@ -545,10 +543,10 @@ Expr _togetherAdd(List<Expr> terms, Assumptions assumptions) {
   }
 
   // Compute LCM of denominator scalars and symbolic factor exponents.
-  var lcmScalar = Integer.one;
+  var lcmScalar = BigInt.one;
   final lcmFactors = <Expr, int>{};
   for (final item in decomposed) {
-    if (item.denScalar.isZero) {
+    if (item.denScalar == BigInt.zero) {
       return Constant.undefined;
     }
     final g = lcmScalar.gcd(item.denScalar);
@@ -585,7 +583,7 @@ Expr _togetherAdd(List<Expr> terms, Assumptions assumptions) {
     );
   }
 
-  final sumNum = Add(scaledNumerators);
+  final sumNum = Add.of(scaledNumerators);
   final totalNum = exceedsNodeBudget(sumNum, 1000)
       ? sumNum.simplify(assumptions: assumptions)
       : sumNum
@@ -629,7 +627,7 @@ Expr _collectAdditive(Expr expr, String variable, Assumptions assumptions) {
     final coeffs = groups[varPart]!;
     final sumCoeff = coeffs.length == 1
         ? coeffs.first
-        : Add(coeffs)
+        : Add.of(coeffs)
               .expand(assumptions: assumptions)
               .simplify(assumptions: assumptions);
     if (sumCoeff is Number && sumCoeff.isZero) continue;

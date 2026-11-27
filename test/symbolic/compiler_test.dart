@@ -59,8 +59,8 @@ void main() {
       'evaluates Re and Im on expressions with complex intermediate branches',
       () {
         const x = Variable('x');
-        final imSqrt = Im(Pow(x, FractionNumber.half));
-        final reSqrt = Re(Pow(x, FractionNumber.half));
+        final imSqrt = Fn.im(Pow.of(x, FractionNumber.half));
+        final reSqrt = Fn.re(Pow.of(x, FractionNumber.half));
         check(imSqrt.evaluate({'x': -4.0})).equals(2.0);
         check(reSqrt.evaluate({'x': -4.0})).equals(0.0);
         check(imSqrt.toFunction1D('x')(-4.0)).equals(2.0);
@@ -123,23 +123,23 @@ void main() {
     test('evaluates special integral and polylog functions in real and complex modes', () {
       const x = Variable('x');
       final realCases = <(Expr, double)>[
-        (Erfi(x), 1.6504257587975428),
-        (FresnelS(x), 0.43825914739035476),
-        (FresnelC(x), 0.7798934003768228),
-        (ExpIntegral(x), 1.8951178163559368),
-        (LogIntegral(IntegerNumber.two * x), 1.0451637801174928),
-        (SinIntegral(x), 0.946083070367183),
-        (CosIntegral(x), 0.33740392290096813),
-        (SinhIntegral(x), 1.0572508753757285),
-        (CoshIntegral(x), 0.8378669409802082),
-        (UpperGamma(IntegerNumber.two, x), 0.7357588823428847),
-        (LowerGamma(IntegerNumber.two, x), 0.2642411176571153),
+        (Fn.erfi(x), 1.6504257587975428),
+        (Fn.fresnelS(x), 0.43825914739035476),
+        (Fn.fresnelC(x), 0.7798934003768228),
+        (Fn.ei(x), 1.8951178163559368),
+        (Fn.li(IntegerNumber.two * x), 1.0451637801174928),
+        (Fn.si(x), 0.946083070367183),
+        (Fn.ci(x), 0.33740392290096813),
+        (Fn.shi(x), 1.0572508753757285),
+        (Fn.chi(x), 0.8378669409802082),
+        (Fn.upperGamma(IntegerNumber.two, x), 0.7357588823428847),
+        (Fn.lowerGamma(IntegerNumber.two, x), 0.2642411176571153),
         (
-          Polylog(IntegerNumber.two, FractionNumber.half * x),
+          Fn.polylog(IntegerNumber.two, FractionNumber.half * x),
           0.5822405264650125,
         ),
-        (EllipticF(x, FractionNumber.half), 1.0373561200021775),
-        (EllipticE(FractionNumber.half, amplitude: x), 0.9648764542686274),
+        (Fn.ellipticF(x, FractionNumber.half), 1.0373561200021775),
+        (Fn.ellipticE(x, FractionNumber.half), 0.9648764542686274),
       ];
 
       for (final (expr, expected) in realCases) {
@@ -150,7 +150,7 @@ void main() {
       }
 
       // Complex polylog evaluation with non-zero imaginary part
-      final polyC = Polylog(
+      final polyC = Fn.polylog(
         IntegerNumber.two,
         x,
       ).evaluateComplex({'x': const Complex(0.3, 0.4)});
@@ -160,19 +160,19 @@ void main() {
       // Complex-input evaluation for special opcodes
       const z = Complex(1.0, 0.5);
       for (final expr in [
-        Erfi(x),
-        FresnelS(x),
-        FresnelC(x),
-        ExpIntegral(x),
-        LogIntegral(x),
-        SinIntegral(x),
-        CosIntegral(x),
-        SinhIntegral(x),
-        CoshIntegral(x),
-        UpperGamma(IntegerNumber.two, x),
-        LowerGamma(IntegerNumber.two, x),
-        EllipticF(x, FractionNumber.half),
-        EllipticE(FractionNumber.half, amplitude: x),
+        Fn.erfi(x),
+        Fn.fresnelS(x),
+        Fn.fresnelC(x),
+        Fn.ei(x),
+        Fn.li(x),
+        Fn.si(x),
+        Fn.ci(x),
+        Fn.shi(x),
+        Fn.chi(x),
+        Fn.upperGamma(IntegerNumber.two, x),
+        Fn.lowerGamma(IntegerNumber.two, x),
+        Fn.ellipticF(x, FractionNumber.half),
+        Fn.ellipticE(x, FractionNumber.half),
       ]) {
         check(expr.evaluateComplex({'x': z}).isFinite).isTrue;
       }

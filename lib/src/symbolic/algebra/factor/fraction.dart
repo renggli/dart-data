@@ -23,7 +23,7 @@ Expr buildFactoredExpr({
       if (value == 1)
         key
       else if (value != 0)
-        Pow(key, IntegerNumber.of(value), isSimplified: key.isSimplified),
+        Pow.of(key, IntegerNumber.of(value)),
   ];
   return simplifySymbolicProduct(scalar, factorList);
 }
@@ -54,7 +54,7 @@ Expr cancelFactoredFraction(Expr num, Expr den) {
     var denKey = denFactors.containsKey(key) ? key : null;
     var negated = false;
     if (denKey == null && key is Add) {
-      final negKey = Add([for (final t in key.terms) (-t).simplify()])
+      final negKey = Add.of([for (final t in key.terms) (-t).simplify()])
           .simplify();
       if (denFactors.containsKey(negKey)) {
         denKey = negKey;
@@ -106,14 +106,14 @@ Expr distributePower(Expr base, int exponent) {
       return switch (newFactors) {
         [] => IntegerNumber.one,
         [final single] => single,
-        _ => Mul(newFactors),
+        _ => Mul.of(newFactors),
       };
     }(),
     RationalNumber() =>
-      base.powInteger(exponent) ?? Pow(base, IntegerNumber.of(exponent)),
+      base.powInteger(exponent) ?? Pow.of(base, IntegerNumber.of(exponent)),
     Pow(base: final innerBase, exponent: final RationalNumber existingExp) =>
-      Pow(innerBase, existingExp.mul(IntegerNumber.of(exponent))).simplify(),
-    _ => Pow(base, IntegerNumber.of(exponent)),
+      Pow.of(innerBase, existingExp.mul(IntegerNumber.of(exponent))).simplify(),
+    _ => Pow.of(base, IntegerNumber.of(exponent)),
   };
 }
 

@@ -5,7 +5,6 @@ import 'package:data/src/symbolic/algebra/simplify/domain.dart';
 import 'package:data/src/symbolic/algebra/simplify/special.dart';
 import 'package:data/src/symbolic/algebra/simplify/special_integrals.dart';
 import 'package:data/src/symbolic/algebra/simplify/transcendental.dart';
-import 'package:data/src/symbolic/algebra/structural_order.dart';
 import 'package:data/symbolic.dart';
 import 'package:test/scaffolding.dart';
 
@@ -21,43 +20,41 @@ void main() {
 
       const complexW = Assumptions(domains: {'w': VariableDomain.complex});
       // Complex variable without decomposition returns Re(w) and Im(w)
-      check(simplifyRe(w, assumptions: complexW))
-          .equals(Re(w, isSimplified: true));
-      check(simplifyIm(w, assumptions: complexW))
-          .equals(Im(w, isSimplified: true));
+      check(simplifyRe(w, assumptions: complexW)).equals(Fn.re(w));
+      check(simplifyIm(w, assumptions: complexW)).equals(Fn.im(w));
 
       // Syntactically real expressions: Tanh, Asinh, Erf, Erfc, Gamma, Ln, Binomial, Beta, Mod
-      check(simplifyIm(Tanh(x), assumptions: realAssumptions))
+      check(simplifyIm(Fn.tanh(x), assumptions: realAssumptions))
           .equals(IntegerNumber.zero);
-      check(simplifyIm(Asinh(x), assumptions: realAssumptions))
+      check(simplifyIm(Fn.asinh(x), assumptions: realAssumptions))
           .equals(IntegerNumber.zero);
-      check(simplifyIm(Erf(x), assumptions: realAssumptions))
+      check(simplifyIm(Fn.erf(x), assumptions: realAssumptions))
           .equals(IntegerNumber.zero);
-      check(simplifyIm(Erfc(x), assumptions: realAssumptions))
+      check(simplifyIm(Fn.erfc(x), assumptions: realAssumptions))
           .equals(IntegerNumber.zero);
-      check(simplifyIm(Gamma(x), assumptions: Assumptions.positive))
+      check(simplifyIm(Fn.gamma(x), assumptions: Assumptions.positive))
           .equals(IntegerNumber.zero);
-      check(simplifyIm(Binomial(x, y), assumptions: realAssumptions))
+      check(simplifyIm(Fn.binomial(x, y), assumptions: realAssumptions))
           .equals(IntegerNumber.zero);
-      check(simplifyIm(Beta(x, y), assumptions: Assumptions.positive))
+      check(simplifyIm(Fn.beta(x, y), assumptions: Assumptions.positive))
           .equals(IntegerNumber.zero);
-      check(simplifyIm(Mod(x, y), assumptions: realAssumptions))
+      check(simplifyIm(Fn.mod(x, y), assumptions: realAssumptions))
           .equals(IntegerNumber.zero);
 
       // Decompose Conjugate, Re, Im via toRectangularExpr
-      final expr = Add([
+      final expr = Add.of([
         x,
-        Mul([ComplexNumber.i, y]),
+        Mul.of([ComplexNumber.i, y]),
       ]);
       check(
         toRectangularExpr(
-          Conjugate(expr),
+          Fn.conj(expr),
           assumptions: realAssumptions,
         ).toString(),
       ).equals('x - i * y');
-      check(toRectangularExpr(Re(expr), assumptions: realAssumptions))
+      check(toRectangularExpr(Fn.re(expr), assumptions: realAssumptions))
           .equals(x);
-      check(toRectangularExpr(Im(expr), assumptions: realAssumptions))
+      check(toRectangularExpr(Fn.im(expr), assumptions: realAssumptions))
           .equals(y);
 
       // NotEqual simplification
@@ -84,41 +81,41 @@ void main() {
       );
       check(rectC).equals(Constant.pi);
       final rectExpr = toRectangularExpr(
-        Add([
+        Add.of([
           IntegerNumber.one,
-          Mul([ComplexNumber.i, IntegerNumber.two]),
+          Mul.of([ComplexNumber.i, IntegerNumber.two]),
         ]),
         assumptions: Assumptions.none,
       );
       check(rectExpr.toString()).equals('1 + 2 * i');
-      check(toRectangularExpr(Conjugate(z), assumptions: complexZ).toString())
+      check(toRectangularExpr(Fn.conj(z), assumptions: complexZ).toString())
           .equals('re(z) - i * im(z)');
-      check(toRectangularExpr(Re(z), assumptions: complexZ))
-          .equals(Re(z, isSimplified: true));
-      check(toRectangularExpr(Im(z), assumptions: complexZ))
-          .equals(Im(z, isSimplified: true));
+      check(toRectangularExpr(Fn.re(z), assumptions: complexZ))
+          .equals(Fn.re(z));
+      check(toRectangularExpr(Fn.im(z), assumptions: complexZ))
+          .equals(Fn.im(z));
 
       // Abs of exp with complex exponent: |exp(3 + 4i)| = exp(3)
-      final expComp = Pow(
+      final expComp = Pow.of(
         Constant.e,
-        Add([
+        Add.of([
           IntegerNumber.of(3),
-          Mul([ComplexNumber.i, IntegerNumber.of(4)]),
+          Mul.of([ComplexNumber.i, IntegerNumber.of(4)]),
         ]),
       );
       check(simplifyAbs(expComp, assumptions: Assumptions.none))
-          .equals(Pow(Constant.e, IntegerNumber.of(3), isSimplified: true));
+          .equals(Pow.of(Constant.e, IntegerNumber.of(3)));
 
       // isEvenIntegerExpr on Add and Pow
       check(
         isEvenIntegerExpr(
-          Add([IntegerNumber.of(2), IntegerNumber.of(4)]),
+          Add.of([IntegerNumber.of(2), IntegerNumber.of(4)]),
           assumptions: Assumptions.none,
         ),
       ).isTrue;
       check(
         isEvenIntegerExpr(
-          Pow(IntegerNumber.of(2), IntegerNumber.of(3)),
+          Pow.of(IntegerNumber.of(2), IntegerNumber.of(3)),
           assumptions: Assumptions.none,
         ),
       ).isTrue;
@@ -126,19 +123,22 @@ void main() {
       // isIntegerExpr guards non-integer Factorial, Binomial, and complex Sign
       check(
         isIntegerExpr(
-          Factorial(FractionNumber.half),
+          Fn.factorial(FractionNumber.half),
           assumptions: Assumptions.none,
         ),
       ).isFalse;
       check(
         isIntegerExpr(
-          Binomial(FractionNumber.half, IntegerNumber.two),
+          Fn.binomial(FractionNumber.half, IntegerNumber.two),
           assumptions: Assumptions.none,
         ),
       ).isFalse;
-      check(isIntegerExpr(Sign(z), assumptions: complexZ)).isFalse;
-      check(isIntegerExpr(Sign(x), assumptions: realAssumptions)).isTrue;
-      check(Floor(Factorial(x)).simplify()).isA<Floor>();
+      check(isIntegerExpr(Fn.sign(z), assumptions: complexZ)).isFalse;
+      check(isIntegerExpr(Fn.sign(x), assumptions: realAssumptions)).isTrue;
+      check(Fn.floor(Fn.factorial(x)).simplify())
+          .isA<Call>()
+          .has('id', (Call c) => c.id)
+          .equals(FunctionId.floor);
 
       // RealNumber contagion in Mod, Re, Im, Arg, and toPolarExpr
       check(
@@ -164,17 +164,17 @@ void main() {
       // Exact quadrant multiples of pi/6, pi/4, pi/3, pi/2 across sin, cos, tan
       for (final numVal in [1, 2, 3, 4, 5, 7, 11]) {
         for (final denVal in [2, 3, 4, 6]) {
-          final angle = Mul([
-            RationalNumber.of(Integer(numVal), Integer(denVal)),
+          final angle = Mul.of([
+            RationalNumber.of(BigInt.from(numVal), BigInt.from(denVal)),
             Constant.pi,
           ]);
           check(simplifySin(angle, assumptions: Assumptions.none).evaluate())
-              .isCloseTo(Sin(angle).evaluate(), 1e-12);
+              .isCloseTo(Fn.sin(angle).evaluate(), 1e-12);
           check(simplifyCos(angle, assumptions: Assumptions.none).evaluate())
-              .isCloseTo(Cos(angle).evaluate(), 1e-12);
+              .isCloseTo(Fn.cos(angle).evaluate(), 1e-12);
           if ((numVal * 12 ~/ denVal) % 12 != 6) {
             check(simplifyTan(angle, assumptions: Assumptions.none).evaluate())
-                .isCloseTo(Tan(angle).evaluate(), 1e-12);
+                .isCloseTo(Fn.tan(angle).evaluate(), 1e-12);
           } else {
             check(simplifyTan(angle, assumptions: Assumptions.none))
                 .equals(Constant.undefined);
@@ -183,21 +183,21 @@ void main() {
       }
 
       // Complex decomposition of Sin, Cos, Sinh, Cosh, Pow
-      final cArg = Add([
+      final cArg = Add.of([
         x,
-        Mul([ComplexNumber.i, y]),
+        Mul.of([ComplexNumber.i, y]),
       ]);
-      check(toRectangularExpr(Sin(cArg), assumptions: realAssumptions))
+      check(toRectangularExpr(Fn.sin(cArg), assumptions: realAssumptions))
           .isA<Add>();
-      check(toRectangularExpr(Cos(cArg), assumptions: realAssumptions))
+      check(toRectangularExpr(Fn.cos(cArg), assumptions: realAssumptions))
           .isA<Add>();
-      check(toRectangularExpr(Sinh(cArg), assumptions: realAssumptions))
+      check(toRectangularExpr(Fn.sinh(cArg), assumptions: realAssumptions))
           .isA<Add>();
-      check(toRectangularExpr(Cosh(cArg), assumptions: realAssumptions))
+      check(toRectangularExpr(Fn.cosh(cArg), assumptions: realAssumptions))
           .isA<Add>();
       check(
         toRectangularExpr(
-          Pow(cArg, IntegerNumber.two),
+          Pow.of(cArg, IntegerNumber.two),
           assumptions: realAssumptions,
         ),
       ).isA<Add>();
@@ -276,19 +276,19 @@ void main() {
       ).equals(x);
       check(
         simplifyFloor(
-          Add([const RealNumber(1.2), Constant.pi]),
+          Add.of([const RealNumber(1.2), Constant.pi]),
           assumptions: Assumptions.none,
         ),
       ).equals(const RealNumber(4.0));
       check(
         simplifyCeil(
-          Add([const RealNumber(1.2), Constant.pi]),
+          Add.of([const RealNumber(1.2), Constant.pi]),
           assumptions: Assumptions.none,
         ),
       ).equals(const RealNumber(5.0));
       check(
         simplifyRound(
-          Add([const RealNumber(1.2), Constant.pi]),
+          Add.of([const RealNumber(1.2), Constant.pi]),
           assumptions: Assumptions.none,
         ),
       ).equals(const RealNumber(4.0));
@@ -296,7 +296,7 @@ void main() {
           .equals(const RealNumber(1.0));
       check(
         simplifySign(
-          Add([const RealNumber(1.0), Constant.pi]),
+          Add.of([const RealNumber(1.0), Constant.pi]),
           assumptions: Assumptions.none,
         ),
       ).equals(const RealNumber(1.0));
@@ -306,10 +306,8 @@ void main() {
           assumptions: Assumptions.none,
         ),
       ).isA<RealNumber>();
-      check(simplifyRe(z, assumptions: complexZ))
-          .equals(Re(z, isSimplified: true));
-      check(simplifyIm(z, assumptions: complexZ))
-          .equals(Im(z, isSimplified: true));
+      check(simplifyRe(z, assumptions: complexZ)).equals(Fn.re(z));
+      check(simplifyIm(z, assumptions: complexZ)).equals(Fn.im(z));
       check(simplifySinh(const RealNumber(1.0), assumptions: Assumptions.none))
           .isA<RealNumber>();
       check(simplifyCosh(const RealNumber(1.0), assumptions: Assumptions.none))
@@ -319,12 +317,15 @@ void main() {
       check(simplifyExp(const RealNumber(1.0), assumptions: Assumptions.none))
           .isA<RealNumber>();
       check(
-        simplifyLn(Pow(x, FractionNumber.half), assumptions: Assumptions.none),
+        simplifyLn(
+          Pow.of(x, FractionNumber.half),
+          assumptions: Assumptions.none,
+        ),
       ).isA<Mul>();
       check(toRectangularExpr(ComplexNumber.i, assumptions: Assumptions.none))
           .equals(ComplexNumber.i);
       check(toPolarExpr(const RealNumber(-1.0), assumptions: Assumptions.none))
-          .isA<Mul>();
+          .isA<Pow>();
       check(
         simplifyIm(
           ComplexNumber(const RealNumber(1.0), IntegerNumber.two),
@@ -425,44 +426,51 @@ void main() {
           assumptions: Assumptions.none,
         ),
       ).equals(Constant.undefined);
-      check(Sin(Asin(const RealNumber(2.0))).simplify())
+      check(Fn.sin(Fn.asin(const RealNumber(2.0))).simplify())
           .equals(Constant.undefined);
 
       // isProvenReal on non-negative base with real exponent, and isIntegerExpr on Factorial and Binomial
-      check(isProvenReal(Pow(Abs(x), y), Assumptions.positive)).isTrue;
-      check(isProvenReal(Factorial(ComplexNumber.i), Assumptions.none)).isFalse;
+      check(isProvenReal(Pow.of(Fn.abs(x), y), Assumptions.positive)).isTrue;
+      check(isProvenReal(Fn.factorial(ComplexNumber.i), Assumptions.none))
+          .isFalse;
       check(
         isProvenReal(
-          Binomial(ComplexNumber.i, IntegerNumber.one),
+          Fn.binomial(ComplexNumber.i, IntegerNumber.one),
           Assumptions.none,
         ),
       ).isFalse;
-      check(isProvenReal(Floor(ComplexNumber.i), Assumptions.none)).isFalse;
-      check(isProvenReal(Ceil(ComplexNumber.i), Assumptions.none)).isFalse;
-      check(isProvenReal(Round(ComplexNumber.i), Assumptions.none)).isFalse;
-      check(isProvenReal(Sign(ComplexNumber.i), Assumptions.none)).isFalse;
-      check(Im(Factorial(ComplexNumber.i)).simplify())
+      check(isProvenReal(Fn.floor(ComplexNumber.i), Assumptions.none)).isFalse;
+      check(isProvenReal(Fn.ceil(ComplexNumber.i), Assumptions.none)).isFalse;
+      check(isProvenReal(Fn.round(ComplexNumber.i), Assumptions.none)).isFalse;
+      check(isProvenReal(Fn.sign(ComplexNumber.i), Assumptions.none)).isFalse;
+      check(Fn.im(Fn.factorial(ComplexNumber.i)).simplify())
           .not(.it()..equals(IntegerNumber.zero));
-      check(isProvenReal(LambertW(IntegerNumber.of(-1)), Assumptions.none))
+      check(isProvenReal(Fn.lambertW(IntegerNumber.of(-1)), Assumptions.none))
           .isFalse;
       check(
-        isProvenReal(LambertW(IntegerNumber.one, branch: -1), Assumptions.none),
+        isProvenReal(
+          Fn.lambertW(IntegerNumber.one, IntegerNumber.negativeOne),
+          Assumptions.none,
+        ),
       ).isFalse;
-      check(isProvenReal(LambertW(IntegerNumber.one), Assumptions.none)).isTrue;
-      check(isProvenReal(Asin(Constant.pi), Assumptions.none)).isFalse;
-      check(isProvenReal(Acos(Constant.pi), Assumptions.none)).isFalse;
-      check(isProvenReal(Atanh(Constant.e), Assumptions.none)).isFalse;
-      check(isProvenReal(Acosh(IntegerNumber.zero), Assumptions.none)).isFalse;
+      check(isProvenReal(Fn.lambertW(IntegerNumber.one), Assumptions.none))
+          .isTrue;
+      check(isProvenReal(Fn.asin(Constant.pi), Assumptions.none)).isFalse;
+      check(isProvenReal(Fn.acos(Constant.pi), Assumptions.none)).isFalse;
+      check(isProvenReal(Fn.atanh(Constant.e), Assumptions.none)).isFalse;
+      check(isProvenReal(Fn.acosh(IntegerNumber.zero), Assumptions.none))
+          .isFalse;
       const intAssumptions = Assumptions(
         domains: {'x': VariableDomain.positive, 'y': VariableDomain.integer},
       );
       check(
         isIntegerExpr(
-          Factorial(IntegerNumber.of(3)),
+          Fn.factorial(IntegerNumber.of(3)),
           assumptions: intAssumptions,
         ),
       ).isTrue;
-      check(isIntegerExpr(Binomial(y, y), assumptions: intAssumptions)).isTrue;
+      check(isIntegerExpr(Fn.binomial(y, y), assumptions: intAssumptions))
+          .isTrue;
 
       // Derivative structural comparison with point
       final d0 = Derivative(x, 'x');
@@ -494,47 +502,48 @@ void main() {
       ).equals(Constant.undefined);
 
       // Real domain checks
-      check(isProvenReal(Zeta(IntegerNumber.two), realAssumptions)).isTrue;
-      check(isProvenReal(Zeta(ComplexNumber.i), realAssumptions)).isFalse;
-      check(isProvenReal(Digamma(IntegerNumber.two), realAssumptions)).isTrue;
-      check(isProvenReal(Digamma(ComplexNumber.i), realAssumptions)).isFalse;
-      check(
-        isProvenReal(
-          Polygamma(IntegerNumber.one, IntegerNumber.two),
-          realAssumptions,
-        ),
-      ).isTrue;
-      check(
-        isProvenReal(
-          BesselJ(IntegerNumber.zero, IntegerNumber.one),
-          realAssumptions,
-        ),
-      ).isTrue;
-      check(
-        isProvenReal(
-          BesselY(IntegerNumber.zero, IntegerNumber.one),
-          realAssumptions,
-        ),
-      ).isTrue;
-      check(
-        isProvenReal(
-          BesselI(IntegerNumber.zero, IntegerNumber.one),
-          realAssumptions,
-        ),
-      ).isTrue;
-      check(
-        isProvenReal(
-          BesselK(IntegerNumber.zero, IntegerNumber.one),
-          realAssumptions,
-        ),
-      ).isTrue;
-      check(isProvenReal(EllipticK(FractionNumber.half), realAssumptions))
+      check(isProvenReal(Fn.zeta(IntegerNumber.two), realAssumptions)).isTrue;
+      check(isProvenReal(Fn.zeta(ComplexNumber.i), realAssumptions)).isFalse;
+      check(isProvenReal(Fn.digamma(IntegerNumber.two), realAssumptions))
           .isTrue;
-      check(isProvenReal(EllipticK(IntegerNumber.two), realAssumptions))
+      check(isProvenReal(Fn.digamma(ComplexNumber.i), realAssumptions)).isFalse;
+      check(
+        isProvenReal(
+          Fn.polygamma(IntegerNumber.one, IntegerNumber.two),
+          realAssumptions,
+        ),
+      ).isTrue;
+      check(
+        isProvenReal(
+          Fn.besselJ(IntegerNumber.zero, IntegerNumber.one),
+          realAssumptions,
+        ),
+      ).isTrue;
+      check(
+        isProvenReal(
+          Fn.besselY(IntegerNumber.zero, IntegerNumber.one),
+          realAssumptions,
+        ),
+      ).isTrue;
+      check(
+        isProvenReal(
+          Fn.besselI(IntegerNumber.zero, IntegerNumber.one),
+          realAssumptions,
+        ),
+      ).isTrue;
+      check(
+        isProvenReal(
+          Fn.besselK(IntegerNumber.zero, IntegerNumber.one),
+          realAssumptions,
+        ),
+      ).isTrue;
+      check(isProvenReal(Fn.ellipticK(FractionNumber.half), realAssumptions))
+          .isTrue;
+      check(isProvenReal(Fn.ellipticK(IntegerNumber.two), realAssumptions))
           .isFalse;
-      check(isProvenReal(EllipticE(FractionNumber.half), realAssumptions))
+      check(isProvenReal(Fn.ellipticE(FractionNumber.half), realAssumptions))
           .isTrue;
-      check(isProvenReal(EllipticE(IntegerNumber.two), realAssumptions))
+      check(isProvenReal(Fn.ellipticE(IntegerNumber.two), realAssumptions))
           .isFalse;
     });
   });

@@ -6,6 +6,7 @@ import '../algebra/simplify/domain.dart';
 import '../assumptions.dart';
 import '../ast.dart';
 import '../compiler.dart';
+import '../functions/fn.dart';
 import 'limit.dart';
 import 'limit_gruntz.dart';
 
@@ -143,7 +144,8 @@ Expr rewriteStirlingAtPosInf(
   Assumptions assumptions,
 ) {
   switch (expr) {
-    case Factorial(expr: final inner) when inner.dependsOn(variable):
+    case Call(id: FunctionId.factorial, args: [final inner])
+        when inner.dependsOn(variable):
       final rewrittenInner = rewriteStirlingAtPosInf(
         inner,
         variable,
@@ -156,18 +158,19 @@ Expr rewriteStirlingAtPosInf(
         assumptions: assumptions,
       );
       if (isPositiveInfinity(innerLim)) {
-        return Pow(
+        return Pow.of(
               IntegerNumber.two * Constant.pi * rewrittenInner,
               FractionNumber.half,
             ) *
             _stirlingPower(rewrittenInner) *
-            Pow(
+            Pow.of(
               Constant.e,
               IntegerNumber.one / (IntegerNumber.of(12) * rewrittenInner),
             );
       }
-      return Factorial(rewrittenInner);
-    case Gamma(expr: final inner) when inner.dependsOn(variable):
+      return Fn.factorial(rewrittenInner);
+    case Call(id: FunctionId.gamma, args: [final inner])
+        when inner.dependsOn(variable):
       final rewrittenInner = rewriteStirlingAtPosInf(
         inner,
         variable,
@@ -180,17 +183,17 @@ Expr rewriteStirlingAtPosInf(
         assumptions: assumptions,
       );
       if (isPositiveInfinity(innerLim)) {
-        return Pow(
+        return Pow.of(
               (IntegerNumber.two * Constant.pi) / rewrittenInner,
               FractionNumber.half,
             ) *
             _stirlingPower(rewrittenInner) *
-            Pow(
+            Pow.of(
               Constant.e,
               IntegerNumber.one / (IntegerNumber.of(12) * rewrittenInner),
             );
       }
-      return Gamma(rewrittenInner);
+      return Fn.gamma(rewrittenInner);
     default:
       return expr.mapChildren(
         (c) => rewriteStirlingAtPosInf(c, variable, assumptions),
@@ -205,10 +208,10 @@ Expr _stirlingPower(Expr u) {
           !(factors.first as RationalNumber).isNegative &&
           !(factors.first as RationalNumber).isZero) {
     final c = factors.first;
-    final rest = factors.length == 2 ? factors[1] : Mul(factors.sublist(1));
-    return Pow(c, u) * Pow(rest / Constant.e, u);
+    final rest = factors.length == 2 ? factors[1] : Mul.of(factors.sublist(1));
+    return Pow.of(c, u) * Pow.of(rest / Constant.e, u);
   }
-  return Pow(u / Constant.e, u);
+  return Pow.of(u / Constant.e, u);
 }
 
 Expr _combineNumericPowers(
@@ -251,18 +254,18 @@ Expr _combineNumericPowers(
           assumptions: assumptions,
         );
         if (rem != IntegerNumber.zero) {
-          remFactors.add(Pow(base, rem).simplify(assumptions: assumptions));
+          remFactors.add(Pow.of(base, rem).simplify(assumptions: assumptions));
         }
       }
 
       final combinedPow = combinedBase == IntegerNumber.one
           ? IntegerNumber.one
-          : Pow(
+          : Pow.of(
               combinedBase,
               Variable(variable),
             ).simplify(assumptions: assumptions);
 
-      return Mul([...otherFactors, ...remFactors, combinedPow])
+      return Mul.of([...otherFactors, ...remFactors, combinedPow])
           .simplify(assumptions: assumptions);
     }
   }
@@ -276,7 +279,7 @@ Expr resolveAsymptoticAbsAndPiecewise(Expr expr, String variable) {
   final mapped = expr.mapChildren(
     (c) => resolveAsymptoticAbsAndPiecewise(c, variable),
   );
-  if (mapped case Abs(expr: final inner)) {
+  if (mapped case Call(id: FunctionId.abs, args: [final inner])) {
     final sign = asymptoticSignAtInfinity(inner, variable);
     if (sign > 0) return inner;
     if (sign < 0) return (-inner).simplify();
@@ -316,21 +319,21 @@ Expr resolveAsymptoticAbsAndPiecewise(Expr expr, String variable) {
   return mapped;
 }
 
-bool? _evalRelationAtPosInf(RelationalExpr relation, String variable) {
+bool? _evalRelationAtPosInf(Relational relation, String variable) {
   final diff = (relation.left - relation.right).simplify();
   final sign = asymptoticSignAtInfinity(diff, variable);
   if (sign != 0) {
-    return switch (relation) {
-      GreaterThan() || GreaterEqual() => sign > 0,
-      LessThan() || LessEqual() => sign < 0,
-      Equal() => false,
-      NotEqual() => true,
+    return switch (relation.op) {
+      RelOp.greaterThan || RelOp.greaterEqual => sign > 0,
+      RelOp.lessThan || RelOp.lessEqual => sign < 0,
+      RelOp.equal => false,
+      RelOp.notEqual => true,
     };
   }
   if (diff is Number && diff.isZero) {
-    return switch (relation) {
-      GreaterEqual() || LessEqual() || Equal() => true,
-      GreaterThan() || LessThan() || NotEqual() => false,
+    return switch (relation.op) {
+      RelOp.greaterEqual || RelOp.lessEqual || RelOp.equal => true,
+      RelOp.greaterThan || RelOp.lessThan || RelOp.notEqual => false,
     };
   }
   if (relation.freeVariables.difference({variable}).isNotEmpty) {
@@ -362,8 +365,8 @@ bool isBoundedFactorAtInfinity(Expr expr, String variable) {
   final realVar = Assumptions(domains: {variable: VariableDomain.real});
   return switch (expr) {
     _ when !expr.dependsOn(variable) => isWellDefinedFinite(expr),
-    Sin(expr: final inner) ||
-    Cos(expr: final inner) => isProvenReal(inner, realVar),
+    Call(id: FunctionId.sin || FunctionId.cos, args: [final inner]) =>
+      isProvenReal(inner, realVar),
     Pow(base: final RealNumeric b, :final exponent) => () {
       final cmp = b.abs().compareTo(IntegerNumber.one);
       if (cmp == 0) return true;
@@ -458,7 +461,7 @@ Expr? exponentialPolynomialLimitAtInfinity(
     if (expBase != null && expScale != null) {
       final poly = polyFactors.isEmpty
           ? IntegerNumber.one
-          : Mul(polyFactors).simplify(assumptions: assumptions);
+          : Mul.of(polyFactors).simplify(assumptions: assumptions);
       final polyDeg = polynomialDegreeAndLead(poly, variable);
       if (polyDeg != null) {
         final (_, lead) = polyDeg;
@@ -506,7 +509,7 @@ Expr? exponentialPolynomialLimitAtInfinity(
     final coeffs = byDegree[deg]!;
     final sum = coeffs.length == 1
         ? coeffs.first.simplify()
-        : Add(coeffs).simplify();
+        : Add.of(coeffs).simplify();
     if (sum != IntegerNumber.zero) {
       return (deg, sum);
     }
@@ -537,7 +540,7 @@ Expr? exponentialPolynomialLimitAtInfinity(
     final coeff = switch (coeffFactors) {
       [] => IntegerNumber.one,
       [final single] => single,
-      _ => Mul(coeffFactors).simplify(),
+      _ => Mul.of(coeffFactors).simplify(),
     };
     return (degree: degree, coeff: coeff);
   }
@@ -558,36 +561,36 @@ Expr rewriteHyperbolicsToExp(Expr expr, Assumptions assumptions) {
     (c) => rewriteHyperbolicsToExp(c, assumptions),
   );
   return switch (mapped) {
-    Sinh(expr: final u) =>
+    Call(id: FunctionId.sinh, args: [final u]) =>
       (FractionNumber.half *
-              (Pow(Constant.e, u) -
-                  Pow(Constant.e, (-u).simplify(assumptions: assumptions))))
+              (Pow.of(Constant.e, u) -
+                  Pow.of(Constant.e, (-u).simplify(assumptions: assumptions))))
           .simplify(assumptions: assumptions),
-    Cosh(expr: final u) =>
+    Call(id: FunctionId.cosh, args: [final u]) =>
       (FractionNumber.half *
-              (Pow(Constant.e, u) +
-                  Pow(Constant.e, (-u).simplify(assumptions: assumptions))))
+              (Pow.of(Constant.e, u) +
+                  Pow.of(Constant.e, (-u).simplify(assumptions: assumptions))))
           .simplify(assumptions: assumptions),
-    Tanh(expr: final u) => () {
-      final ePos = Pow(Constant.e, u);
-      final eNeg = Pow(Constant.e, (-u).simplify(assumptions: assumptions));
+    Call(id: FunctionId.tanh, args: [final u]) => () {
+      final ePos = Pow.of(Constant.e, u);
+      final eNeg = Pow.of(Constant.e, (-u).simplify(assumptions: assumptions));
       return ((ePos - eNeg) / (ePos + eNeg)).simplify(assumptions: assumptions);
     }(),
-    Asinh(expr: final u) => Ln(
+    Call(id: FunctionId.asinh, args: [final u]) => Fn.ln(
       u +
-          Pow(
-            Pow(u, IntegerNumber.two) + IntegerNumber.one,
+          Pow.of(
+            Pow.of(u, IntegerNumber.two) + IntegerNumber.one,
             FractionNumber.half,
           ),
     ).simplify(assumptions: assumptions),
-    Acosh(expr: final u) => Ln(
+    Call(id: FunctionId.acosh, args: [final u]) => Fn.ln(
       u +
-          Pow(u - IntegerNumber.one, FractionNumber.half) *
-              Pow(u + IntegerNumber.one, FractionNumber.half),
+          Pow.of(u - IntegerNumber.one, FractionNumber.half) *
+              Pow.of(u + IntegerNumber.one, FractionNumber.half),
     ).simplify(assumptions: assumptions),
-    Atanh(expr: final u) =>
+    Call(id: FunctionId.atanh, args: [final u]) =>
       (FractionNumber.half *
-              Ln((IntegerNumber.one + u) / (IntegerNumber.one - u)))
+              Fn.ln((IntegerNumber.one + u) / (IntegerNumber.one - u)))
           .simplify(assumptions: assumptions),
     _ =>
       identical(mapped, expr)
@@ -596,15 +599,17 @@ Expr rewriteHyperbolicsToExp(Expr expr, Assumptions assumptions) {
   };
 }
 
-bool containsLogOfVariable(Expr expr, String variable) =>
-    expr.anyNode((e) => e is Ln && e.expr.dependsOn(variable));
+bool containsLogOfVariable(Expr expr, String variable) => expr.anyNode(
+  (e) => e is Call && e.id == FunctionId.ln && e.args[0].dependsOn(variable),
+);
 
 bool containsUnboundedOscillation(Expr expr, String variable) =>
     expr.anyNode((e) {
       if (e
-          case Sin(expr: final inner) ||
-              Cos(expr: final inner) ||
-              Tan(expr: final inner)
+          case Call(
+            id: FunctionId.sin || FunctionId.cos || FunctionId.tan,
+            args: [final inner],
+          )
           when inner.dependsOn(variable)) {
         try {
           final lim = computeLimit(
@@ -652,12 +657,12 @@ Expr? trySqueezeBoundedOscillation(Expr expr, String variable) {
   final numPart = switch (nonOscNum) {
     [] => IntegerNumber.one,
     [final single] => single,
-    _ => Mul(nonOscNum),
+    _ => Mul.of(nonOscNum),
   };
   final denPart = switch (denFactors) {
     [] => IntegerNumber.one,
     [final single] => single,
-    _ => Mul(denFactors),
+    _ => Mul.of(denFactors),
   };
 
   final envelope = (numPart / denPart).simplify();
@@ -682,7 +687,10 @@ Expr? trySqueezeBoundedOscillation(Expr expr, String variable) {
 }
 
 bool _isBoundedOscillator(Expr expr, String variable) => switch (expr) {
-  Sin() || Cos() => containsUnboundedOscillation(expr, variable),
+  Call(id: FunctionId.sin || FunctionId.cos) => containsUnboundedOscillation(
+    expr,
+    variable,
+  ),
   Pow(:final base, exponent: final RealNumeric exp)
       when !exp.isNegative && !exp.isZero =>
     _isBoundedOscillator(base, variable),
@@ -699,10 +707,14 @@ bool _isBoundedAtInfinity(Expr expr, String variable) {
   if (!expr.dependsOn(variable)) return true;
   final realVar = Assumptions(domains: {variable: VariableDomain.real});
   return switch (expr) {
-    Sin(expr: final inner) ||
-    Cos(expr: final inner) ||
-    Tanh(expr: final inner) => isProvenReal(inner, realVar),
-    Atan(expr: final inner) => isProvenReal(inner, realVar),
+    Call(
+      id: FunctionId.sin ||
+          FunctionId.cos ||
+          FunctionId.tanh ||
+          FunctionId.atan,
+      args: [final inner],
+    ) =>
+      isProvenReal(inner, realVar),
     Add(:final terms) => terms.every((t) => _isBoundedAtInfinity(t, variable)),
     Mul(:final factors) => factors.every(
       (f) => _isBoundedAtInfinity(f, variable),
@@ -727,12 +739,12 @@ Expr? tryInfiniteLimit(Expr expr, String variable, Assumptions assumptions) {
     if (constFactors.isNotEmpty && varFactors.isNotEmpty) {
       final varExpr = varFactors.length == 1
           ? varFactors.first
-          : Mul(varFactors).simplify(assumptions: assumptions);
+          : Mul.of(varFactors).simplify(assumptions: assumptions);
       final varLim = tryInfiniteLimit(varExpr, variable, assumptions);
       if (varLim == null) return null;
       final constExpr = constFactors.length == 1
           ? constFactors.first
-          : Mul(constFactors).simplify(assumptions: assumptions);
+          : Mul.of(constFactors).simplify(assumptions: assumptions);
       final prod = (constExpr * varLim).simplify(assumptions: assumptions);
       return prod == Constant.undefined ? null : prod;
     }
@@ -766,7 +778,7 @@ Expr? tryFiniteAddLimit(
     }
     limits.add(lim);
   }
-  return Add(limits).simplify(assumptions: assumptions);
+  return Add.of(limits).simplify(assumptions: assumptions);
 }
 
 (Expr coeff, Expr exponent)? _matchScaledExp(Expr term, String variable) {
@@ -790,7 +802,7 @@ Expr? tryFiniteAddLimit(
             ? IntegerNumber.one
             : coeffFactors.length == 1
             ? coeffFactors.first
-            : Mul(coeffFactors, isSimplified: true);
+            : Mul.of(coeffFactors);
         return (coeff, expArg);
       }
       return null;
@@ -806,7 +818,10 @@ Expr expandSubdominantExponentials(
   bool inCancellingContext = false,
 ]) {
   if (!expr.dependsOn(variable)) return expr;
-  final childCancel = inCancellingContext || expr is Add || expr is Ln;
+  final childCancel =
+      inCancellingContext ||
+      expr is Add ||
+      (expr is Call && expr.id == FunctionId.ln);
   final mapped = expr.mapChildren(
     (c) => expandSubdominantExponentials(c, variable, assumptions, childCancel),
   );
@@ -823,24 +838,27 @@ Expr expandSubdominantExponentials(
         if (delta is Number && delta.isZero) return IntegerNumber.zero;
         final deltaLim = tryInfiniteLimit(delta, variable, assumptions);
         if (deltaLim == IntegerNumber.zero) {
-          return (c1 * Pow(Constant.e, v) * delta).simplify(
+          return (c1 * Pow.of(Constant.e, v) * delta).simplify(
             assumptions: assumptions,
           );
         }
         final bothPoly =
-            _isPolyMonomialTerm(u, variable) &&
-            _isPolyMonomialTerm(v, variable);
+            isPolyMonomialTerm(u, variable) && isPolyMonomialTerm(v, variable);
         if (!bothPoly) {
           if (deltaLim != null && isPositiveInfinity(deltaLim)) {
-            return (c1 * Pow(Constant.e, u)).simplify(assumptions: assumptions);
+            return (c1 * Pow.of(Constant.e, u)).simplify(
+              assumptions: assumptions,
+            );
           }
           if (deltaLim != null && isNegativeInfinity(deltaLim)) {
-            return (c2 * Pow(Constant.e, v)).simplify(assumptions: assumptions);
+            return (c2 * Pow.of(Constant.e, v)).simplify(
+              assumptions: assumptions,
+            );
           }
           if (deltaLim != null && !deltaLim.dependsOn(variable)) {
             return (c1 *
-                    Pow(Constant.e, v) *
-                    (Pow(Constant.e, deltaLim) - IntegerNumber.one))
+                    Pow.of(Constant.e, v) *
+                    (Pow.of(Constant.e, deltaLim) - IntegerNumber.one))
                 .simplify(assumptions: assumptions);
           }
         }
@@ -891,7 +909,7 @@ Expr simplifyMulFiniteExponentials(
       newFactors.add(f);
     }
     var result = changed
-        ? Mul(newFactors).simplify(assumptions: assumptions)
+        ? Mul.of(newFactors).simplify(assumptions: assumptions)
         : expr;
     if (result is Mul &&
         result.factors.any(
@@ -904,7 +922,7 @@ Expr simplifyMulFiniteExponentials(
   return expr;
 }
 
-bool _isPolyMonomialTerm(Expr term, String variable) {
+bool isPolyMonomialTerm(Expr term, String variable) {
   if (!term.dependsOn(variable)) return true;
   if (monomialDegree(term, variable) != null) return true;
   if (term case Mul(:final factors)) {
@@ -915,36 +933,6 @@ bool _isPolyMonomialTerm(Expr term, String variable) {
   return false;
 }
 
-Expr splitPolyExpTerms(Expr expr, String variable, Assumptions assumptions) {
-  if (!expr.dependsOn(variable)) return expr;
-  if (expr case Pow(base: Constant.e, exponent: Add(:final terms))) {
-    final polyTerms = <Expr>[];
-    final otherTerms = <Expr>[];
-    var hasVarPoly = false;
-    for (final t in terms) {
-      if (_isPolyMonomialTerm(t, variable)) {
-        polyTerms.add(t);
-        if (t.dependsOn(variable)) hasVarPoly = true;
-      } else {
-        otherTerms.add(t);
-      }
-    }
-    if (hasVarPoly && otherTerms.isNotEmpty) {
-      final polyExp = polyTerms.length == 1
-          ? polyTerms.first
-          : Add(polyTerms).simplify(assumptions: assumptions);
-      final otherExp = otherTerms.length == 1
-          ? otherTerms.first
-          : Add(otherTerms).simplify(assumptions: assumptions);
-      return Mul([
-        Pow(Constant.e, polyExp, isSimplified: true),
-        Pow(Constant.e, otherExp, isSimplified: true),
-      ], isSimplified: true);
-    }
-  }
-  return expr.mapChildren((c) => splitPolyExpTerms(c, variable, assumptions));
-}
-
 Expr? combineLogAddTerms(
   List<Expr> terms,
   String variable,
@@ -953,14 +941,14 @@ Expr? combineLogAddTerms(
   final logTerms = <({Expr coeff, Expr arg})>[];
   final otherTerms = <Expr>[];
   for (final t in terms) {
-    if (t case Ln(:final expr)) {
+    if (t case Call(id: FunctionId.ln, args: [final expr])) {
       logTerms.add((coeff: IntegerNumber.one, arg: expr));
     } else if (t case Mul(:final factors)) {
-      Ln? lnNode;
+      Call? lnNode;
       final coeffFactors = <Expr>[];
       var valid = true;
       for (final f in factors) {
-        if (f is Ln && lnNode == null) {
+        if (f is Call && f.id == FunctionId.ln && lnNode == null) {
           lnNode = f;
         } else if (f is RealNumeric) {
           coeffFactors.add(f);
@@ -972,8 +960,8 @@ Expr? combineLogAddTerms(
       if (valid && lnNode != null && coeffFactors.isNotEmpty) {
         final coeff = coeffFactors.length == 1
             ? coeffFactors.first
-            : Mul(coeffFactors).simplify(assumptions: assumptions);
-        logTerms.add((coeff: coeff, arg: lnNode.expr));
+            : Mul.of(coeffFactors).simplify(assumptions: assumptions);
+        logTerms.add((coeff: coeff, arg: lnNode.args[0]));
       } else {
         otherTerms.add(t);
       }
@@ -982,48 +970,49 @@ Expr? combineLogAddTerms(
     }
   }
   if (logTerms.length < 2) return null;
-  var lcmDen = 1;
+  var lcmDen = BigInt.one;
   var allRational = true;
   for (final (:coeff, arg: _) in logTerms) {
-    if (coeff case RationalNumber(:final denominator)
-        when denominator.asInt != null) {
-      final den = denominator.asInt!.abs();
+    if (coeff case RationalNumber(:final denominator)) {
+      final den = denominator.abs();
       lcmDen = (lcmDen * den) ~/ lcmDen.gcd(den);
     } else {
       allRational = false;
       break;
     }
   }
-  final scale = allRational && lcmDen > 1
-      ? IntegerNumber.of(lcmDen)
+  final scale = allRational && lcmDen > BigInt.one
+      ? IntegerNumber(lcmDen)
       : IntegerNumber.one;
-  var gcdNum = 0;
+  var gcdNum = BigInt.zero;
   if (allRational) {
     for (final (:coeff, arg: _) in logTerms) {
-      if (coeff case RationalNumber(:final numerator, :final denominator)
-          when numerator.asInt != null && denominator.asInt != null) {
-        final scaledNum =
-            numerator.asInt!.abs() * (lcmDen ~/ denominator.asInt!.abs());
-        gcdNum = gcdNum == 0 ? scaledNum : gcdNum.gcd(scaledNum);
+      if (coeff case RationalNumber(:final numerator, :final denominator)) {
+        final scaledNum = numerator.abs() * (lcmDen ~/ denominator.abs());
+        gcdNum = gcdNum == BigInt.zero ? scaledNum : gcdNum.gcd(scaledNum);
       } else {
-        gcdNum = 1;
+        gcdNum = BigInt.one;
         break;
       }
     }
   }
-  final factorGcd = allRational && gcdNum > 1
-      ? IntegerNumber.of(gcdNum)
+  final factorGcd = allRational && gcdNum > BigInt.one
+      ? IntegerNumber(gcdNum)
       : IntegerNumber.one;
-  final combinedArg = Mul([
+  final combinedArg = Mul.of([
     for (final (:coeff, :arg) in logTerms)
-      Pow(arg, (coeff * scale / factorGcd).simplify(assumptions: assumptions)),
+      Pow.of(
+        arg,
+        (coeff * scale / factorGcd).simplify(assumptions: assumptions),
+      ),
   ]).simplify(assumptions: assumptions);
   final outerCoeff = (factorGcd / scale).simplify(assumptions: assumptions);
   final combinedLog = outerCoeff == IntegerNumber.one
-      ? Ln(combinedArg)
-      : outerCoeff * Ln(combinedArg);
+      ? Fn.ln(combinedArg)
+      : outerCoeff * Fn.ln(combinedArg);
   if (otherTerms.isEmpty) return combinedLog;
-  return Add([...otherTerms, combinedLog]).simplify(assumptions: assumptions);
+  return Add.of([...otherTerms, combinedLog])
+      .simplify(assumptions: assumptions);
 }
 
 Expr? tryLogVsPowerDominance(
@@ -1040,17 +1029,17 @@ Expr? tryLogVsPowerDominance(
       continue;
     }
     final innerLn = switch (t) {
-      Ln(:final expr) => expr,
+      Call(id: FunctionId.ln, args: [final expr]) => expr,
       Mul(:final factors) => () {
-        Ln? found;
+        Call? found;
         for (final f in factors) {
-          if (f is Ln && found == null) {
+          if (f is Call && f.id == FunctionId.ln && found == null) {
             found = f;
           } else if (f.dependsOn(variable)) {
             return null;
           }
         }
-        return found?.expr;
+        return found?.args[0];
       }(),
       _ => null,
     };
@@ -1065,7 +1054,7 @@ Expr? tryLogVsPowerDominance(
   if (logTerms.isEmpty || otherTerms.isEmpty) return null;
   final otherExpr = otherTerms.length == 1
       ? otherTerms.first
-      : Add(otherTerms).simplify(assumptions: assumptions);
+      : Add.of(otherTerms).simplify(assumptions: assumptions);
   if (!otherExpr.dependsOn(variable) || !isPurelyAlgebraic(otherExpr)) {
     return null;
   }
@@ -1093,6 +1082,6 @@ bool isPurelyAlgebraic(Expr expr) => switch (expr) {
   Add(:final terms) => terms.every(isPurelyAlgebraic),
   Mul(:final factors) => factors.every(isPurelyAlgebraic),
   Pow(:final base, exponent: RealNumeric()) => isPurelyAlgebraic(base),
-  Abs(:final expr) => isPurelyAlgebraic(expr),
+  Call(id: FunctionId.abs, args: [final expr]) => isPurelyAlgebraic(expr),
   _ => false,
 };

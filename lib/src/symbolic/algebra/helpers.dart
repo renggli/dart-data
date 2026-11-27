@@ -1,24 +1,11 @@
 import '../assumptions.dart';
 import '../ast.dart';
-import '../number/integer.dart';
 import 'expand.dart';
 import 'simplify.dart';
 import 'term_accumulator.dart';
 
 /// Returns whether [expr] has at least [limit] AST nodes.
-bool exceedsNodeBudget(Expr expr, [int limit = 500]) {
-  var count = 0;
-  var exceeded = false;
-  expr.anyNode((_) {
-    count++;
-    if (count >= limit) {
-      exceeded = true;
-      return true;
-    }
-    return false;
-  });
-  return exceeded;
-}
+bool exceedsNodeBudget(Expr expr, [int limit = 500]) => expr.nodeCount >= limit;
 
 /// Splits an expression into `(numerator, denominator)` by extracting
 /// [FractionNumber] denominators and negative-exponent [Pow] factors.
@@ -29,35 +16,25 @@ bool exceedsNodeBudget(Expr expr, [int limit = 500]) {
     IntegerNumber(numerator),
     IntegerNumber(denominator),
   ),
-  Pow(:final base, exponent: final RealNumeric exp, :final isSimplified)
-      when exp.isNegative =>
-    () {
-      final posExp = exp.neg();
-      final den = posExp.isOne
-          ? base
-          : Pow(base, posExp, isSimplified: isSimplified);
-      return (IntegerNumber.one, den);
-    }(),
-  Mul(:final factors, :final isSimplified) => () {
+  Pow(:final base, exponent: final RealNumeric exp) when exp.isNegative => () {
+    final posExp = exp.neg();
+    final den = posExp.isOne ? base : Pow.of(base, posExp);
+    return (IntegerNumber.one, den);
+  }(),
+  Mul(:final factors) => () {
     final numFactors = <Expr>[];
     final denFactors = <Expr>[];
     for (final f in factors) {
       switch (f) {
         case FractionNumber(:final numerator, :final denominator):
-          if (!numerator.isOne) {
+          if (numerator != BigInt.one) {
             numFactors.add(IntegerNumber(numerator));
           }
           denFactors.add(IntegerNumber(denominator));
-        case Pow(
-              :final base,
-              exponent: final RealNumeric exp,
-              isSimplified: final fSimplified,
-            )
+        case Pow(:final base, exponent: final RealNumeric exp)
             when exp.isNegative:
           final posExp = exp.neg();
-          denFactors.add(
-            posExp.isOne ? base : Pow(base, posExp, isSimplified: fSimplified),
-          );
+          denFactors.add(posExp.isOne ? base : Pow.of(base, posExp));
         default:
           numFactors.add(f);
       }
@@ -66,11 +43,11 @@ bool exceedsNodeBudget(Expr expr, [int limit = 500]) {
     final numPart = switch (numFactors) {
       [] => IntegerNumber.one,
       [final single] => single,
-      _ => Mul(numFactors, isSimplified: isSimplified),
+      _ => Mul.of(numFactors),
     };
     final denPart = switch (denFactors) {
       [final single] => single,
-      _ => Mul(denFactors, isSimplified: isSimplified),
+      _ => Mul.of(denFactors),
     };
     return (numPart, denPart);
   }(),
@@ -101,11 +78,11 @@ int? polynomialDegree(Expr expr, String variable) {
       }
       return sumD;
     }(),
-    Pow(:final base, exponent: IntegerNumber(:final value))
-        when value >= Integer.zero && !value.isBig =>
+    Pow(:final base, exponent: IntegerNumber(asInt: final exp?))
+        when exp >= 0 =>
       () {
         final db = polynomialDegree(base, variable);
-        return db != null ? db * value.toInt() : null;
+        return db != null ? db * exp : null;
       }(),
     Pow(:final base, exponent: RealNumber(:final value))
         when value >= 0 && value == value.roundToDouble() =>
@@ -130,9 +107,7 @@ Map<int, Expr>? extractPolynomialCoefficients(Expr expr, String variable) {
         : {0: simplified};
   }
   if (!_canBePolynomialAfterExpand(expr, variable)) return null;
-  final expanded = (expr.isSimplified && !_needsExpansion(expr))
-      ? expr
-      : expr.expand().simplify();
+  final expanded = !_needsExpansion(expr) ? expr : expr.expand();
   if (!expanded.dependsOn(variable)) {
     return expanded is RationalNumber && expanded.isZero
         ? {0: IntegerNumber.zero}
@@ -168,13 +143,13 @@ Expr buildPolynomialFromCoefficients(Map<int, Expr> coeffs, String variable) {
         ? IntegerNumber.one
         : deg == 1
         ? x
-        : Pow(x, IntegerNumber.of(deg));
+        : Pow.of(x, IntegerNumber.of(deg));
     terms.add(deg == 0 ? c : (c * xPow).simplify());
   }
   return switch (terms) {
     [] => IntegerNumber.zero,
     [final single] => single,
-    _ => Add(terms).simplify(),
+    _ => Add.of(terms).simplify(),
   };
 }
 
@@ -188,7 +163,7 @@ bool _canBePolynomialAfterExpand(Expr expr, String variable) {
     Mul(:final factors) => factors.every(
       (f) => _canBePolynomialAfterExpand(f, variable),
     ),
-    Pow(:final base, exponent: IntegerNumber(:final value)) when !value.isBig =>
+    Pow(:final base, exponent: IntegerNumber(asInt: _?)) =>
       _canBePolynomialAfterExpand(base, variable),
     Pow(:final base, exponent: RealNumber(:final value))
         when value == value.roundToDouble() =>

@@ -2,7 +2,7 @@ import 'dart:math' as math;
 
 import '../../assumptions.dart';
 import '../../ast.dart';
-import '../../number/integer.dart';
+import '../../functions/fn.dart';
 import '../exact_constants.dart';
 import '../simplify.dart';
 import 'additive.dart';
@@ -24,9 +24,8 @@ Expr simplifySin(Expr expr, {required Assumptions assumptions}) {
   if (expr is Number && expr.isZero) return IntegerNumber.zero;
 
   // Involution: sin(asin(u)) = u
-  if (expr is Asin) return expr.expr;
-  if (expr is Acos) {
-    final u = expr.expr;
+  if (expr case Call(id: FunctionId.asin, args: [final u])) return u;
+  if (expr case Call(id: FunctionId.acos, args: [final u])) {
     return simplifyPow(
       simplifyAdd([
         IntegerNumber.one,
@@ -39,8 +38,8 @@ Expr simplifySin(Expr expr, {required Assumptions assumptions}) {
       assumptions: assumptions,
     );
   }
-  if (expr case Atan(:final expr) when expr is! ComplexNumber) {
-    final u = expr;
+  if (expr case Call(id: FunctionId.atan, args: [final u])
+      when u is! ComplexNumber) {
     return simplifyMul([
       u,
       simplifyPow(
@@ -71,12 +70,12 @@ Expr simplifySin(Expr expr, {required Assumptions assumptions}) {
     }
     final den = piMult.denominator;
     final num = piMult.numerator;
-    if (den == Integer.two) {
-      final k = (num - Integer.one) ~/ Integer.two;
+    if (den == BigInt.two) {
+      final k = (num - BigInt.one) ~/ BigInt.two;
       return k.isEven ? IntegerNumber.one : IntegerNumber.negativeOne;
     }
-    if (den == const Integer(6)) {
-      final rem = (num % const Integer(12)).toInt();
+    if (den == BigInt.from(6)) {
+      final rem = (num % BigInt.from(12)).toInt();
       if (rem == 1 || rem == 5) {
         return specialRadicalExpr(SpecialRadical.half);
       }
@@ -84,8 +83,8 @@ Expr simplifySin(Expr expr, {required Assumptions assumptions}) {
         return specialRadicalExpr(SpecialRadical.half, negative: true);
       }
     }
-    if (den == const Integer(4)) {
-      final rem = (num % const Integer(8)).toInt();
+    if (den == BigInt.from(4)) {
+      final rem = (num % BigInt.from(8)).toInt();
       if (rem == 1 || rem == 3) {
         return specialRadicalExpr(SpecialRadical.sqrt2Over2);
       }
@@ -93,8 +92,8 @@ Expr simplifySin(Expr expr, {required Assumptions assumptions}) {
         return specialRadicalExpr(SpecialRadical.sqrt2Over2, negative: true);
       }
     }
-    if (den == const Integer(3)) {
-      final rem = (num % const Integer(6)).toInt();
+    if (den == BigInt.from(3)) {
+      final rem = (num % BigInt.from(6)).toInt();
       if (rem == 1 || rem == 2) {
         return specialRadicalExpr(SpecialRadical.sqrt3Over2);
       }
@@ -122,8 +121,8 @@ Expr simplifySin(Expr expr, {required Assumptions assumptions}) {
             ? sinRest
             : simplifyNeg(sinRest, assumptions: assumptions);
       }
-      if (m.denominator == Integer.two && m.numerator.isOdd) {
-        final k = (m.numerator - Integer.one) ~/ Integer.two;
+      if (m.denominator == BigInt.two && m.numerator.isOdd) {
+        final k = (m.numerator - BigInt.one) ~/ BigInt.two;
         final cosRest = simplifyCos(rest, assumptions: assumptions);
         return k.isEven
             ? cosRest
@@ -132,7 +131,7 @@ Expr simplifySin(Expr expr, {required Assumptions assumptions}) {
     }
   }
 
-  return Sin(expr, isSimplified: true);
+  return Fn.sin(expr);
 }
 
 /// Simplifies a cosine expression `cos(expr)`.
@@ -147,9 +146,8 @@ Expr simplifyCos(Expr expr, {required Assumptions assumptions}) {
   if (expr is Number && expr.isZero) return IntegerNumber.one;
 
   // Involution: cos(acos(u)) = u
-  if (expr is Acos) return expr.expr;
-  if (expr is Asin) {
-    final u = expr.expr;
+  if (expr case Call(id: FunctionId.acos, args: [final u])) return u;
+  if (expr case Call(id: FunctionId.asin, args: [final u])) {
     return simplifyPow(
       simplifyAdd([
         IntegerNumber.one,
@@ -162,8 +160,8 @@ Expr simplifyCos(Expr expr, {required Assumptions assumptions}) {
       assumptions: assumptions,
     );
   }
-  if (expr case Atan(:final expr) when expr is! ComplexNumber) {
-    final u = expr;
+  if (expr case Call(id: FunctionId.atan, args: [final u])
+      when u is! ComplexNumber) {
     return simplifyPow(
       simplifyAdd([
         IntegerNumber.one,
@@ -190,11 +188,11 @@ Expr simplifyCos(Expr expr, {required Assumptions assumptions}) {
     }
     final den = piMult.denominator;
     final num = piMult.numerator;
-    if (den == Integer.two && num.isOdd) {
+    if (den == BigInt.two && num.isOdd) {
       return IntegerNumber.zero;
     }
-    if (den == const Integer(6)) {
-      final rem = (num % const Integer(12)).toInt();
+    if (den == BigInt.from(6)) {
+      final rem = (num % BigInt.from(12)).toInt();
       if (rem == 1 || rem == 11) {
         return specialRadicalExpr(SpecialRadical.sqrt3Over2);
       }
@@ -202,8 +200,8 @@ Expr simplifyCos(Expr expr, {required Assumptions assumptions}) {
         return specialRadicalExpr(SpecialRadical.sqrt3Over2, negative: true);
       }
     }
-    if (den == const Integer(4)) {
-      final rem = (num % const Integer(8)).toInt();
+    if (den == BigInt.from(4)) {
+      final rem = (num % BigInt.from(8)).toInt();
       if (rem == 1 || rem == 7) {
         return specialRadicalExpr(SpecialRadical.sqrt2Over2);
       }
@@ -211,8 +209,8 @@ Expr simplifyCos(Expr expr, {required Assumptions assumptions}) {
         return specialRadicalExpr(SpecialRadical.sqrt2Over2, negative: true);
       }
     }
-    if (den == const Integer(3)) {
-      final rem = (num % const Integer(6)).toInt();
+    if (den == BigInt.from(3)) {
+      final rem = (num % BigInt.from(6)).toInt();
       if (rem == 1 || rem == 5) {
         return specialRadicalExpr(SpecialRadical.half);
       }
@@ -247,8 +245,8 @@ Expr simplifyCos(Expr expr, {required Assumptions assumptions}) {
             ? cosRest
             : simplifyNeg(cosRest, assumptions: assumptions);
       }
-      if (m.denominator == Integer.two && m.numerator.isOdd) {
-        final k = (m.numerator - Integer.one) ~/ Integer.two;
+      if (m.denominator == BigInt.two && m.numerator.isOdd) {
+        final k = (m.numerator - BigInt.one) ~/ BigInt.two;
         final sinRest = simplifySin(rest, assumptions: assumptions);
         return k.isEven
             ? simplifyNeg(sinRest, assumptions: assumptions)
@@ -257,7 +255,7 @@ Expr simplifyCos(Expr expr, {required Assumptions assumptions}) {
     }
   }
 
-  return Cos(expr, isSimplified: true);
+  return Fn.cos(expr);
 }
 
 /// Simplifies a tangent expression `tan(expr)`.
@@ -273,7 +271,7 @@ Expr simplifyTan(Expr expr, {required Assumptions assumptions}) {
   if (expr is Number && expr.isZero) return IntegerNumber.zero;
 
   // Involution: tan(atan(u)) = u
-  if (expr is Atan) return expr.expr;
+  if (expr case Call(id: FunctionId.atan, args: [final u])) return u;
 
   // Parity: tan(-u) = -tan(u)
   final (posExpr, isNeg) = extractSign(expr);
@@ -292,16 +290,16 @@ Expr simplifyTan(Expr expr, {required Assumptions assumptions}) {
     }
     final den = piMult.denominator;
     final num = piMult.numerator;
-    if (den == Integer.two) {
+    if (den == BigInt.two) {
       return Constant.undefined;
     }
-    if (den == const Integer(4)) {
-      final rem = (num % const Integer(4)).toInt();
+    if (den == BigInt.from(4)) {
+      final rem = (num % BigInt.from(4)).toInt();
       if (rem == 1) return IntegerNumber.one;
       if (rem == 3) return IntegerNumber.negativeOne;
     }
-    if (den == const Integer(6)) {
-      final rem = (num % const Integer(6)).toInt();
+    if (den == BigInt.from(6)) {
+      final rem = (num % BigInt.from(6)).toInt();
       if (rem == 1) {
         return specialRadicalExpr(SpecialRadical.sqrt3Over3);
       }
@@ -309,8 +307,8 @@ Expr simplifyTan(Expr expr, {required Assumptions assumptions}) {
         return specialRadicalExpr(SpecialRadical.sqrt3Over3, negative: true);
       }
     }
-    if (den == const Integer(3)) {
-      final rem = (num % const Integer(3)).toInt();
+    if (den == BigInt.from(3)) {
+      final rem = (num % BigInt.from(3)).toInt();
       if (rem == 1) {
         return specialRadicalExpr(SpecialRadical.sqrt3);
       }
@@ -336,7 +334,7 @@ Expr simplifyTan(Expr expr, {required Assumptions assumptions}) {
       if (m.isInteger) {
         return simplifyTan(rest, assumptions: assumptions);
       }
-      if (m.denominator == Integer.two && m.numerator.isOdd) {
+      if (m.denominator == BigInt.two && m.numerator.isOdd) {
         final tanRest = simplifyTan(rest, assumptions: assumptions);
         if (tanRest is Number && tanRest.isZero) return Constant.undefined;
         return simplifyDiv(
@@ -348,7 +346,7 @@ Expr simplifyTan(Expr expr, {required Assumptions assumptions}) {
     }
   }
 
-  return Tan(expr, isSimplified: true);
+  return Fn.tan(expr);
 }
 
 /// Simplifies an arcsine expression `asin(expr)`.
@@ -364,15 +362,16 @@ Expr simplifyAsin(Expr expr, {required Assumptions assumptions}) {
   }
   if (expr is Number && expr.isZero) return IntegerNumber.zero;
   if (expr is Number && expr.isOne) {
-    return Mul([FractionNumber.half, Constant.pi], isSimplified: true);
+    return Mul.of([FractionNumber.half, Constant.pi]);
   }
   if (expr is Number && expr.isNegativeOne) {
-    return Mul([FractionNumber.negativeHalf, Constant.pi], isSimplified: true);
+    return Mul.of([FractionNumber.negativeHalf, Constant.pi]);
   }
-  if (expr is Sin && isProvenReal(expr.expr, assumptions)) {
-    final v = tryStaticRealValue(expr.expr);
+  if (expr case Call(id: FunctionId.sin, args: [final inner])
+      when isProvenReal(inner, assumptions)) {
+    final v = tryStaticRealValue(inner);
     if (v != null && v >= -math.pi / 2 && v <= math.pi / 2) {
-      return expr.expr;
+      return inner;
     }
   }
 
@@ -386,19 +385,16 @@ Expr simplifyAsin(Expr expr, {required Assumptions assumptions}) {
   }
 
   if (isHalf(posExpr)) {
-    return Mul([
-      const FractionNumber(Integer.one, Integer(6)),
-      Constant.pi,
-    ], isSimplified: true);
+    return Mul.of([RationalNumber(1, 6), Constant.pi]);
   }
   if (isSqrt2Over2(posExpr)) {
-    return Mul([FractionNumber.quarter, Constant.pi], isSimplified: true);
+    return Mul.of([FractionNumber.quarter, Constant.pi]);
   }
   if (isSqrt3Over2(posExpr)) {
-    return Mul([FractionNumber.third, Constant.pi], isSimplified: true);
+    return Mul.of([FractionNumber.third, Constant.pi]);
   }
 
-  return Asin(expr, isSimplified: true);
+  return Fn.asin(expr);
 }
 
 /// Simplifies an arccosine expression `acos(expr)`.
@@ -414,54 +410,43 @@ Expr simplifyAcos(Expr expr, {required Assumptions assumptions}) {
   }
   if (expr is Number && expr.isOne) return IntegerNumber.zero;
   if (expr is Number && expr.isZero) {
-    return Mul([FractionNumber.half, Constant.pi], isSimplified: true);
+    return Mul.of([FractionNumber.half, Constant.pi]);
   }
   if (expr is Number && expr.isNegativeOne) {
     return Constant.pi;
   }
-  if (expr is Cos && isProvenReal(expr.expr, assumptions)) {
-    final v = tryStaticRealValue(expr.expr);
+  if (expr case Call(id: FunctionId.cos, args: [final inner])
+      when isProvenReal(inner, assumptions)) {
+    final v = tryStaticRealValue(inner);
     if (v != null && v >= 0.0 && v <= math.pi) {
-      return expr.expr;
+      return inner;
     }
   }
 
   final (posExpr, isNeg) = extractSign(expr);
   if (isNeg) {
     if (isHalf(posExpr)) {
-      return Mul([
-        const FractionNumber(Integer.two, Integer(3)),
-        Constant.pi,
-      ], isSimplified: true);
+      return Mul.of([RationalNumber(2, 3), Constant.pi]);
     }
     if (isSqrt2Over2(posExpr)) {
-      return Mul([
-        const FractionNumber(Integer(3), Integer(4)),
-        Constant.pi,
-      ], isSimplified: true);
+      return Mul.of([RationalNumber(3, 4), Constant.pi]);
     }
     if (isSqrt3Over2(posExpr)) {
-      return Mul([
-        const FractionNumber(Integer(5), Integer(6)),
-        Constant.pi,
-      ], isSimplified: true);
+      return Mul.of([RationalNumber(5, 6), Constant.pi]);
     }
   }
 
   if (isHalf(posExpr)) {
-    return Mul([FractionNumber.third, Constant.pi], isSimplified: true);
+    return Mul.of([FractionNumber.third, Constant.pi]);
   }
   if (isSqrt2Over2(posExpr)) {
-    return Mul([FractionNumber.quarter, Constant.pi], isSimplified: true);
+    return Mul.of([FractionNumber.quarter, Constant.pi]);
   }
   if (isSqrt3Over2(posExpr)) {
-    return Mul([
-      const FractionNumber(Integer.one, Integer(6)),
-      Constant.pi,
-    ], isSimplified: true);
+    return Mul.of([RationalNumber(1, 6), Constant.pi]);
   }
 
-  return Acos(expr, isSimplified: true);
+  return Fn.acos(expr);
 }
 
 /// Simplifies an arctangent expression `atan(expr)`.
@@ -475,18 +460,16 @@ Expr simplifyAtan(Expr expr, {required Assumptions assumptions}) {
   }
   if (expr is Number && expr.isZero) return IntegerNumber.zero;
   if (expr is Number && expr.isOne) {
-    return Mul([FractionNumber.quarter, Constant.pi], isSimplified: true);
+    return Mul.of([FractionNumber.quarter, Constant.pi]);
   }
   if (expr is Number && expr.isNegativeOne) {
-    return Mul([
-      const FractionNumber(Integer.negativeOne, Integer(4)),
-      Constant.pi,
-    ], isSimplified: true);
+    return Mul.of([RationalNumber(-1, 4), Constant.pi]);
   }
-  if (expr is Tan && isProvenReal(expr.expr, assumptions)) {
-    final v = tryStaticRealValue(expr.expr);
+  if (expr case Call(id: FunctionId.tan, args: [final inner])
+      when isProvenReal(inner, assumptions)) {
+    final v = tryStaticRealValue(inner);
     if (v != null && v > -math.pi / 2 && v < math.pi / 2) {
-      return expr.expr;
+      return inner;
     }
   }
 
@@ -500,16 +483,13 @@ Expr simplifyAtan(Expr expr, {required Assumptions assumptions}) {
   }
 
   if (isSqrt3Over3(posExpr)) {
-    return Mul([
-      const FractionNumber(Integer.one, Integer(6)),
-      Constant.pi,
-    ], isSimplified: true);
+    return Mul.of([RationalNumber(1, 6), Constant.pi]);
   }
   if (isSqrt3(posExpr)) {
-    return Mul([FractionNumber.third, Constant.pi], isSimplified: true);
+    return Mul.of([FractionNumber.third, Constant.pi]);
   }
 
-  return Atan(expr, isSimplified: true);
+  return Fn.atan(expr);
 }
 
 /// Simplifies a two-argument arctangent expression `atan2(y, x)`.
@@ -528,13 +508,10 @@ Expr simplifyAtan2(Expr y, Expr x, {required Assumptions assumptions}) {
   }
   if (x == IntegerNumber.zero) {
     if (isPositiveExpr(y, assumptions: assumptions)) {
-      return Mul([FractionNumber.half, Constant.pi], isSimplified: true);
+      return Mul.of([FractionNumber.half, Constant.pi]);
     }
     if (isNegativeExpr(y, assumptions: assumptions)) {
-      return Mul([
-        const FractionNumber(Integer.negativeOne, Integer.two),
-        Constant.pi,
-      ], isSimplified: true);
+      return Mul.of([FractionNumber.negativeHalf, Constant.pi]);
     }
   }
   if (isPositiveExpr(x, assumptions: assumptions)) {
@@ -555,7 +532,7 @@ Expr simplifyAtan2(Expr y, Expr x, {required Assumptions assumptions}) {
       return (base - Constant.pi).simplify(assumptions: assumptions);
     }
   }
-  return Atan2(y, x, isSimplified: true);
+  return Fn.atan2(y, x);
 }
 
 /// Simplifies a hyperbolic sine expression `sinh(expr)`.
@@ -569,7 +546,7 @@ Expr simplifySinh(Expr expr, {required Assumptions assumptions}) {
     return complexToExpr(expr.toComplex().sinh());
   }
   if (expr is Number && expr.isZero) return IntegerNumber.zero;
-  if (expr is Asinh) return expr.expr;
+  if (expr case Call(id: FunctionId.asinh, args: [final inner])) return inner;
 
   // Parity: sinh(-u) = -sinh(u)
   final (posExpr, isNeg) = extractSign(expr);
@@ -580,7 +557,7 @@ Expr simplifySinh(Expr expr, {required Assumptions assumptions}) {
     );
   }
 
-  return Sinh(expr, isSimplified: true);
+  return Fn.sinh(expr);
 }
 
 /// Simplifies a hyperbolic cosine expression `cosh(expr)`.
@@ -591,9 +568,8 @@ Expr simplifyCosh(Expr expr, {required Assumptions assumptions}) {
     return RealNumber.fromDouble((math.exp(v) + math.exp(-v)) / 2.0);
   }
   if (expr is Number && expr.isZero) return IntegerNumber.one;
-  if (expr is Acosh) return expr.expr;
-  if (expr is Asinh) {
-    final u = expr.expr;
+  if (expr case Call(id: FunctionId.acosh, args: [final inner])) return inner;
+  if (expr case Call(id: FunctionId.asinh, args: [final u])) {
     return simplifyPow(
       simplifyAdd([
         IntegerNumber.one,
@@ -610,7 +586,7 @@ Expr simplifyCosh(Expr expr, {required Assumptions assumptions}) {
     return simplifyCosh(posExpr, assumptions: assumptions);
   }
 
-  return Cosh(expr, isSimplified: true);
+  return Fn.cosh(expr);
 }
 
 /// Simplifies a hyperbolic tangent expression `tanh(expr)`.
@@ -629,7 +605,7 @@ Expr simplifyTanh(Expr expr, {required Assumptions assumptions}) {
     return complexToExpr(expr.toComplex().tanh());
   }
   if (expr is Number && expr.isZero) return IntegerNumber.zero;
-  if (expr is Atanh) return expr.expr;
+  if (expr case Call(id: FunctionId.atanh, args: [final inner])) return inner;
 
   // Parity: tanh(-u) = -tanh(u)
   final (posExpr, isNeg) = extractSign(expr);
@@ -640,7 +616,7 @@ Expr simplifyTanh(Expr expr, {required Assumptions assumptions}) {
     );
   }
 
-  return Tanh(expr, isSimplified: true);
+  return Fn.tanh(expr);
 }
 
 /// Simplifies an absolute value expression `|expr|`.
@@ -674,7 +650,9 @@ Expr simplifyAbs(Expr expr, {required Assumptions assumptions}) {
     if (reExp is Number && reExp.isZero) {
       return IntegerNumber.one;
     }
-    if (reExp is! Re || reExp.expr != exponent) {
+    if (reExp is! Call ||
+        reExp.id != FunctionId.re ||
+        reExp.args[0] != exponent) {
       return simplifyPow(Constant.e, reExp, assumptions: assumptions);
     }
   }
@@ -699,7 +677,7 @@ Expr simplifyAbs(Expr expr, {required Assumptions assumptions}) {
     );
   }
 
-  return Abs(expr, isSimplified: true);
+  return Fn.abs(expr);
 }
 
 /// Simplifies an exponential expression `e^expr`.
@@ -729,7 +707,7 @@ Expr simplifyLn(Expr expr, {required Assumptions assumptions}) {
     final absLn = simplifyLn(expr.abs(), assumptions: assumptions);
     return simplifyAdd([
       absLn,
-      Mul([ComplexNumber.i, Constant.pi], isSimplified: true),
+      Mul.of([ComplexNumber.i, Constant.pi]),
     ], assumptions: assumptions);
   }
   if (expr is Number && expr.isOne) {
@@ -740,7 +718,7 @@ Expr simplifyLn(Expr expr, {required Assumptions assumptions}) {
   }
 
   // ln(1/n) = -ln(n) for positive integer denominator
-  if (expr is FractionNumber && expr.numerator.isOne) {
+  if (expr is FractionNumber && expr.numerator == BigInt.one) {
     return simplifyNeg(
       simplifyLn(IntegerNumber(expr.denominator), assumptions: assumptions),
       assumptions: assumptions,
@@ -762,11 +740,14 @@ Expr simplifyLn(Expr expr, {required Assumptions assumptions}) {
     if (isProvenReal(expr.exponent, assumptions)) {
       return expr.exponent;
     }
-    return Ln(expr, isSimplified: true);
+    return Fn.ln(expr);
   }
 
   // ln(|e^u|) = u for real u
-  if (expr case Abs(expr: Pow(base: Constant.e, exponent: final inner))) {
+  if (expr case Call(
+    id: FunctionId.abs,
+    args: [Pow(base: Constant.e, exponent: final inner)],
+  )) {
     if (isProvenReal(inner, assumptions)) {
       return inner;
     }
@@ -793,7 +774,7 @@ Expr simplifyLn(Expr expr, {required Assumptions assumptions}) {
           ),
         ], assumptions: assumptions);
       }
-      return Ln(expr, isSimplified: true);
+      return Fn.ln(expr);
     }
     if (k is FractionNumber &&
         k.numerator.isEven &&
@@ -808,7 +789,7 @@ Expr simplifyLn(Expr expr, {required Assumptions assumptions}) {
       ], assumptions: assumptions);
     }
     if ((k is FractionNumber &&
-            k.numerator == Integer.one &&
+            k.numerator == BigInt.one &&
             (isNonNegativeExpr(u, assumptions: assumptions) ||
                 k.denominator.isEven)) ||
         (k == IntegerNumber.negativeOne &&
@@ -818,10 +799,10 @@ Expr simplifyLn(Expr expr, {required Assumptions assumptions}) {
         simplifyLn(u, assumptions: assumptions),
       ], assumptions: assumptions);
     }
-    return Ln(expr, isSimplified: true);
+    return Fn.ln(expr);
   }
 
-  return Ln(expr, isSimplified: true);
+  return Fn.ln(expr);
 }
 
 /// Extracts the sign of [expr], returning the non-negative magnitude and sign flag.
@@ -858,11 +839,11 @@ RationalNumber? matchPiMultiple(Expr expr) => switch (expr) {
       Constant.pi,
       Pow(
         base: IntegerNumber(:final value),
-        exponent: IntegerNumber.negativeOne,
+        exponent: IntegerNumber(isNegativeOne: true),
       ),
     ],
   ) =>
-    RationalNumber.of(Integer.one, value),
+    RationalNumber.of(BigInt.one, value),
   _ => null,
 };
 
@@ -883,7 +864,10 @@ Expr simplifyAsinh(Expr expr, {required Assumptions assumptions}) {
   if (expr is Number && expr.isZero) {
     return IntegerNumber.zero;
   }
-  if (expr is Sinh && isProvenReal(expr.expr, assumptions)) return expr.expr;
+  if (expr case Call(id: FunctionId.sinh, args: [final inner])
+      when isProvenReal(inner, assumptions)) {
+    return inner;
+  }
   final (posExpr, isNeg) = extractSign(expr);
   if (isNeg) {
     return simplifyNeg(
@@ -891,7 +875,7 @@ Expr simplifyAsinh(Expr expr, {required Assumptions assumptions}) {
       assumptions: assumptions,
     );
   }
-  return Asinh(expr, isSimplified: true);
+  return Fn.asinh(expr);
 }
 
 /// Simplifies an inverse hyperbolic cosine expression `acosh(expr)`.
@@ -908,10 +892,11 @@ Expr simplifyAcosh(Expr expr, {required Assumptions assumptions}) {
   if (expr is Number && expr.isOne) {
     return IntegerNumber.zero;
   }
-  if (expr is Cosh && isProvenReal(expr.expr, assumptions)) {
-    return simplifyAbs(expr.expr, assumptions: assumptions);
+  if (expr case Call(id: FunctionId.cosh, args: [final inner])
+      when isProvenReal(inner, assumptions)) {
+    return simplifyAbs(inner, assumptions: assumptions);
   }
-  return Acosh(expr, isSimplified: true);
+  return Fn.acosh(expr);
 }
 
 /// Simplifies an inverse hyperbolic tangent expression `atanh(expr)`.
@@ -928,7 +913,10 @@ Expr simplifyAtanh(Expr expr, {required Assumptions assumptions}) {
   if (expr is Number && expr.isZero) {
     return IntegerNumber.zero;
   }
-  if (expr is Tanh && isProvenReal(expr.expr, assumptions)) return expr.expr;
+  if (expr case Call(id: FunctionId.tanh, args: [final inner])
+      when isProvenReal(inner, assumptions)) {
+    return inner;
+  }
   final (posExpr, isNeg) = extractSign(expr);
   if (isNeg) {
     return simplifyNeg(
@@ -936,7 +924,7 @@ Expr simplifyAtanh(Expr expr, {required Assumptions assumptions}) {
       assumptions: assumptions,
     );
   }
-  return Atanh(expr, isSimplified: true);
+  return Fn.atanh(expr);
 }
 
 Expr? _matchIntegerPiMultiple(Expr expr, Assumptions assumptions) {
@@ -950,7 +938,7 @@ Expr? _matchIntegerPiMultiple(Expr expr, Assumptions assumptions) {
       ];
       if (other.isNotEmpty &&
           other.every((f) => isIntegerExpr(f, assumptions: assumptions))) {
-        return other.length == 1 ? other.first : Mul(other, isSimplified: true);
+        return other.length == 1 ? other.first : Mul.of(other);
       }
     }
   }

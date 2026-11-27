@@ -1,18 +1,27 @@
 part of '../ast.dart';
 
+/// Bitmask flags packed onto every [Expr] node for O(1) structural queries.
+const int kFlagHasVariable = 1 << 0;
+const int kFlagHasReal = 1 << 1;
+const int kFlagHasComplex = 1 << 2;
+const int kFlagHasSpecial = 1 << 3;
+const int kFlagHasBinder = 1 << 4;
+const int kFlagHasOrder = 1 << 5;
+const int kFlagHasRelational = 1 << 6;
+
 /// Root of the symbolic expression Abstract Syntax Tree (AST).
 ///
 /// All mathematical expressions are represented as immutable trees of [Expr]
-/// nodes. Expressions can be constructed programmatically using constructors
-/// and overloaded arithmetic operators (`+`, `-`, `*`, `/`, `pow`), or parsed
-/// from mathematical strings via [Expr.parse].
+/// nodes. Arithmetic nodes ([Add], [Mul], [Pow]) canonicalize immediately on
+/// construction.
 sealed class Expr {
   /// Base const constructor for all AST nodes.
   const new();
 
   /// Parses an algebraic expression from [input] string.
   ///
-  /// Throws a [FormatException] if [input] is not a valid mathematical expression.
+  /// Throws a [FormatException] if [input] is not a valid mathematical
+  /// expression.
   factory parse(String input, {ExprSyntax? syntax}) =>
       (syntax ?? ExprSyntax.standard).parse(input);
 
@@ -23,8 +32,8 @@ sealed class Expr {
 
   /// Converts [value] into a symbolic [Expr].
   ///
-  /// Accepts an existing [Expr], machine `int`, [BigInt], [Integer],
-  /// [Fraction], IEEE-754 `double`, [Complex], or [String] (variable name or expression).
+  /// Accepts an existing [Expr], machine `int`, [BigInt], [Fraction], IEEE-754
+  /// `double`, [Complex], or [String] (expression to parse).
   ///
   /// Throws an [ArgumentError] if [value] cannot be converted to an [Expr].
   factory wrap(Object? value) =>
@@ -37,16 +46,13 @@ sealed class Expr {
 
   /// Converts [value] into a symbolic [Expr], or returns `null` if [value]
   /// cannot be converted.
-  ///
-  /// Accepts an existing [Expr], machine `int`, [BigInt], [Integer],
-  /// [Fraction], IEEE-754 `double`, [Complex], or [String] (variable name or expression).
   static Expr? tryWrap(Object? value) {
     if (value is Expr) return value;
     if (value is int && value.isFinite) {
-      return IntegerNumber(Integer.from(value));
+      return IntegerNumber.of(value);
     }
     if (value is BigInt) {
-      return IntegerNumber(Integer.big(value));
+      return IntegerNumber(value);
     }
     if (value is Fraction) {
       return RationalNumber.fromFraction(value);
@@ -79,221 +85,170 @@ sealed class Expr {
     return null;
   }
 
-  /// Whether this expression node is already in canonical simplified form.
-  bool get isSimplified;
+  /// Packed structural bitmask (`kFlag*` constants).
+  int get flags;
+
+  /// Total AST node count in this subtree.
+  int get nodeCount;
+
+  /// Deterministic structural category tag used by [compareStructural].
+  int get structuralTag;
+
+  /// Whether this subtree contains any symbolic [Variable] node.
+  bool get hasVariable => (flags & kFlagHasVariable) != 0;
+
+  /// Whether this subtree contains any IEEE-754 floating-point [RealNumber].
+  bool get hasReal => (flags & kFlagHasReal) != 0;
+
+  /// Whether this subtree contains any non-real [ComplexNumber].
+  bool get hasComplex => (flags & kFlagHasComplex) != 0;
+
+  /// Whether this subtree contains any non-elementary/special/discrete [Call].
+  bool get hasSpecial => (flags & kFlagHasSpecial) != 0;
+
+  /// Whether this subtree contains any [BinderExpr].
+  bool get hasBinder => (flags & kFlagHasBinder) != 0;
+
+  /// Whether this subtree contains any [OrderTerm].
+  bool get hasOrder => (flags & kFlagHasOrder) != 0;
+
+  /// Whether this subtree contains any [Relational] or [Piecewise].
+  bool get hasRelational => (flags & kFlagHasRelational) != 0;
 
   /// Returns the set of all free variable names appearing in this expression.
   Set<String> get freeVariables => const {};
 
   /// Whether this expression contains [variable] as a free variable.
-  bool dependsOn(String variable) => freeVariables.contains(variable);
+  bool dependsOn(String variable) =>
+      hasVariable && freeVariables.contains(variable);
 
   /// Whether this expression is real-valued when all free variables are real.
   bool get isReal => _isRealSubtree(this);
 
-  /// Returns a new expression with every occurrence of [variable] replaced by [replacement].
+  /// Returns a new expression with every occurrence of [variable] replaced by
+  /// [replacement].
   Expr substitute(String variable, Expr replacement) => dependsOn(variable)
       ? mapChildren((c) => c.substitute(variable, replacement))
       : this;
 
   /// Applies [transform] to all direct child [Expr] nodes of this expression,
-  /// returning a reconstructed node of the same type, or `this` for leaf nodes.
+  /// returning a reconstructed canonical node, or `this` for leaf nodes.
   Expr mapChildren(Expr Function(Expr) transform) => this;
 
   /// Returns `true` if [predicate] holds for this node or any descendant node
   /// in this expression subtree.
   bool anyNode(bool Function(Expr) predicate) => predicate(this);
 
-  /// Symbolic addition: `this + other`.
-  ///
-  /// Accepts an [Expr], `num` (`int` or `double`), [BigInt], [Integer],
-  /// [Complex], or `String` (variable name). Flattens unsimplified [Add]
-  /// operands in exact input order.
-  Expr operator +(Object other) {
-    final rhs = Expr.wrap(other);
-    if ((this, rhs) case (final ComplexNumber a, final Number b)) {
-      return a.add(b);
-    }
-    if ((this, rhs) case (final Number a, final ComplexNumber b)) {
-      return b.add(a);
-    }
-    return Add([
-      if (this case Add(:final terms, isSimplified: false)) ...terms else this,
-      if (rhs case Add(:final terms, isSimplified: false)) ...terms else rhs,
-    ]);
-  }
+  /// Canonical symbolic addition: `this + other`.
+  Expr operator +(Object other) => Add.of([this, Expr.wrap(other)]);
 
-  /// Symbolic subtraction: `this - other`, represented as `this + (-other)`.
-  ///
-  /// Accepts an [Expr], `num` (`int` or `double`), [BigInt], [Integer],
-  /// [Complex], or `String` (variable name).
-  Expr operator -(Object other) => this + (-Expr.wrap(other));
+  /// Canonical symbolic subtraction: `this - other`.
+  Expr operator -(Object other) => Add.of([this, -Expr.wrap(other)]);
 
-  /// Symbolic multiplication: `this * other`.
-  ///
-  /// Accepts an [Expr], `num` (`int` or `double`), [BigInt], [Integer],
-  /// [Complex], or `String` (variable name). Flattens unsimplified [Mul]
-  /// operands in exact input order.
-  Expr operator *(Object other) {
-    final rhs = Expr.wrap(other);
-    if ((this, rhs) case (final ComplexNumber a, final Number b)) {
-      return a.mul(b);
-    }
-    if ((this, rhs) case (final Number a, final ComplexNumber b)) {
-      return a.mul(b);
-    }
-    final isRhsUnaryNeg = switch (rhs) {
-      Mul(factors: [IntegerNumber.negativeOne, _]) => true,
-      _ => false,
-    };
-    return Mul([
-      if (this case Mul(:final factors, isSimplified: false))
-        ...factors
-      else
-        this,
-      if (rhs case Mul(:final factors, isSimplified: false) when !isRhsUnaryNeg)
-        ...factors
-      else
-        rhs,
-    ]);
-  }
+  /// Canonical symbolic multiplication: `this * other`.
+  Expr operator *(Object other) => Mul.of([this, Expr.wrap(other)]);
 
-  /// Symbolic division: `this / other`.
-  ///
-  /// When both operands are exact [RationalNumber]s and the divisor is
-  /// non-zero, returns the reduced [RationalNumber] quotient directly;
-  /// otherwise returns `this * Pow(other, -1)`.
+  /// Canonical symbolic division: `this / other`.
   Expr operator /(Object other) {
     final rhs = Expr.wrap(other);
-    if ((this, rhs) case (final RationalNumber a, final RationalNumber b)
-        when !b.isZero) {
-      return a.divRational(b);
+    if (this case final RationalNumber a) {
+      if (rhs case final RationalNumber b when !b.isZero) {
+        return a.divRational(b);
+      }
     }
-    if ((this, rhs) case (final ComplexNumber a, final RealNumeric b)
-        when !b.isZero) {
-      return a.div(b);
+    if (this case final ComplexNumber a) {
+      if (rhs case final RealNumeric b when !b.isZero) return a.div(b);
+      if (rhs case final ComplexNumber b when !b.isZero) return a.div(b);
     }
-    if ((this, rhs) case (final ComplexNumber a, final ComplexNumber b)
-        when !b.isZero) {
-      return a.div(b);
+    if (this case final RealNumeric a) {
+      if (rhs case final ComplexNumber b when !b.isZero) return a.div(b);
     }
-    if ((this, rhs) case (final RealNumeric a, final ComplexNumber b)
-        when !b.isZero) {
-      return a.div(b);
-    }
-    if (this is IntegerNumber && (this as IntegerNumber).isOne) {
-      return Pow(rhs, IntegerNumber.negativeOne);
-    }
-    return this * Pow(rhs, IntegerNumber.negativeOne);
+    return Mul.of([this, Pow.of(rhs, IntegerNumber.negativeOne)]);
   }
 
-  /// Symbolic unary negation: `-this`.
+  /// Canonical symbolic unary negation: `-this`.
   Expr operator -() => switch (this) {
     final Number n => n.neg(),
-    Mul(factors: [final Number n, ...final rest]) => switch (n.neg()) {
-      IntegerNumber(isOne: true) => switch (rest) {
-        [] => IntegerNumber.one,
-        [final single] => single,
-        _ => Mul(rest),
-      },
-      final negFirst => rest.isEmpty ? negFirst : Mul([negFirst, ...rest]),
-    },
-    Mul(factors: final factors && [_, ...]) => Mul([
-      IntegerNumber.negativeOne,
-      ...factors,
-    ]),
-    _ => Mul([IntegerNumber.negativeOne, this]),
+    Add(:final terms) => Add.of([for (final t in terms) -t]),
+    Mul(:final factors) => Mul.of([IntegerNumber.negativeOne, ...factors]),
+    _ => Mul._([IntegerNumber.negativeOne, this]),
   };
 
-  /// Symbolic exponentiation: `this^exponent`.
-  ///
-  /// Accepts an [Expr], `num` (`int` or `double`), [BigInt], [Integer],
-  /// [Complex], or `String` (variable name).
-  Expr pow(Object exponent) => Pow(this, Expr.wrap(exponent));
+  /// Canonical symbolic exponentiation: `this^exponent`.
+  Expr pow(Object exponent) => Pow.of(this, Expr.wrap(exponent));
 
   @override
   String toString() => format();
 
   static Expr _wrapNum(num value) => value is int
-      ? IntegerNumber(Integer.from(value))
+      ? IntegerNumber.of(value)
       : RealNumber.fromDouble(value.toDouble());
 
   static bool _isRealBoundOrPoint(Expr node) =>
       node == Constant.infinity ||
-      (node is Mul &&
-          node.factors.length == 2 &&
-          node.factors[0] is IntegerNumber &&
-          (node.factors[0] as IntegerNumber).isNegativeOne &&
-          node.factors[1] == Constant.infinity) ||
+      node == -Constant.infinity ||
       _isRealSubtree(node);
 
   static bool _isRealSubtree(Expr node) => switch (node) {
     ComplexNumber(:final imaginary) => imaginary.isZero,
     Constant(:final isReal) => isReal,
-    Abs(:final expr) ||
-    Re(:final expr) ||
-    Im(:final expr) ||
-    Arg(:final expr) => !expr.anyNode((n) => n == Constant.undefined),
     RealNumeric() || Variable() || OrderTerm() => true,
-    Add(:final terms) => terms.every(_isRealSubtree),
-    Mul(:final factors) => factors.every(_isRealSubtree),
+    Add(:final terms) => !node.hasComplex || terms.every(_isRealSubtree),
+    Mul(:final factors) => !node.hasComplex || factors.every(_isRealSubtree),
     Pow(:final base, :final exponent) =>
       _isRealSubtree(base) &&
           _isRealSubtree(exponent) &&
           (exponent is IntegerNumber ||
               (base is RealNumeric && !base.isNegative) ||
               (base is Constant && base.isReal && base.value.a > 0.0) ||
-              base is Abs),
-    Ln(:final expr) =>
-      _isRealSubtree(expr) &&
-          !(expr is RealNumeric && (expr.isNegative || expr.isZero)) &&
-          !(expr is Constant && (expr.value.b != 0.0 || expr.value.a <= 0.0)),
-    Asin(:final expr) || Acos(:final expr) =>
-      _isRealSubtree(expr) &&
-          !(expr is RealNumeric && expr.toDouble().abs() > 1.0) &&
-          !(expr is Constant &&
-              (expr.value.b != 0.0 || expr.value.a.abs() > 1.0)),
-    Acosh(:final expr) =>
-      _isRealSubtree(expr) &&
-          !(expr is RealNumeric && expr.toDouble() < 1.0) &&
-          !(expr is Constant && (expr.value.b != 0.0 || expr.value.a < 1.0)),
-    Atanh(:final expr) =>
-      _isRealSubtree(expr) &&
-          !(expr is RealNumeric && expr.toDouble().abs() >= 1.0) &&
-          !(expr is Constant &&
-              (expr.value.b != 0.0 || expr.value.a.abs() >= 1.0)),
-    LambertW(:final expr, :final branch) => switch (branch) {
-      0 =>
-        _isRealSubtree(expr) &&
-            !(expr is RealNumeric && expr.toDouble() < -1.0 / math.e) &&
-            !(expr is Constant &&
-                (expr.value.b != 0.0 || expr.value.a < -1.0 / math.e)),
-      -1 =>
-        _isRealSubtree(expr) &&
-            !(expr is RealNumeric &&
-                (expr.toDouble() < -1.0 / math.e || expr.toDouble() >= 0.0)) &&
-            !(expr is Constant &&
-                (expr.value.b != 0.0 ||
-                    expr.value.a < -1.0 / math.e ||
-                    expr.value.a >= 0.0)),
-      _ => false,
+              base is Call && base.id == FunctionId.abs),
+    Call(:final id, :final args) => switch (id) {
+      FunctionId.abs ||
+      FunctionId.re ||
+      FunctionId.im ||
+      FunctionId.arg => !node.anyNode((n) => n == Constant.undefined),
+      FunctionId.ln || FunctionId.li || FunctionId.ci || FunctionId.chi =>
+        _isRealSubtree(args[0]) &&
+            !(args[0] is RealNumeric &&
+                ((args[0] as RealNumeric).isNegative ||
+                    (args[0] as RealNumeric).isZero)) &&
+            !(args[0] is Constant &&
+                ((args[0] as Constant).value.b != 0.0 ||
+                    (args[0] as Constant).value.a <= 0.0)),
+      FunctionId.asin || FunctionId.acos =>
+        _isRealSubtree(args[0]) &&
+            !(args[0] is RealNumeric &&
+                (args[0] as RealNumeric).toDouble().abs() > 1.0) &&
+            !(args[0] is Constant &&
+                ((args[0] as Constant).value.b != 0.0 ||
+                    (args[0] as Constant).value.a.abs() > 1.0)),
+      FunctionId.acosh =>
+        _isRealSubtree(args[0]) &&
+            !(args[0] is RealNumeric &&
+                (args[0] as RealNumeric).toDouble() < 1.0) &&
+            !(args[0] is Constant &&
+                ((args[0] as Constant).value.b != 0.0 ||
+                    (args[0] as Constant).value.a < 1.0)),
+      FunctionId.atanh =>
+        _isRealSubtree(args[0]) &&
+            !(args[0] is RealNumeric &&
+                (args[0] as RealNumeric).toDouble().abs() >= 1.0) &&
+            !(args[0] is Constant &&
+                ((args[0] as Constant).value.b != 0.0 ||
+                    (args[0] as Constant).value.a.abs() >= 1.0)),
+      FunctionId.lambertW => _isLambertWReal(args),
+      FunctionId.polylog =>
+        _isRealSubtree(args[0]) &&
+            _isRealSubtree(args[1]) &&
+            !(args[1] is RealNumeric &&
+                (args[1] as RealNumeric).toDouble() > 1.0) &&
+            !(args[1] is Constant &&
+                ((args[1] as Constant).value.b != 0.0 ||
+                    (args[1] as Constant).value.a > 1.0)),
+      _ => args.every(_isRealSubtree),
     },
-    BinaryExpr(:final left, :final right) => switch (node) {
-      Polylog() =>
-        _isRealSubtree(left) &&
-            _isRealSubtree(right) &&
-            !(right is RealNumeric && right.toDouble() > 1.0) &&
-            !(right is Constant &&
-                (right.value.b != 0.0 || right.value.a > 1.0)),
-      _ => _isRealSubtree(left) && _isRealSubtree(right),
-    },
-    UnaryExpr(:final expr) => switch (node) {
-      LogIntegral() || CosIntegral() || CoshIntegral() =>
-        _isRealSubtree(expr) &&
-            !(expr is RealNumeric && expr.toDouble() <= 0.0) &&
-            !(expr is Constant && (expr.value.b != 0.0 || expr.value.a <= 0.0)),
-      _ => _isRealSubtree(expr),
-    },
+    Relational(:final left, :final right) =>
+      _isRealSubtree(left) && _isRealSubtree(right),
     Piecewise(:final branches, :final otherwise) =>
       branches.every(
             (b) => _isRealSubtree(b.relation) && _isRealSubtree(b.expr),
@@ -314,32 +269,29 @@ sealed class Expr {
           _isRealBoundOrPoint(upper),
     RootSum(:final polynomial, :final body) =>
       _isRealSubtree(polynomial) && _isRealSubtree(body),
-    VariableFunction(:final arguments) => arguments.every(_isRealSubtree),
-    EllipticPi(:final characteristic, :final amplitude, :final modulus) =>
-      _isRealSubtree(characteristic) &&
-          _isRealSubtree(amplitude) &&
-          _isRealSubtree(modulus),
-    Zeta(:final expr, :final shift) =>
-      _isRealSubtree(expr) && (shift == null || _isRealSubtree(shift)),
-    EllipticE(:final expr, :final amplitude) =>
-      _isRealSubtree(expr) && (amplitude == null || _isRealSubtree(amplitude)),
-    Hypergeometric(:final upper, :final lower, :final argument) =>
-      upper.every(_isRealSubtree) &&
-          lower.every(_isRealSubtree) &&
-          _isRealSubtree(argument),
-    AppellF1(:final a, :final b1, :final b2, :final c, :final x, :final y) =>
-      _isRealSubtree(a) &&
-          _isRealSubtree(b1) &&
-          _isRealSubtree(b2) &&
-          _isRealSubtree(c) &&
-          _isRealSubtree(x) &&
-          _isRealSubtree(y),
-    Min(:final args) ||
-    Max(:final args) ||
-    Gcd(:final args) ||
-    Lcm(:final args) ||
-    Tuple(:final args) => args.every(_isRealSubtree),
   };
+
+  static bool _isLambertWReal(List<Expr> args) {
+    final arg = args[0];
+    if (!_isRealSubtree(arg)) return false;
+    final branch = args.length > 1 && args[1] is IntegerNumber
+        ? (args[1] as IntegerNumber).asInt
+        : 0;
+    return switch (branch) {
+      0 =>
+        !(arg is RealNumeric && arg.toDouble() < -1.0 / math.e) &&
+            !(arg is Constant &&
+                (arg.value.b != 0.0 || arg.value.a < -1.0 / math.e)),
+      -1 =>
+        !(arg is RealNumeric &&
+                (arg.toDouble() < -1.0 / math.e || arg.toDouble() >= 0.0)) &&
+            !(arg is Constant &&
+                (arg.value.b != 0.0 ||
+                    arg.value.a < -1.0 / math.e ||
+                    arg.value.a >= 0.0)),
+      _ => false,
+    };
+  }
 }
 
 String _freshBoundVariable(String base, Set<String> used) {

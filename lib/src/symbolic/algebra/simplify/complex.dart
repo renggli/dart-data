@@ -2,8 +2,8 @@ import 'dart:math' as math;
 
 import '../../assumptions.dart';
 import '../../ast.dart';
+import '../../functions/fn.dart';
 import '../simplify.dart';
-import '../structural_order.dart';
 import 'additive.dart';
 import 'domain.dart';
 import 'multiplicative.dart';
@@ -22,10 +22,12 @@ Expr simplifyRe(Expr expr, {required Assumptions assumptions}) {
       return imaginary is RealNumber && real is! RealNumber
           ? RealNumber.fromDouble(real.toDouble())
           : real;
-    case Re() || Im() || Arg() || Abs():
+    case Call(
+      id: FunctionId.re || FunctionId.im || FunctionId.arg || FunctionId.abs,
+    ):
       return expr;
-    case Conjugate(:final expr):
-      return simplifyRe(expr, assumptions: assumptions);
+    case Call(id: FunctionId.conj, args: [final inner]):
+      return simplifyRe(inner, assumptions: assumptions);
     case Add(:final terms):
       return simplifyAdd([
         for (final term in terms) simplifyRe(term, assumptions: assumptions),
@@ -45,15 +47,21 @@ Expr simplifyIm(Expr expr, {required Assumptions assumptions}) {
   switch (expr) {
     case RealNumber():
       return const RealNumber(0.0);
-    case RealNumeric() || Re() || Im() || Arg() || Abs():
+    case RealNumeric() ||
+        Call(
+          id: FunctionId.re ||
+              FunctionId.im ||
+              FunctionId.arg ||
+              FunctionId.abs,
+        ):
       return IntegerNumber.zero;
     case ComplexNumber(:final real, :final imaginary):
       return real is RealNumber && imaginary is! RealNumber
           ? RealNumber.fromDouble(imaginary.toDouble())
           : imaginary;
-    case Conjugate(:final expr):
+    case Call(id: FunctionId.conj, args: [final inner]):
       return simplifyNeg(
-        simplifyIm(expr, assumptions: assumptions),
+        simplifyIm(inner, assumptions: assumptions),
         assumptions: assumptions,
       );
     case Add(:final terms):
@@ -87,19 +95,19 @@ Expr simplifyArg(Expr expr, {required Assumptions assumptions}) {
         final coeff = imaginary.isNegative
             ? FractionNumber.negativeHalf
             : FractionNumber.half;
-        return Mul([coeff, Constant.pi], isSimplified: true);
+        return Mul.of([coeff, Constant.pi]);
       }
       if (real == imaginary) {
         final coeff = real.isNegative
             ? RationalNumber(-3, 4)
             : RationalNumber(1, 4);
-        return Mul([coeff, Constant.pi], isSimplified: true);
+        return Mul.of([coeff, Constant.pi]);
       }
       if (real == imaginary.neg()) {
         final coeff = real.isNegative
             ? RationalNumber(3, 4)
             : RationalNumber(-1, 4);
-        return Mul([coeff, Constant.pi], isSimplified: true);
+        return Mul.of([coeff, Constant.pi]);
       }
       final atanTerm = simplifyAtan(
         simplifyMul([
@@ -117,18 +125,18 @@ Expr simplifyArg(Expr expr, {required Assumptions assumptions}) {
       }
       final piTerm = imaginary.isNegative ? -Constant.pi : Constant.pi;
       return simplifyAdd([atanTerm, piTerm], assumptions: assumptions);
-    case Conjugate(:final expr)
-        when isPositiveExpr(expr, assumptions: assumptions) ||
-            (expr is ComplexNumber && !expr.imaginary.isZero):
+    case Call(id: FunctionId.conj, args: [final inner])
+        when isPositiveExpr(inner, assumptions: assumptions) ||
+            (inner is ComplexNumber && !inner.imaginary.isZero):
       return simplifyNeg(
-        simplifyArg(expr, assumptions: assumptions),
+        simplifyArg(inner, assumptions: assumptions),
         assumptions: assumptions,
       );
     case _:
       if (isNonNegativeExpr(expr, assumptions: assumptions)) {
         return IntegerNumber.zero;
       }
-      return Arg(expr, isSimplified: true);
+      return Fn.arg(expr);
   }
 }
 
@@ -136,12 +144,19 @@ Expr simplifyArg(Expr expr, {required Assumptions assumptions}) {
 Expr simplifyConjugate(Expr expr, {required Assumptions assumptions}) {
   if (expr == Constant.undefined) return Constant.undefined;
   switch (expr) {
-    case RealNumeric() || Re() || Im() || Arg() || Abs() || OrderTerm():
+    case RealNumeric() ||
+        OrderTerm() ||
+        Call(
+          id: FunctionId.re ||
+              FunctionId.im ||
+              FunctionId.arg ||
+              FunctionId.abs,
+        ):
       return expr;
     case ComplexNumber():
       return expr.conjugate;
-    case Conjugate(:final expr):
-      return expr;
+    case Call(id: FunctionId.conj, args: [final inner]):
+      return inner;
     case Add(:final terms):
       return simplifyAdd([
         for (final term in terms)
@@ -152,7 +167,7 @@ Expr simplifyConjugate(Expr expr, {required Assumptions assumptions}) {
         for (final factor in factors)
           simplifyConjugate(factor, assumptions: assumptions),
       ], assumptions: assumptions);
-    case Pow(base: Constant.e, :final exponent):
+    case Pow(base: Constant(name: 'e'), :final exponent):
       return simplifyPow(
         Constant.e,
         simplifyConjugate(exponent, assumptions: assumptions),
@@ -171,92 +186,92 @@ Expr simplifyConjugate(Expr expr, {required Assumptions assumptions}) {
         exponent,
         assumptions: assumptions,
       );
-    case Sin(:final expr):
+    case Call(id: FunctionId.sin, args: [final inner]):
       return simplifySin(
-        simplifyConjugate(expr, assumptions: assumptions),
+        simplifyConjugate(inner, assumptions: assumptions),
         assumptions: assumptions,
       );
-    case Cos(:final expr):
+    case Call(id: FunctionId.cos, args: [final inner]):
       return simplifyCos(
-        simplifyConjugate(expr, assumptions: assumptions),
+        simplifyConjugate(inner, assumptions: assumptions),
         assumptions: assumptions,
       );
-    case Tan(:final expr):
+    case Call(id: FunctionId.tan, args: [final inner]):
       return simplifyTan(
-        simplifyConjugate(expr, assumptions: assumptions),
+        simplifyConjugate(inner, assumptions: assumptions),
         assumptions: assumptions,
       );
-    case Sinh(:final expr):
+    case Call(id: FunctionId.sinh, args: [final inner]):
       return simplifySinh(
-        simplifyConjugate(expr, assumptions: assumptions),
+        simplifyConjugate(inner, assumptions: assumptions),
         assumptions: assumptions,
       );
-    case Cosh(:final expr):
+    case Call(id: FunctionId.cosh, args: [final inner]):
       return simplifyCosh(
-        simplifyConjugate(expr, assumptions: assumptions),
+        simplifyConjugate(inner, assumptions: assumptions),
         assumptions: assumptions,
       );
-    case Tanh(:final expr):
+    case Call(id: FunctionId.tanh, args: [final inner]):
       return simplifyTanh(
-        simplifyConjugate(expr, assumptions: assumptions),
+        simplifyConjugate(inner, assumptions: assumptions),
         assumptions: assumptions,
       );
-    case Erf(:final expr):
+    case Call(id: FunctionId.erf, args: [final inner]):
       return simplifyErf(
-        simplifyConjugate(expr, assumptions: assumptions),
+        simplifyConjugate(inner, assumptions: assumptions),
         assumptions: assumptions,
       );
-    case Erfc(:final expr):
+    case Call(id: FunctionId.erfc, args: [final inner]):
       return simplifyErfc(
-        simplifyConjugate(expr, assumptions: assumptions),
+        simplifyConjugate(inner, assumptions: assumptions),
         assumptions: assumptions,
       );
-    case Erfi(:final expr):
+    case Call(id: FunctionId.erfi, args: [final inner]):
       return simplifyErfi(
-        simplifyConjugate(expr, assumptions: assumptions),
+        simplifyConjugate(inner, assumptions: assumptions),
         assumptions: assumptions,
       );
-    case FresnelS(:final expr):
+    case Call(id: FunctionId.fresnelS, args: [final inner]):
       return simplifyFresnelS(
-        simplifyConjugate(expr, assumptions: assumptions),
+        simplifyConjugate(inner, assumptions: assumptions),
         assumptions: assumptions,
       );
-    case FresnelC(:final expr):
+    case Call(id: FunctionId.fresnelC, args: [final inner]):
       return simplifyFresnelC(
-        simplifyConjugate(expr, assumptions: assumptions),
+        simplifyConjugate(inner, assumptions: assumptions),
         assumptions: assumptions,
       );
-    case SinIntegral(:final expr):
+    case Call(id: FunctionId.si, args: [final inner]):
       return simplifySinIntegralSi(
-        simplifyConjugate(expr, assumptions: assumptions),
+        simplifyConjugate(inner, assumptions: assumptions),
         assumptions: assumptions,
       );
-    case SinhIntegral(:final expr):
+    case Call(id: FunctionId.shi, args: [final inner]):
       return simplifySinhIntegralShi(
-        simplifyConjugate(expr, assumptions: assumptions),
+        simplifyConjugate(inner, assumptions: assumptions),
         assumptions: assumptions,
       );
-    case Atan(:final expr)
-        when isProvenReal(expr, assumptions) ||
-            (expr is ComplexNumber &&
-                (!expr.real.isZero || expr.imaginary.toDouble().abs() < 1.0)):
+    case Call(id: FunctionId.atan, args: [final inner])
+        when isProvenReal(inner, assumptions) ||
+            (inner is ComplexNumber &&
+                (!inner.real.isZero || inner.imaginary.toDouble().abs() < 1.0)):
       return simplifyAtan(
-        simplifyConjugate(expr, assumptions: assumptions),
+        simplifyConjugate(inner, assumptions: assumptions),
         assumptions: assumptions,
       );
-    case Asinh(:final expr)
-        when isProvenReal(expr, assumptions) ||
-            (expr is ComplexNumber &&
-                (!expr.real.isZero || expr.imaginary.toDouble().abs() < 1.0)):
+    case Call(id: FunctionId.asinh, args: [final inner])
+        when isProvenReal(inner, assumptions) ||
+            (inner is ComplexNumber &&
+                (!inner.real.isZero || inner.imaginary.toDouble().abs() < 1.0)):
       return simplifyAsinh(
-        simplifyConjugate(expr, assumptions: assumptions),
+        simplifyConjugate(inner, assumptions: assumptions),
         assumptions: assumptions,
       );
     case _:
       if (isProvenReal(expr, assumptions)) {
         return expr;
       }
-      return Conjugate(expr, isSimplified: true);
+      return Fn.conj(expr);
   }
 }
 
@@ -287,7 +302,7 @@ Expr toPolarExpr(Expr expr, {required Assumptions assumptions}) {
   }
   final (:re, :im) = decomposeComplex(simplified, assumptions);
   var r = simplifyAbs(simplified, assumptions: assumptions);
-  if (r is Abs && !(im is Number && im.isZero)) {
+  if (r is Call && r.id == FunctionId.abs && !(im is Number && im.isZero)) {
     r = simplifyPow(
       simplifyAdd([
         simplifyPow(re, IntegerNumber.two, assumptions: assumptions),
@@ -301,17 +316,16 @@ Expr toPolarExpr(Expr expr, {required Assumptions assumptions}) {
   if (theta is Number && theta.isZero) {
     return r;
   }
-  final expPart = Pow(
+  final expPart = Pow.of(
     Constant.e,
     simplifyMul([ComplexNumber.i, theta], assumptions: assumptions),
-    isSimplified: true,
   );
   if (r is Number && r.isOne) {
-    return r is RealNumber ? Mul([r, expPart], isSimplified: true) : expPart;
+    return r is RealNumber ? Mul.of([r, expPart]) : expPart;
   }
   final factors = <Expr>[
     if (r case Mul(factors: final rf)) ...rf else r,
     expPart,
   ]..sort(compareStructural);
-  return Mul(factors, isSimplified: true);
+  return Mul.of(factors);
 }

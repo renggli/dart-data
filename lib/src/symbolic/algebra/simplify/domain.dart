@@ -3,7 +3,7 @@ import 'dart:math' as math;
 import '../../assumptions.dart';
 import '../../ast.dart';
 import '../../compiler.dart';
-import '../../number/integer.dart';
+import '../../functions/fn.dart';
 import 'additive.dart';
 import 'complex.dart';
 import 'multiplicative.dart';
@@ -13,39 +13,50 @@ import 'transcendental.dart';
 /// Returns `true` if [expr] is known to be real-valued under [assumptions].
 bool isProvenReal(Expr expr, Assumptions assumptions) => switch (expr) {
   RealNumeric() => true,
-  Abs(:final expr) ||
-  Re(:final expr) ||
-  Im(:final expr) ||
-  Arg(:final expr) => !expr.anyNode((n) => n == Constant.undefined),
-  Floor(:final expr) ||
-  Ceil(:final expr) ||
-  Round(:final expr) ||
-  Sign(:final expr) => isProvenReal(expr, assumptions),
-  Factorial(:final expr) =>
-    isProvenReal(expr, assumptions) &&
-        (isNonNegativeExpr(expr, assumptions: assumptions) ||
-            switch (tryStaticRealValue(expr)) {
+  Call(
+    id: FunctionId.abs || FunctionId.re || FunctionId.im || FunctionId.arg,
+    args: [final inner],
+  ) =>
+    !inner.anyNode((n) => n == Constant.undefined),
+  Call(
+    id: FunctionId.floor ||
+        FunctionId.ceil ||
+        FunctionId.round ||
+        FunctionId.sign,
+    args: [final inner],
+  ) =>
+    isProvenReal(inner, assumptions),
+  Call(id: FunctionId.factorial, args: [final inner]) =>
+    isProvenReal(inner, assumptions) &&
+        (isNonNegativeExpr(inner, assumptions: assumptions) ||
+            switch (tryStaticRealValue(inner)) {
               final v? => v >= 0.0 || (v != v.floorToDouble()),
               _ => false,
             }),
-  Binomial(:final left, :final right) =>
+  Call(id: FunctionId.binomial, args: [final left, final right]) =>
     isProvenReal(left, assumptions) && isProvenReal(right, assumptions),
-  LambertW(:final expr, :final branch) => switch (branch) {
-    0 =>
-      isProvenReal(expr, assumptions) &&
-          (isNonNegativeExpr(expr, assumptions: assumptions) ||
-              switch (tryStaticRealValue(expr)) {
-                final v? => v >= -1.0 / math.e,
-                _ => false,
-              }),
-    -1 =>
-      isProvenReal(expr, assumptions) &&
-          switch (tryStaticRealValue(expr)) {
-            final v? => v >= -1.0 / math.e && v < 0.0,
-            _ => false,
-          },
-    _ => false,
-  },
+  Call(id: FunctionId.lambertW, :final args) => () {
+    final inner = args[0];
+    final branch = args.length == 1
+        ? 0
+        : (args[1] is IntegerNumber ? (args[1] as IntegerNumber).asInt : null);
+    return switch (branch) {
+      0 =>
+        isProvenReal(inner, assumptions) &&
+            (isNonNegativeExpr(inner, assumptions: assumptions) ||
+                switch (tryStaticRealValue(inner)) {
+                  final v? => v >= -1.0 / math.e,
+                  _ => false,
+                }),
+      -1 =>
+        isProvenReal(inner, assumptions) &&
+            switch (tryStaticRealValue(inner)) {
+              final v? => v >= -1.0 / math.e && v < 0.0,
+              _ => false,
+            },
+      _ => false,
+    };
+  }(),
   ComplexNumber(:final imaginary) => imaginary.isZero,
   Constant(:final isReal) => isReal,
   Variable(:final name) => switch (assumptions.domainOf(name)) {
@@ -67,41 +78,59 @@ bool isProvenReal(Expr expr, Assumptions assumptions) => switch (expr) {
             isProvenReal(exponent, assumptions)) ||
         (isNonNegativeExpr(base, assumptions: assumptions) &&
             isPositiveExpr(exponent, assumptions: assumptions)),
-  Sin(:final expr) ||
-  Cos(:final expr) ||
-  Tan(:final expr) ||
-  Atan(:final expr) ||
-  Sinh(:final expr) ||
-  Cosh(:final expr) ||
-  Tanh(:final expr) ||
-  Asinh(:final expr) ||
-  Erf(:final expr) ||
-  Erfc(:final expr) ||
-  Erfi(:final expr) ||
-  FresnelS(:final expr) ||
-  FresnelC(:final expr) ||
-  ExpIntegral(:final expr) ||
-  SinIntegral(:final expr) ||
-  SinhIntegral(:final expr) => isProvenReal(expr, assumptions),
-  Zeta(:final expr, :final shift) =>
-    isProvenReal(expr, assumptions) &&
-        switch (tryStaticRealValue(expr)) {
+  Call(
+    id: FunctionId.sin ||
+        FunctionId.cos ||
+        FunctionId.tan ||
+        FunctionId.atan ||
+        FunctionId.sinh ||
+        FunctionId.cosh ||
+        FunctionId.tanh ||
+        FunctionId.asinh ||
+        FunctionId.erf ||
+        FunctionId.erfc ||
+        FunctionId.erfi ||
+        FunctionId.fresnelS ||
+        FunctionId.fresnelC ||
+        FunctionId.ei ||
+        FunctionId.si ||
+        FunctionId.shi,
+    args: [final inner],
+  ) =>
+    isProvenReal(inner, assumptions),
+  Call(id: FunctionId.zeta, :final args) =>
+    isProvenReal(args[0], assumptions) &&
+        switch (tryStaticRealValue(args[0])) {
           final v? => v != 1.0,
           _ => false,
         } &&
-        (shift == null || isProvenReal(shift, assumptions)),
-  ExpIntegralE(:final left, :final right) =>
+        (args.length < 2 || isProvenReal(args[1], assumptions)),
+  Call(id: FunctionId.expIntegralE, args: [final left, final right]) =>
     isProvenReal(left, assumptions) &&
         isPositiveExpr(right, assumptions: assumptions),
-  Hypergeometric(:final upper, :final lower, :final argument) =>
-    upper.every((e) => isProvenReal(e, assumptions)) &&
-        lower.every((e) => isProvenReal(e, assumptions)) &&
-        isProvenReal(argument, assumptions) &&
-        switch (tryStaticRealValue(argument)) {
-          final v? => v <= 1.0,
-          _ => false,
-        },
-  AppellF1(:final a, :final b1, :final b2, :final c, :final x, :final y) =>
+  Call(
+    id: FunctionId.hypergeometric,
+    args: [final upperArg, final lowerArg, final argument],
+  ) =>
+    () {
+      final upper = upperArg is Call && upperArg.id == FunctionId.tuple
+          ? upperArg.args
+          : [upperArg];
+      final lower = lowerArg is Call && lowerArg.id == FunctionId.tuple
+          ? lowerArg.args
+          : [lowerArg];
+      return upper.every((e) => isProvenReal(e, assumptions)) &&
+          lower.every((e) => isProvenReal(e, assumptions)) &&
+          isProvenReal(argument, assumptions) &&
+          switch (tryStaticRealValue(argument)) {
+            final v? => v <= 1.0,
+            _ => false,
+          };
+    }(),
+  Call(
+    id: FunctionId.appellF1,
+    args: [final a, final b1, final b2, final c, final x, final y],
+  ) =>
     isProvenReal(a, assumptions) &&
         isProvenReal(b1, assumptions) &&
         isProvenReal(b2, assumptions) &&
@@ -112,95 +141,118 @@ bool isProvenReal(Expr expr, Assumptions assumptions) => switch (expr) {
           (final vx?, final vy?) => vx < 1.0 && vy < 1.0,
           _ => false,
         },
-  LogGamma(:final expr) => isPositiveExpr(expr, assumptions: assumptions),
-  Min(:final args) ||
-  Max(:final args) ||
-  Gcd(:final args) ||
-  Lcm(:final args) ||
-  Tuple(:final args) => args.every((e) => isProvenReal(e, assumptions)),
-  Gamma(:final expr) || Digamma(:final expr) =>
-    isProvenReal(expr, assumptions) &&
-        (isPositiveExpr(expr, assumptions: assumptions) ||
-            switch (tryStaticRealValue(expr)) {
+  Call(id: FunctionId.logGamma, args: [final inner]) => isPositiveExpr(
+    inner,
+    assumptions: assumptions,
+  ),
+  Call(
+    id: FunctionId.min ||
+        FunctionId.max ||
+        FunctionId.gcd ||
+        FunctionId.lcm ||
+        FunctionId.tuple,
+    :final args,
+  ) =>
+    args.every((e) => isProvenReal(e, assumptions)),
+  Call(id: FunctionId.gamma || FunctionId.digamma, args: [final inner]) =>
+    isProvenReal(inner, assumptions) &&
+        (isPositiveExpr(inner, assumptions: assumptions) ||
+            switch (tryStaticRealValue(inner)) {
               final v? => v > 0.0 || (v != v.floorToDouble()),
               _ => false,
             }),
-  LogIntegral(:final expr) ||
-  CosIntegral(:final expr) ||
-  CoshIntegral(:final expr) =>
-    isProvenReal(expr, assumptions) &&
-        switch (tryStaticRealValue(expr)) {
+  Call(
+    id: FunctionId.li || FunctionId.ci || FunctionId.chi,
+    args: [final inner],
+  ) =>
+    isProvenReal(inner, assumptions) &&
+        switch (tryStaticRealValue(inner)) {
           final v? => v > 0.0,
           _ => false,
         },
-  EllipticK(:final expr) =>
-    isProvenReal(expr, assumptions) &&
-        switch (tryStaticRealValue(expr)) {
+  Call(id: FunctionId.ellipticK, args: [final inner]) =>
+    isProvenReal(inner, assumptions) &&
+        switch (tryStaticRealValue(inner)) {
           final v? => v.abs() < 1.0,
           _ => false,
         },
-  EllipticE(:final expr, :final amplitude) =>
-    amplitude == null
-        ? isProvenReal(expr, assumptions) &&
-              switch (tryStaticRealValue(expr)) {
+  Call(id: FunctionId.ellipticE, :final args) =>
+    args.length == 1
+        ? isProvenReal(args[0], assumptions) &&
+              switch (tryStaticRealValue(args[0])) {
                 final v? => v.abs() <= 1.0,
                 _ => false,
               }
-        : isProvenReal(expr, assumptions) &&
-              isProvenReal(amplitude, assumptions),
-  Polygamma(:final left, :final right) ||
-  EllipticF(:final left, :final right) ||
-  Atan2(
-    :final left,
-    :final right,
-  ) => isProvenReal(left, assumptions) && isProvenReal(right, assumptions),
-  EllipticPi(:final characteristic, :final amplitude, :final modulus) =>
+        : isProvenReal(args[1], assumptions) &&
+              switch (tryStaticRealValue(args[1])) {
+                final v? => v.abs() <= 1.0,
+                _ => false,
+              } &&
+              isProvenReal(args[0], assumptions),
+  Call(
+    id: FunctionId.polygamma || FunctionId.ellipticF || FunctionId.atan2,
+    args: [final left, final right],
+  ) =>
+    isProvenReal(left, assumptions) && isProvenReal(right, assumptions),
+  Call(
+    id: FunctionId.ellipticPi,
+    args: [final characteristic, final amplitude, final modulus],
+  ) =>
     isProvenReal(characteristic, assumptions) &&
         isProvenReal(amplitude, assumptions) &&
         isProvenReal(modulus, assumptions),
-  BesselJ(:final left, :final right) || BesselI(:final left, :final right) =>
+  Call(
+    id: FunctionId.besselJ || FunctionId.besselI,
+    args: [final left, final right],
+  ) =>
     isProvenReal(left, assumptions) &&
         isProvenReal(right, assumptions) &&
         (isIntegerExpr(left, assumptions: assumptions) ||
             isNonNegativeExpr(right, assumptions: assumptions)),
-  BesselY(:final left, :final right) ||
-  BesselK(:final left, :final right) ||
-  UpperGamma(:final left, :final right) ||
-  LowerGamma(:final left, :final right) =>
+  Call(
+    id: FunctionId.besselY ||
+        FunctionId.besselK ||
+        FunctionId.upperGamma ||
+        FunctionId.lowerGamma,
+    args: [final left, final right],
+  ) =>
     isProvenReal(left, assumptions) &&
         isPositiveExpr(right, assumptions: assumptions),
-  Polylog(:final left, :final right) =>
+  Call(id: FunctionId.polylog, args: [final left, final right]) =>
     isProvenReal(left, assumptions) &&
         isProvenReal(right, assumptions) &&
         switch (tryStaticRealValue(right)) {
           final v? => v <= 1.0,
           _ => false,
         },
-  Asin(:final expr) || Acos(:final expr) =>
-    isProvenReal(expr, assumptions) &&
-        switch (tryStaticRealValue(expr)) {
+  Call(id: FunctionId.asin || FunctionId.acos, args: [final inner]) =>
+    isProvenReal(inner, assumptions) &&
+        switch (tryStaticRealValue(inner)) {
           final v? => v.abs() <= 1.0,
           _ => false,
         },
-  Acosh(:final expr) =>
-    isProvenReal(expr, assumptions) &&
-        switch (tryStaticRealValue(expr)) {
+  Call(id: FunctionId.acosh, args: [final inner]) =>
+    isProvenReal(inner, assumptions) &&
+        switch (tryStaticRealValue(inner)) {
           final v? => v >= 1.0,
           _ => false,
         },
-  Atanh(:final expr) =>
-    isProvenReal(expr, assumptions) &&
-        switch (tryStaticRealValue(expr)) {
+  Call(id: FunctionId.atanh, args: [final inner]) =>
+    isProvenReal(inner, assumptions) &&
+        switch (tryStaticRealValue(inner)) {
           final v? => v.abs() < 1.0,
           _ => false,
         },
-  Ln(:final expr) => isPositiveExpr(expr, assumptions: assumptions),
-  Beta(:final left, :final right) =>
+  Call(id: FunctionId.ln, args: [final inner]) => isPositiveExpr(
+    inner,
+    assumptions: assumptions,
+  ),
+  Call(id: FunctionId.beta, args: [final left, final right]) =>
     isProvenReal(left, assumptions) &&
         isProvenReal(right, assumptions) &&
         isPositiveExpr(left, assumptions: assumptions) &&
         isPositiveExpr(right, assumptions: assumptions),
-  Mod(:final left, :final right) =>
+  Call(id: FunctionId.mod, args: [final left, final right]) =>
     isProvenReal(left, assumptions) && isProvenReal(right, assumptions),
   _ => false,
 };
@@ -241,19 +293,24 @@ bool isPositiveExpr(Expr expr, {required Assumptions assumptions}) =>
                 (isPositiveExpr(base, assumptions: assumptions) ||
                     isNegativeExpr(base, assumptions: assumptions)) &&
                 exponent is IntegerNumber &&
-                exponent.value > Integer.zero &&
+                exponent.value > BigInt.zero &&
                 exponent.value.isEven),
-      Ln(:final expr) =>
-        expr == Constant.e ||
-            switch (tryStaticRealValue(expr)) {
+      Call(id: FunctionId.ln, args: [final inner]) =>
+        inner == Constant.e ||
+            switch (tryStaticRealValue(inner)) {
               final v? => v > 1.0,
               _ => false,
             },
-      Sin() || Cos() => switch (tryStaticRealValue(expr)) {
+      Call(id: FunctionId.sin || FunctionId.cos) => switch (tryStaticRealValue(
+        expr,
+      )) {
         final v? => v > 1e-12,
         _ => false,
       },
-      Cosh(:final expr) => isProvenReal(expr, assumptions),
+      Call(id: FunctionId.cosh, args: [final inner]) => isProvenReal(
+        inner,
+        assumptions,
+      ),
       Add(:final terms) =>
         terms.every((t) => isNonNegativeExpr(t, assumptions: assumptions)) &&
             terms.any((t) => isPositiveExpr(t, assumptions: assumptions)),
@@ -273,48 +330,57 @@ bool isPositiveExpr(Expr expr, {required Assumptions assumptions}) =>
     };
 
 /// Returns `true` if [expr] is syntactically non-negative under [assumptions].
-bool isNonNegativeExpr(
-  Expr expr, {
-  required Assumptions assumptions,
-}) => switch (expr) {
-  RealNumeric(:final isNegative) => !isNegative,
-  Constant(:final isReal, :final value) =>
-    isReal && value.b == 0 && value.a >= 0,
-  Variable(:final name) =>
-    assumptions.domainOf(name) == VariableDomain.positive,
-  Abs(:final expr) => expr != Constant.undefined && expr != Constant.infinity,
-  Pow(base: Constant.e, :final exponent) => isProvenReal(exponent, assumptions),
-  Pow(:final base, :final exponent) =>
-    (isPositiveExpr(base, assumptions: assumptions) &&
-            isProvenReal(exponent, assumptions)) ||
-        (isNonNegativeExpr(base, assumptions: assumptions) &&
-            isNonNegativeExpr(exponent, assumptions: assumptions)) ||
-        (isProvenReal(base, assumptions) &&
-            exponent is IntegerNumber &&
-            exponent.value > Integer.zero &&
-            exponent.value.isEven),
-  Cosh(:final expr) => isProvenReal(expr, assumptions),
-  Add(:final terms) => terms.every(
-    (t) => isNonNegativeExpr(t, assumptions: assumptions),
-  ),
-  Mul(:final factors) => factors.every(
-    (f) => isNonNegativeExpr(f, assumptions: assumptions),
-  ),
-  _ => false,
-};
+bool isNonNegativeExpr(Expr expr, {required Assumptions assumptions}) =>
+    switch (expr) {
+      RealNumeric(:final isNegative) => !isNegative,
+      Constant(:final isReal, :final value) =>
+        isReal && value.b == 0 && value.a >= 0,
+      Variable(:final name) =>
+        assumptions.domainOf(name) == VariableDomain.positive,
+      Call(id: FunctionId.abs, args: [final inner]) =>
+        inner != Constant.undefined && inner != Constant.infinity,
+      Pow(base: Constant.e, :final exponent) => isProvenReal(
+        exponent,
+        assumptions,
+      ),
+      Pow(:final base, :final exponent) =>
+        (isPositiveExpr(base, assumptions: assumptions) &&
+                isProvenReal(exponent, assumptions)) ||
+            (isNonNegativeExpr(base, assumptions: assumptions) &&
+                isNonNegativeExpr(exponent, assumptions: assumptions)) ||
+            (isProvenReal(base, assumptions) &&
+                exponent is IntegerNumber &&
+                exponent.value > BigInt.zero &&
+                exponent.value.isEven),
+      Call(id: FunctionId.cosh, args: [final inner]) => isProvenReal(
+        inner,
+        assumptions,
+      ),
+      Add(:final terms) => terms.every(
+        (t) => isNonNegativeExpr(t, assumptions: assumptions),
+      ),
+      Mul(:final factors) => factors.every(
+        (f) => isNonNegativeExpr(f, assumptions: assumptions),
+      ),
+      _ => false,
+    };
 
 /// Returns `true` if [expr] is syntactically integer-valued under [assumptions].
 bool isIntegerExpr(Expr expr, {required Assumptions assumptions}) =>
     switch (expr) {
       IntegerNumber() => true,
-      Floor(:final expr) ||
-      Ceil(:final expr) ||
-      Round(:final expr) => isProvenReal(expr, assumptions),
-      Sign(:final expr) => isProvenReal(expr, assumptions),
-      Factorial(:final expr) =>
-        isIntegerExpr(expr, assumptions: assumptions) &&
-            isNonNegativeExpr(expr, assumptions: assumptions),
-      Binomial(:final left, :final right) =>
+      Call(
+        id: FunctionId.floor ||
+            FunctionId.ceil ||
+            FunctionId.round ||
+            FunctionId.sign,
+        args: [final inner],
+      ) =>
+        isProvenReal(inner, assumptions),
+      Call(id: FunctionId.factorial, args: [final inner]) =>
+        isIntegerExpr(inner, assumptions: assumptions) &&
+            isNonNegativeExpr(inner, assumptions: assumptions),
+      Call(id: FunctionId.binomial, args: [final left, final right]) =>
         isIntegerExpr(left, assumptions: assumptions) &&
             isIntegerExpr(right, assumptions: assumptions),
       Variable(:final name) =>
@@ -345,7 +411,7 @@ bool isEvenIntegerExpr(Expr expr, {required Assumptions assumptions}) =>
       Pow(:final base, :final exponent) =>
         isEvenIntegerExpr(base, assumptions: assumptions) &&
             exponent is IntegerNumber &&
-            exponent.value > Integer.zero,
+            exponent.value > BigInt.zero,
       _ => false,
     };
 
@@ -359,12 +425,9 @@ bool isEvenIntegerExpr(Expr expr, {required Assumptions assumptions}) =>
     case ComplexNumber(:final real, :final imaginary):
       return (re: real, im: imaginary);
     case Variable():
-      return (
-        re: Re(expr, isSimplified: true),
-        im: Im(expr, isSimplified: true),
-      );
-    case Conjugate(:final expr):
-      final (:re, :im) = decomposeComplex(expr, assumptions);
+      return (re: Fn.re(expr), im: Fn.im(expr));
+    case Call(id: FunctionId.conj, args: [final inner]):
+      final (:re, :im) = decomposeComplex(inner, assumptions);
       return (re: re, im: simplifyNeg(im, assumptions: assumptions));
     case Add(:final terms):
       final reTerms = <Expr>[];
@@ -452,8 +515,8 @@ bool isEvenIntegerExpr(Expr expr, {required Assumptions assumptions}) =>
         );
       }
       return (re: powRe, im: powIm);
-    case Sin(:final expr):
-      final (:re, :im) = decomposeComplex(expr, assumptions);
+    case Call(id: FunctionId.sin, args: [final inner]):
+      final (:re, :im) = decomposeComplex(inner, assumptions);
       return (
         re: simplifyMul([
           simplifySin(re, assumptions: assumptions),
@@ -464,8 +527,8 @@ bool isEvenIntegerExpr(Expr expr, {required Assumptions assumptions}) =>
           simplifySinh(im, assumptions: assumptions),
         ], assumptions: assumptions),
       );
-    case Cos(:final expr):
-      final (:re, :im) = decomposeComplex(expr, assumptions);
+    case Call(id: FunctionId.cos, args: [final inner]):
+      final (:re, :im) = decomposeComplex(inner, assumptions);
       return (
         re: simplifyMul([
           simplifyCos(re, assumptions: assumptions),
@@ -479,8 +542,8 @@ bool isEvenIntegerExpr(Expr expr, {required Assumptions assumptions}) =>
           assumptions: assumptions,
         ),
       );
-    case Sinh(:final expr):
-      final (:re, :im) = decomposeComplex(expr, assumptions);
+    case Call(id: FunctionId.sinh, args: [final inner]):
+      final (:re, :im) = decomposeComplex(inner, assumptions);
       return (
         re: simplifyMul([
           simplifySinh(re, assumptions: assumptions),
@@ -491,8 +554,8 @@ bool isEvenIntegerExpr(Expr expr, {required Assumptions assumptions}) =>
           simplifySin(im, assumptions: assumptions),
         ], assumptions: assumptions),
       );
-    case Cosh(:final expr):
-      final (:re, :im) = decomposeComplex(expr, assumptions);
+    case Call(id: FunctionId.cosh, args: [final inner]):
+      final (:re, :im) = decomposeComplex(inner, assumptions);
       return (
         re: simplifyMul([
           simplifyCosh(re, assumptions: assumptions),
@@ -503,19 +566,16 @@ bool isEvenIntegerExpr(Expr expr, {required Assumptions assumptions}) =>
           simplifySin(im, assumptions: assumptions),
         ], assumptions: assumptions),
       );
-    case Ln(:final expr):
+    case Call(id: FunctionId.ln, args: [final inner]):
       return (
         re: simplifyLn(
-          simplifyAbs(expr, assumptions: assumptions),
+          simplifyAbs(inner, assumptions: assumptions),
           assumptions: assumptions,
         ),
-        im: simplifyArg(expr, assumptions: assumptions),
+        im: simplifyArg(inner, assumptions: assumptions),
       );
     default:
-      return (
-        re: Re(expr, isSimplified: true),
-        im: Im(expr, isSimplified: true),
-      );
+      return (re: Fn.re(expr), im: Fn.im(expr));
   }
 }
 

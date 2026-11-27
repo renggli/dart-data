@@ -1,3 +1,5 @@
+import 'package:more/math.dart';
+
 import '../algebra/expand.dart';
 import '../algebra/helpers.dart';
 import '../algebra/rational.dart';
@@ -8,8 +10,8 @@ import '../algebra/simplify/multiplicative.dart';
 import '../algebra/term_accumulator.dart';
 import '../assumptions.dart';
 import '../ast.dart';
+import '../functions/fn.dart';
 import '../number/combinatorics.dart';
-import '../number/integer.dart';
 import 'limit.dart';
 import 'linear_form.dart';
 import 'product.dart';
@@ -138,20 +140,13 @@ Expr computeSum(
               )
               .simplify(assumptions: assumptions);
           if (closedForm is! Limit && closedForm != Constant.undefined) {
-            final absBase = Abs(symPow.base, isSimplified: true);
+            final absBase = Fn.abs(symPow.base);
             final domainRel = symPow.expSign > 0
-                ? LessThan(absBase, IntegerNumber.one)
-                : GreaterThan(absBase, IntegerNumber.one);
-            return Piecewise(
-              [(relation: domainRel, expr: closedForm)],
-              otherwise: Sum(
-                simplifiedTerm,
-                variable,
-                a,
-                b,
-                isSimplified: true,
-              ),
-            );
+                ? Relational.lessThan(absBase, IntegerNumber.one)
+                : Relational.greaterThan(absBase, IntegerNumber.one);
+            return Piecewise([
+              (relation: domainRel, expr: closedForm),
+            ], otherwise: Sum(simplifiedTerm, variable, a, b));
           }
         } on UnsupportedError {
           // Fall through to closed-form infinite series matching.
@@ -182,7 +177,7 @@ Expr computeSum(
       return infClosed.simplify(assumptions: assumptions);
     }
 
-    return Sum(simplifiedTerm, variable, a, b, isSimplified: true);
+    return Sum(simplifiedTerm, variable, a, b);
   }
 
   // Concrete integer bounds
@@ -224,10 +219,10 @@ Expr computeSum(
   }
 
   // Sum of logarithms: sum_{k=a..b} ln(u(k)) = ln(prod_{k=a..b} u(k))
-  if (simplifiedTerm case Ln(:final expr)) {
+  if (simplifiedTerm case Call(id: FunctionId.ln, args: [final expr])) {
     final prod = closedFormProduct(expr, variable, a, b);
     if (prod != null) {
-      return Ln(prod).simplify(assumptions: assumptions);
+      return Fn.ln(prod).simplify(assumptions: assumptions);
     }
   }
 
@@ -243,19 +238,19 @@ Expr computeSum(
     return binomSum.simplify(assumptions: assumptions);
   }
 
-  return Sum(simplifiedTerm, variable, a, b, isSimplified: true);
+  return Sum(simplifiedTerm, variable, a, b);
 }
 
 /// Computes `zeta(2m) = (|B_2m| (2pi)^2m)/(2 (2m)!)` for even `p = 2m >=2`.
 Expr evenZetaValue(int p) {
   final bernoulli = bernoulliNumbers(p);
   final bpAbs = bernoulli[p].abs();
-  final twoPowP = Integer.big(BigInt.two.pow(p));
-  final factP = Integer.from(p).factorial();
+  final twoPowP = BigInt.two.pow(p);
+  final factP = BigInt.from(p).factorial();
   final coeff = bpAbs.mulRational(
-    RationalNumber.of(twoPowP, Integer.two * factP),
+    RationalNumber.of(twoPowP, BigInt.two * factP),
   );
-  return (coeff * Pow(Constant.pi, IntegerNumber.of(p))).simplify();
+  return (coeff * Pow.of(Constant.pi, IntegerNumber.of(p))).simplify();
 }
 
 Expr? _antidifference(Expr expr, String variable) {
@@ -355,14 +350,13 @@ Expr? _antidifferenceCore(Expr term, String variable) {
   }
 
   // 5. Upper-index Binomial(k + c, m) where m is independent of k
-  if (term case Binomial(:final left, :final right)
+  if (term case Call(id: FunctionId.binomial, args: [final left, final right])
       when !right.dependsOn(variable)) {
     if (left.matchLinear(variable) case (:final a, :final b)
         when a == IntegerNumber.one) {
-      return Binomial(
+      return Fn.binomial(
         (kVar + b).simplify(),
         (right + IntegerNumber.one).simplify(),
-        isSimplified: true,
       );
     }
   }
@@ -381,12 +375,12 @@ Expr _faulhaberAntidifference(String variable, int p) {
   for (var j = 0; j <= p; j++) {
     final bj = bernoulli[j];
     if (bj.isZero) continue;
-    final binom = Integer.from(pPlus1).binomial(Integer.from(j));
+    final binom = pPlus1.binomial(j);
     final coeff = bj
-        .mulRational(IntegerNumber(binom))
+        .mulRational(IntegerNumber.of(binom))
         .divRational(IntegerNumber.of(pPlus1));
     final exp = pPlus1 - j;
-    final kPow = exp == 1 ? kVar : Pow(kVar, IntegerNumber.of(exp));
+    final kPow = exp == 1 ? kVar : Pow.of(kVar, IntegerNumber.of(exp));
     terms.add(coeff.isOne ? kPow : coeff * kPow);
   }
   return simplifyAdd(terms, assumptions: Assumptions.none);
@@ -399,7 +393,7 @@ Expr? _matchGeometric(Expr term, String variable) {
     if (f case Pow(:final base, :final exponent)
         when !base.dependsOn(variable) && exponent.dependsOn(variable)) {
       if (exponent.matchLinear(variable) case (:final a, b: _)) {
-        ratios.add(Pow(base, a).simplify());
+        ratios.add(Pow.of(base, a).simplify());
         continue;
       }
     }
@@ -422,7 +416,7 @@ _matchPolynomialGeometric(Expr term, String variable) {
         when !base.dependsOn(variable) && exponent.dependsOn(variable)) {
       if (exponent.matchLinear(variable) case (:final a, b: _)) {
         expFactors.add(f);
-        ratios.add(Pow(base, a).simplify());
+        ratios.add(Pow.of(base, a).simplify());
         continue;
       }
     }
@@ -460,7 +454,7 @@ Expr? _solvePolynomialGeometricGosper(
   for (var i = maxDeg; i >= 0; i--) {
     var rhs = pCoeffs[i] ?? IntegerNumber.zero;
     for (var j = i + 1; j <= maxDeg; j++) {
-      final binom = IntegerNumber(Integer.from(j).binomial(Integer.from(i)));
+      final binom = IntegerNumber.of(j.binomial(i));
       rhs = (rhs - r * binom * qCoeffs[j]).simplify();
     }
     qCoeffs[i] = (rhs / rMinus1).simplify();
@@ -481,7 +475,10 @@ Expr? _solvePolynomialGeometricGosper(
   Expr? factNode;
   final otherFactors = <Expr>[];
   for (final f in factors) {
-    if (factNode == null && f is Factorial && f.expr == kVar) {
+    if (factNode == null &&
+        f is Call &&
+        f.id == FunctionId.factorial &&
+        f.args[0] == kVar) {
       factNode = f;
     } else {
       otherFactors.add(f);
@@ -518,9 +515,7 @@ Expr? _solvePolynomialFactorialGosper(Map<int, Expr> pCoeffs, String variable) {
     // In (k + 1) * sum_{j} q_j (k + 1)^j - sum_j q_j k^j = sum_j q_j ((k + 1)^(j + 1) - k^j)
     for (var j = m; j <= qDeg; j++) {
       // Coefficient of k^m in (k + 1)^(j + 1) - k^j:
-      final binom = IntegerNumber(
-        Integer.from(j + 1).binomial(Integer.from(m)),
-      );
+      final binom = IntegerNumber.of((j + 1).binomial(m));
       final subCoeff = j == m ? (binom - IntegerNumber.one).simplify() : binom;
       rhs = (rhs - subCoeff * qCoeffs[j]).simplify();
     }
@@ -597,7 +592,7 @@ Expr? _tryRationalTelescoping(Expr apartExpr, String variable) {
       }
     }
     if (groupIndices.length < 2) return null;
-    final totalCoeff = Add([
+    final totalCoeff = Add.of([
       for (final idx in groupIndices) parsedTerms[idx].coeff,
     ]).simplify();
     if (totalCoeff != IntegerNumber.zero) return null;
@@ -632,7 +627,7 @@ Expr? _tryRationalTelescoping(Expr apartExpr, String variable) {
             .simplify();
         final shiftedDen = ti.m == 1
             ? shiftedDenBase
-            : Pow(shiftedDenBase, IntegerNumber.of(ti.m));
+            : Pow.of(shiftedDenBase, IntegerNumber.of(ti.m));
         antiParts.add((-prefixSum / shiftedDen).simplify());
       }
     }
@@ -705,14 +700,17 @@ Expr? _tryBinomialSum(
     if (varFactors
         case [
           Pow(
-            base: Binomial(left: final nExpr, right: final kExpr),
+            base: Call(
+              id: FunctionId.binomial,
+              args: [final nExpr, final kExpr],
+            ),
             exponent: IntegerNumber(asInt: 2),
           ),
         ]
         when !nExpr.dependsOn(variable) && kExpr == kVar && b == nExpr) {
       final fullSum =
           (constPart *
-                  Binomial(
+                  Fn.binomial(
                     (IntegerNumber.two * nExpr).simplify(
                       assumptions: assumptions,
                     ),
@@ -722,25 +720,28 @@ Expr? _tryBinomialSum(
       return adjustLowerBound(fullSum);
     }
 
-    if (varFactors case [final Binomial b1, final Binomial b2]) {
-      final (Binomial? kBinom, Binomial? rBinom) = switch ((b1, b2)) {
-        (Binomial(left: final m, right: final k), final other)
+    if (varFactors case [
+      final Call b1 && Call(id: FunctionId.binomial),
+      final Call b2 && Call(id: FunctionId.binomial),
+    ]) {
+      final (Call? kBinom, Call? rBinom) = switch ((b1, b2)) {
+        (Call(args: [final m, final k]), final other)
             when !m.dependsOn(variable) && k == kVar =>
           (b1, other),
-        (final other, Binomial(left: final m, right: final k))
+        (final other, Call(args: [final m, final k]))
             when !m.dependsOn(variable) && k == kVar =>
           (b2, other),
         _ => (null, null),
       };
       if (kBinom != null &&
           rBinom != null &&
-          !rBinom.left.dependsOn(variable)) {
-        final lin = rBinom.right.matchLinear(variable);
+          !rBinom.args[0].dependsOn(variable)) {
+        final lin = rBinom.args[1].matchLinear(variable);
         if (lin != null && lin.a == IntegerNumber.negativeOne && lin.b == b) {
           final fullSum =
               (constPart *
-                      Binomial(
-                        (kBinom.left + rBinom.left).simplify(
+                      Fn.binomial(
+                        (kBinom.args[0] + rBinom.args[0]).simplify(
                           assumptions: assumptions,
                         ),
                         b,
@@ -752,14 +753,15 @@ Expr? _tryBinomialSum(
     }
   }
 
-  Binomial? binomNode;
+  Call? binomNode;
   final otherFactors = <Expr>[];
 
   for (final f in factors) {
     if (binomNode == null &&
-        f is Binomial &&
-        !f.left.dependsOn(variable) &&
-        f.right == kVar) {
+        f is Call &&
+        f.id == FunctionId.binomial &&
+        !f.args[0].dependsOn(variable) &&
+        f.args[1] == kVar) {
       binomNode = f;
     } else {
       otherFactors.add(f);
@@ -767,13 +769,13 @@ Expr? _tryBinomialSum(
   }
 
   if (binomNode == null) return null;
-  final nExpr = binomNode.left;
+  final nExpr = binomNode.args[0];
   if ((a != IntegerNumber.zero && a != IntegerNumber.one) || b != nExpr) {
     return null;
   }
 
   if (otherFactors.isEmpty) {
-    return adjustLowerBound(Pow(IntegerNumber.two, nExpr).simplify());
+    return adjustLowerBound(Pow.of(IntegerNumber.two, nExpr).simplify());
   }
 
   // Extract geometric factors x^k * y^(n - k), polynomial factors P(k), and constant factors
@@ -783,7 +785,7 @@ Expr? _tryBinomialSum(
       : simplifyMul(constFactors, assumptions: Assumptions.none);
   if (varFactors.isEmpty) {
     return adjustLowerBound(
-      (constPart * Pow(IntegerNumber.two, nExpr)).simplify(),
+      (constPart * Pow.of(IntegerNumber.two, nExpr)).simplify(),
     );
   }
 
@@ -800,7 +802,7 @@ Expr? _tryBinomialSum(
       if (lin.a == IntegerNumber.one) {
         xRatio = (xRatio * base).simplify();
         if (lin.b != IntegerNumber.zero) {
-          extraScale = (extraScale * Pow(base, lin.b)).simplify();
+          extraScale = (extraScale * Pow.of(base, lin.b)).simplify();
         }
         continue;
       }
@@ -808,13 +810,13 @@ Expr? _tryBinomialSum(
         yRatio = (yRatio * base).simplify();
         final remShift = (lin.b - nExpr).simplify();
         if (remShift != IntegerNumber.zero) {
-          extraScale = (extraScale * Pow(base, remShift)).simplify();
+          extraScale = (extraScale * Pow.of(base, remShift)).simplify();
         }
         continue;
       }
-      xRatio = (xRatio * Pow(base, lin.a)).simplify();
+      xRatio = (xRatio * Pow.of(base, lin.a)).simplify();
       if (lin.b != IntegerNumber.zero) {
-        extraScale = (extraScale * Pow(base, lin.b)).simplify();
+        extraScale = (extraScale * Pow.of(base, lin.b)).simplify();
       }
       continue;
     }
@@ -830,7 +832,7 @@ Expr? _tryBinomialSum(
       return null;
     }
     return adjustLowerBound(
-      (constPart * extraScale * Pow(sumBase, nExpr)).simplify(),
+      (constPart * extraScale * Pow.of(sumBase, nExpr)).simplify(),
     );
   }
 
@@ -866,7 +868,7 @@ Expr? _tryBinomialSum(
       final ci = coeffs[i];
       if (ci != null) {
         final s = stirling2[i][j];
-        if (!s.isZero) {
+        if (s != BigInt.zero) {
           sj = (sj + IntegerNumber(s) * ci).simplify();
         }
       }
@@ -885,12 +887,15 @@ Expr? _tryBinomialSum(
     }
     final sj = sCoeffs[j];
     if (sj is Number && sj.isZero) continue;
-    final basePow = Pow(sumBase, IntegerNumber.of(maxDeg - j)).simplify();
+    final basePow = Pow.of(sumBase, IntegerNumber.of(maxDeg - j)).simplify();
     polyFactorSum = (polyFactorSum + sj * fallingN * xPow * basePow).simplify();
   }
 
   final expandedPoly = polyFactorSum.expand().simplify();
-  final tailPow = Pow(sumBase, (nExpr - IntegerNumber.of(maxDeg)).simplify());
+  final tailPow = Pow.of(
+    sumBase,
+    (nExpr - IntegerNumber.of(maxDeg)).simplify(),
+  );
   return adjustLowerBound(
     (constPart * extraScale * expandedPoly * tailPow).simplify(),
   );

@@ -5,7 +5,6 @@ import '../../algebra/simplify.dart';
 import '../../assumptions.dart';
 import '../../ast.dart';
 import '../../compiler.dart';
-import '../../number/integer.dart';
 import '../differentiation.dart';
 import '../linear_form.dart';
 import 'definite.dart';
@@ -175,23 +174,11 @@ Expr symbolicIntegrate(
       }
       return res.simplify(assumptions: assumptions);
     } on UnsupportedError {
-      return Integral(
-        function.simplify(assumptions: assumptions),
-        variable,
-        isSimplified: true,
-      );
+      return Integral(function.simplify(assumptions: assumptions), variable);
     } on ArgumentError {
-      return Integral(
-        function.simplify(assumptions: assumptions),
-        variable,
-        isSimplified: true,
-      );
+      return Integral(function.simplify(assumptions: assumptions), variable);
     } on StateError {
-      return Integral(
-        function.simplify(assumptions: assumptions),
-        variable,
-        isSimplified: true,
-      );
+      return Integral(function.simplify(assumptions: assumptions), variable);
     }
   } finally {
     _activeBudget = prevBudget;
@@ -255,17 +242,21 @@ Expr _antiDerivativeCore(
   required Assumptions assumptions,
   int depth = 0,
 }) {
-  if (depth < 2 && node.anyNode((n) => n is Binomial)) {
+  if (depth < 2 &&
+      node.anyNode((n) => n is Call && n.id == FunctionId.binomial)) {
     Expr expandBinomial(Expr e) {
       final mapped = e.mapChildren(expandBinomial);
       if (mapped
-          case Binomial(left: final u, right: IntegerNumber(asInt: final k?))
+          case Call(
+            id: FunctionId.binomial,
+            args: [final u, IntegerNumber(asInt: final k?)],
+          )
           when u.dependsOn(variable) && k >= 1 && k <= 8) {
         var fact = 1;
         for (var j = 2; j <= k; j++) {
           fact *= j;
         }
-        return Mul([for (var j = 0; j < k; j++) u - IntegerNumber.of(j)]) /
+        return Mul.of([for (var j = 0; j < k; j++) u - IntegerNumber.of(j)]) /
             IntegerNumber.of(fact);
       }
       return mapped;
@@ -324,11 +315,11 @@ Expr _antiDerivativeCore(
           ? expr
           : expr.derivative(v, order: order - 1, assumptions: assumptions),
     Variable(:final name) when name == variable =>
-      (Pow(node, IntegerNumber.two) / IntegerNumber.two).simplify(
+      (Pow.of(node, IntegerNumber.two) / IntegerNumber.two).simplify(
         assumptions: assumptions,
       ),
     Add(:final terms) => () {
-      final sumRes = Add([
+      final sumRes = Add.of([
         for (final term in terms)
           antiDerivative(
             term,
@@ -366,70 +357,94 @@ Expr _antiDerivativeCore(
       }
       return sumRes;
     }(),
-    Sin(expr: final inner) =>
-      antiDerivSin(inner, variable) ?? unsupportedIntegral(node, variable),
-    Cos(expr: final inner) =>
-      antiDerivCos(inner, variable) ?? unsupportedIntegral(node, variable),
-    Tan(expr: final inner) =>
-      antiDerivTan(inner, variable, assumptions: assumptions) ??
-          unsupportedIntegral(node, variable),
-    Asin(expr: final inner) =>
-      antiDerivAsin(inner, variable) ?? unsupportedIntegral(node, variable),
-    Acos(expr: final inner) =>
-      antiDerivAcos(inner, variable) ?? unsupportedIntegral(node, variable),
-    Atan(expr: final inner) =>
-      antiDerivAtan(inner, variable) ?? unsupportedIntegral(node, variable),
-    Sinh(expr: final inner) =>
-      antiDerivSinh(inner, variable) ?? unsupportedIntegral(node, variable),
-    Cosh(expr: final inner) =>
-      antiDerivCosh(inner, variable) ?? unsupportedIntegral(node, variable),
-    Tanh(expr: final inner) =>
-      antiDerivTanh(inner, variable) ?? unsupportedIntegral(node, variable),
-    Abs(expr: final inner) =>
-      antiDerivAbs(inner, variable) ?? unsupportedIntegral(node, variable),
-    Ln(expr: final inner) =>
-      antiDerivLn(inner, variable, assumptions: assumptions, depth: depth) ??
-          unsupportedIntegral(node, variable),
-    LambertW(expr: final inner, :final branch) =>
-      antiDerivLambertW(inner, branch, variable) ??
-          unsupportedIntegral(node, variable),
-    Erf(expr: final inner) =>
-      antiDerivErf(inner, variable) ?? unsupportedIntegral(node, variable),
-    Erfc(expr: final inner) =>
-      antiDerivErfc(inner, variable) ?? unsupportedIntegral(node, variable),
-    Erfi(expr: final inner) =>
-      antiDerivErfi(inner, variable) ?? unsupportedIntegral(node, variable),
-    FresnelS(expr: final inner) =>
-      antiDerivFresnelS(inner, variable) ?? unsupportedIntegral(node, variable),
-    FresnelC(expr: final inner) =>
-      antiDerivFresnelC(inner, variable) ?? unsupportedIntegral(node, variable),
-    ExpIntegral(expr: final inner) =>
-      antiDerivExpIntegralEi(inner, variable) ??
-          unsupportedIntegral(node, variable),
-    LogIntegral(expr: final inner) =>
-      antiDerivLogIntegralLi(inner, variable) ??
-          unsupportedIntegral(node, variable),
-    SinIntegral(expr: final inner) =>
-      antiDerivSinIntegralSi(inner, variable) ??
-          unsupportedIntegral(node, variable),
-    CosIntegral(expr: final inner) =>
-      antiDerivCosIntegralCi(inner, variable) ??
-          unsupportedIntegral(node, variable),
-    SinhIntegral(expr: final inner) =>
-      antiDerivSinhIntegralShi(inner, variable) ??
-          unsupportedIntegral(node, variable),
-    CoshIntegral(expr: final inner) =>
-      antiDerivCoshIntegralChi(inner, variable) ??
-          unsupportedIntegral(node, variable),
-    Asinh(expr: final inner) =>
-      antiDerivAsinh(inner, variable) ?? unsupportedIntegral(node, variable),
-    Acosh(expr: final inner) =>
-      antiDerivAcosh(inner, variable) ?? unsupportedIntegral(node, variable),
-    Atanh(expr: final inner) =>
-      antiDerivAtanh(inner, variable) ?? unsupportedIntegral(node, variable),
-    Polylog(:final left, :final right) =>
-      antiDerivPolylog(left, right, variable, assumptions: assumptions) ??
-          unsupportedIntegral(node, variable),
+    Call(:final id, :final args) => switch (id) {
+      FunctionId.sin =>
+        antiDerivSin(args[0], variable) ?? unsupportedIntegral(node, variable),
+      FunctionId.cos =>
+        antiDerivCos(args[0], variable) ?? unsupportedIntegral(node, variable),
+      FunctionId.tan =>
+        antiDerivTan(args[0], variable, assumptions: assumptions) ??
+            unsupportedIntegral(node, variable),
+      FunctionId.asin =>
+        antiDerivAsin(args[0], variable) ?? unsupportedIntegral(node, variable),
+      FunctionId.acos =>
+        antiDerivAcos(args[0], variable) ?? unsupportedIntegral(node, variable),
+      FunctionId.atan =>
+        antiDerivAtan(args[0], variable) ?? unsupportedIntegral(node, variable),
+      FunctionId.sinh =>
+        antiDerivSinh(args[0], variable) ?? unsupportedIntegral(node, variable),
+      FunctionId.cosh =>
+        antiDerivCosh(args[0], variable) ?? unsupportedIntegral(node, variable),
+      FunctionId.tanh =>
+        antiDerivTanh(args[0], variable) ?? unsupportedIntegral(node, variable),
+      FunctionId.abs =>
+        antiDerivAbs(args[0], variable) ?? unsupportedIntegral(node, variable),
+      FunctionId.ln =>
+        antiDerivLn(
+              args[0],
+              variable,
+              assumptions: assumptions,
+              depth: depth,
+            ) ??
+            unsupportedIntegral(node, variable),
+      FunctionId.lambertW =>
+        antiDerivLambertW(
+              args[0],
+              args.length > 1 && args[1] is IntegerNumber
+                  ? (args[1] as IntegerNumber).toInt()
+                  : 0,
+              variable,
+            ) ??
+            unsupportedIntegral(node, variable),
+      FunctionId.erf =>
+        antiDerivErf(args[0], variable) ?? unsupportedIntegral(node, variable),
+      FunctionId.erfc =>
+        antiDerivErfc(args[0], variable) ?? unsupportedIntegral(node, variable),
+      FunctionId.erfi =>
+        antiDerivErfi(args[0], variable) ?? unsupportedIntegral(node, variable),
+      FunctionId.fresnelS =>
+        antiDerivFresnelS(args[0], variable) ??
+            unsupportedIntegral(node, variable),
+      FunctionId.fresnelC =>
+        antiDerivFresnelC(args[0], variable) ??
+            unsupportedIntegral(node, variable),
+      FunctionId.ei =>
+        antiDerivExpIntegralEi(args[0], variable) ??
+            unsupportedIntegral(node, variable),
+      FunctionId.li =>
+        antiDerivLogIntegralLi(args[0], variable) ??
+            unsupportedIntegral(node, variable),
+      FunctionId.si =>
+        antiDerivSinIntegralSi(args[0], variable) ??
+            unsupportedIntegral(node, variable),
+      FunctionId.ci =>
+        antiDerivCosIntegralCi(args[0], variable) ??
+            unsupportedIntegral(node, variable),
+      FunctionId.shi =>
+        antiDerivSinhIntegralShi(args[0], variable) ??
+            unsupportedIntegral(node, variable),
+      FunctionId.chi =>
+        antiDerivCoshIntegralChi(args[0], variable) ??
+            unsupportedIntegral(node, variable),
+      FunctionId.asinh =>
+        antiDerivAsinh(args[0], variable) ??
+            unsupportedIntegral(node, variable),
+      FunctionId.acosh =>
+        antiDerivAcosh(args[0], variable) ??
+            unsupportedIntegral(node, variable),
+      FunctionId.atanh =>
+        antiDerivAtanh(args[0], variable) ??
+            unsupportedIntegral(node, variable),
+      FunctionId.polylog =>
+        antiDerivPolylog(
+              args[0],
+              args[1],
+              variable,
+              assumptions: assumptions,
+            ) ??
+            unsupportedIntegral(node, variable),
+      _ => unsupportedIntegral(node, variable),
+    },
     Piecewise() => antiDerivPiecewise(node, variable, assumptions: assumptions),
     Pow(:final base, :final exponent) => antiDerivPow(
       base,
@@ -607,8 +622,10 @@ Expr _antiDerivativeCore(
         case final binomSpecRes?) {
       return binomSpecRes;
     }
-    if (node is! Tan &&
-        node.anyNode((n) => n is Tan && n.dependsOn(variable))) {
+    if (!(node is Call && node.id == FunctionId.tan) &&
+        node.anyNode(
+          (n) => n is Call && n.id == FunctionId.tan && n.dependsOn(variable),
+        )) {
       final rewritten = rewriteTanToSinCos(
         node,
         variable,
@@ -664,7 +681,7 @@ Expr _antiDerivativeCore(
 
 /// Returns a simplified unevaluated [Integral] node for [expr] in [variable].
 Expr unsupportedIntegral(Expr expr, String variable) =>
-    Integral(expr, variable, isSimplified: true);
+    Integral(expr, variable);
 
 bool _isRationalIn(Expr expr, String variable) {
   if (!expr.dependsOn(variable)) return true;
@@ -709,13 +726,13 @@ bool isValidExponentialBase(Expr base) => switch (base) {
 /// Extracts `u` if [expr] has the form `u^(2*k)` for positive integer `k`.
 Expr? extractSquareBase(Expr expr) => switch (expr) {
   Pow(:final base, exponent: IntegerNumber(:final value))
-      when value.isEven && value > Integer.zero =>
-    value == Integer.two
+      when value.isEven && value > BigInt.zero =>
+    value == BigInt.two
         ? base
-        : Pow(base, IntegerNumber(value ~/ Integer.two)),
+        : Pow.of(base, IntegerNumber(value ~/ BigInt.two)),
   Pow(:final base, exponent: RealNumber(:final value))
       when value % 2.0 == 0.0 && value > 0 =>
-    value == 2.0 ? base : Pow(base, RealNumber(value / 2.0)),
+    value == 2.0 ? base : Pow.of(base, RealNumber(value / 2.0)),
   _ => null,
 };
 
@@ -728,11 +745,11 @@ Expr? extractScaledSquareBase(Expr expr, String variable) {
     if (varFactors case [final varPart] when constFactors.isNotEmpty) {
       final constPart = switch (constFactors) {
         [final single] => single,
-        _ => Mul(constFactors).simplify(),
+        _ => Mul.of(constFactors).simplify(),
       };
       if (isSymbolicPositive(constPart)) {
         if (extractSquareBase(varPart) case final sq?) {
-          return (Pow(constPart, FractionNumber.half).simplify() * sq)
+          return (Pow.of(constPart, FractionNumber.half).simplify() * sq)
               .simplify();
         }
       }
@@ -758,9 +775,8 @@ bool isSymbolicPositive(Expr expr) {
 /// Extracts odd integer `k` (`k <= 15`) when [exponent] equals `k / 2`.
 int? halfIntExponent(Expr exponent) {
   if (exponent case FractionNumber(:final numerator, denominator: final den)
-      when den == Integer.two && numerator.isOdd) {
-    final value = numerator.asInt;
-    if (value != null && value.abs() <= 15) return value;
+      when den == BigInt.two && numerator.isOdd) {
+    if (numerator.abs() <= BigInt.from(15)) return numerator.toInt();
   }
   if (exponent is RealNumber) {
     final doubled = exponent.value * 2;

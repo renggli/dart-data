@@ -5,7 +5,7 @@ import '../../algebra/simplify.dart';
 import '../../assumptions.dart';
 import '../../ast.dart';
 import '../../compiler.dart';
-import '../../number/integer.dart';
+import '../../functions/fn.dart';
 import '../differentiation.dart';
 import '../linear_form.dart';
 import 'definite.dart';
@@ -41,7 +41,7 @@ Expr? tryAntiDerivDiv(
         when !exponent.dependsOn(variable) &&
             base.matchLinear(variable) != null) {
       final negExp = (-exponent).simplify();
-      final powExpr = Pow(base, negExp);
+      final powExpr = Pow.of(base, negExp);
       return antiDerivative(
         powExpr,
         variable,
@@ -51,16 +51,16 @@ Expr? tryAntiDerivDiv(
     }
 
     // int c / cosh(ax + b) dx = (c / a) * atan(sinh(ax + b))
-    if (right case Cosh(expr: final inner)) {
+    if (right case Call(id: FunctionId.cosh, args: [final inner])) {
       if (inner.matchLinear(variable) case (:final a, b: _)) {
-        return ((left * Atan(Sinh(inner))) / a).simplify();
+        return ((left * Fn.atan(Fn.sinh(inner))) / a).simplify();
       }
     }
 
     // int c / sinh(ax + b) dx = (c / a) * (ln|e^(ax+b) - 1| - ln|e^(ax+b) + 1|)
-    if (right case Sinh(expr: final inner)) {
+    if (right case Call(id: FunctionId.sinh, args: [final inner])) {
       if (inner.matchLinear(variable) case (:final a, b: _)) {
-        final expU = Pow(Constant.e, inner);
+        final expU = Pow.of(Constant.e, inner);
         return ((left / a) *
                 (logAntiderivative(expU - IntegerNumber.one, assumptions) -
                     logAntiderivative(expU + IntegerNumber.one, assumptions)))
@@ -69,64 +69,80 @@ Expr? tryAntiDerivDiv(
     }
 
     // int c / cos(ax + b) dx = (c / a) * ln| (1 + sin(ax + b)) / cos(ax + b) |
-    if (right case Cos(expr: final inner)) {
+    if (right case Call(id: FunctionId.cos, args: [final inner])) {
       if (inner.matchLinear(variable) case (:final a, b: _)) {
-        final secTan = ((IntegerNumber.one + Sin(inner)) / Cos(inner))
+        final secTan = ((IntegerNumber.one + Fn.sin(inner)) / Fn.cos(inner))
             .simplify();
-        return ((left * Ln(Abs(secTan))) / a).simplify();
+        return ((left * Fn.ln(Fn.abs(secTan))) / a).simplify();
       }
     }
 
     // int c / sin(ax + b) dx = -(c / a) * ln| (1 + cos(ax + b)) / sin(ax + b) |
-    if (right case Sin(expr: final inner)) {
+    if (right case Call(id: FunctionId.sin, args: [final inner])) {
       if (inner.matchLinear(variable) case (:final a, b: _)) {
-        final cscCot = ((IntegerNumber.one + Cos(inner)) / Sin(inner))
+        final cscCot = ((IntegerNumber.one + Fn.cos(inner)) / Fn.sin(inner))
             .simplify();
-        return ((-left * Ln(Abs(cscCot))) / a).simplify();
+        return ((-left * Fn.ln(Fn.abs(cscCot))) / a).simplify();
       }
     }
 
     // int c / cos(ax + b)^2 dx = (c / a) * tan(ax + b)
-    if (right case Pow(base: Cos(expr: final inner), :final exponent)
+    if (right
+        case Pow(
+          base: Call(id: FunctionId.cos, args: [final inner]),
+          :final exponent,
+        )
         when exponent == IntegerNumber.two ||
             (exponent is RealNumber && exponent.value == 2.0)) {
       if (inner.matchLinear(variable) case (:final a, b: _)) {
-        return ((left * Tan(inner)) / a).simplify();
+        return ((left * Fn.tan(inner)) / a).simplify();
       }
     }
 
     // int c / sin(ax + b)^2 dx = -(c / a) * (cos(ax + b) / sin(ax + b))
-    if (right case Pow(base: Sin(expr: final inner), :final exponent)
+    if (right
+        case Pow(
+          base: Call(id: FunctionId.sin, args: [final inner]),
+          :final exponent,
+        )
         when exponent == IntegerNumber.two ||
             (exponent is RealNumber && exponent.value == 2.0)) {
       if (inner.matchLinear(variable) case (:final a, b: _)) {
-        return ((-left * Cos(inner)) / (a * Sin(inner))).simplify();
+        return ((-left * Fn.cos(inner)) / (a * Fn.sin(inner))).simplify();
       }
     }
 
     // int c / sinh(ax + b) dx = (c / a) * ln|tanh((ax + b) / 2)|
-    if (right case Sinh(expr: final inner)) {
+    if (right case Call(id: FunctionId.sinh, args: [final inner])) {
       if (inner.matchLinear(variable) case (:final a, b: _)) {
-        return ((left * Ln(Abs(Tanh(inner / IntegerNumber.two)))) / a)
+        return ((left * Fn.ln(Fn.abs(Fn.tanh(inner / IntegerNumber.two)))) / a)
             .simplify();
       }
     }
 
     // int c / cosh(ax + b)^2 dx = (c / a) * tanh(ax + b)
-    if (right case Pow(base: Cosh(expr: final inner), :final exponent)
+    if (right
+        case Pow(
+          base: Call(id: FunctionId.cosh, args: [final inner]),
+          :final exponent,
+        )
         when exponent == IntegerNumber.two ||
             (exponent is RealNumber && exponent.value == 2.0)) {
       if (inner.matchLinear(variable) case (:final a, b: _)) {
-        return ((left * Tanh(inner)) / a).simplify();
+        return ((left * Fn.tanh(inner)) / a).simplify();
       }
     }
 
     // int c / sinh(ax + b)^2 dx = -(c / a) * (cosh(ax + b) / sinh(ax + b))
-    if (right case Pow(base: Sinh(expr: final inner), :final exponent)
+    if (right
+        case Pow(
+          base: Call(id: FunctionId.sinh, args: [final inner]),
+          :final exponent,
+        )
         when exponent == IntegerNumber.two ||
             (exponent is RealNumber && exponent.value == 2.0)) {
       if (inner.matchLinear(variable) case (:final a, b: _)) {
-        return ((-left * Cosh(inner)) / (a * Sinh(inner))).simplify();
+        return ((-left * Fn.cosh(inner)) / (a * Fn.sinh(inner))).simplify();
       }
     }
 
@@ -135,44 +151,14 @@ Expr? tryAntiDerivDiv(
         when n >= 3 && n <= 10) {
       final nMinus1 = IntegerNumber.of(n - 1);
       final nMinus2 = IntegerNumber.of(n - 2);
-      if (base case Cos(expr: final inner)) {
-        if (inner.matchLinear(variable) case (:final a, b: _)) {
-          final term1 = (Sin(inner) / (a * nMinus1 * Pow(Cos(inner), nMinus1)))
-              .simplify();
-          final rem = tryAntiDerivDiv(
-            IntegerNumber.one,
-            Pow(Cos(inner), nMinus2).simplify(),
-            variable,
-            assumptions: assumptions,
-          );
-          if (rem != null) {
-            return (left * (term1 + (nMinus2 / nMinus1) * rem)).simplify();
-          }
-        }
-      }
-      if (base case Sin(expr: final inner)) {
-        if (inner.matchLinear(variable) case (:final a, b: _)) {
-          final term1 = (-Cos(inner) / (a * nMinus1 * Pow(Sin(inner), nMinus1)))
-              .simplify();
-          final rem = tryAntiDerivDiv(
-            IntegerNumber.one,
-            Pow(Sin(inner), nMinus2).simplify(),
-            variable,
-            assumptions: assumptions,
-          );
-          if (rem != null) {
-            return (left * (term1 + (nMinus2 / nMinus1) * rem)).simplify();
-          }
-        }
-      }
-      if (base case Cosh(expr: final inner)) {
+      if (base case Call(id: FunctionId.cos, args: [final inner])) {
         if (inner.matchLinear(variable) case (:final a, b: _)) {
           final term1 =
-              (Sinh(inner) / (a * nMinus1 * Pow(Cosh(inner), nMinus1)))
+              (Fn.sin(inner) / (a * nMinus1 * Pow.of(Fn.cos(inner), nMinus1)))
                   .simplify();
           final rem = tryAntiDerivDiv(
             IntegerNumber.one,
-            Pow(Cosh(inner), nMinus2).simplify(),
+            Pow.of(Fn.cos(inner), nMinus2).simplify(),
             variable,
             assumptions: assumptions,
           );
@@ -181,14 +167,47 @@ Expr? tryAntiDerivDiv(
           }
         }
       }
-      if (base case Sinh(expr: final inner)) {
+      if (base case Call(id: FunctionId.sin, args: [final inner])) {
         if (inner.matchLinear(variable) case (:final a, b: _)) {
           final term1 =
-              (-Cosh(inner) / (a * nMinus1 * Pow(Sinh(inner), nMinus1)))
+              (-Fn.cos(inner) / (a * nMinus1 * Pow.of(Fn.sin(inner), nMinus1)))
                   .simplify();
           final rem = tryAntiDerivDiv(
             IntegerNumber.one,
-            Pow(Sinh(inner), nMinus2).simplify(),
+            Pow.of(Fn.sin(inner), nMinus2).simplify(),
+            variable,
+            assumptions: assumptions,
+          );
+          if (rem != null) {
+            return (left * (term1 + (nMinus2 / nMinus1) * rem)).simplify();
+          }
+        }
+      }
+      if (base case Call(id: FunctionId.cosh, args: [final inner])) {
+        if (inner.matchLinear(variable) case (:final a, b: _)) {
+          final term1 =
+              (Fn.sinh(inner) / (a * nMinus1 * Pow.of(Fn.cosh(inner), nMinus1)))
+                  .simplify();
+          final rem = tryAntiDerivDiv(
+            IntegerNumber.one,
+            Pow.of(Fn.cosh(inner), nMinus2).simplify(),
+            variable,
+            assumptions: assumptions,
+          );
+          if (rem != null) {
+            return (left * (term1 + (nMinus2 / nMinus1) * rem)).simplify();
+          }
+        }
+      }
+      if (base case Call(id: FunctionId.sinh, args: [final inner])) {
+        if (inner.matchLinear(variable) case (:final a, b: _)) {
+          final term1 =
+              (-Fn.cosh(inner) /
+                      (a * nMinus1 * Pow.of(Fn.sinh(inner), nMinus1)))
+                  .simplify();
+          final rem = tryAntiDerivDiv(
+            IntegerNumber.one,
+            Pow.of(Fn.sinh(inner), nMinus2).simplify(),
             variable,
             assumptions: assumptions,
           );
@@ -211,24 +230,22 @@ Expr? tryAntiDerivDiv(
       final a = coeffs[2] ?? IntegerNumber.zero;
       final b = coeffs[1] ?? IntegerNumber.zero;
       final c = coeffs[0] ?? IntegerNumber.zero;
-      final delta = (const IntegerNumber(Integer(4)) * a * c - b * b)
-          .expand()
-          .simplify();
+      final delta = (IntegerNumber.of(4) * a * c - b * b).expand().simplify();
       final twoA = (IntegerNumber.two * a).simplify();
       final twoAxPlusB = (twoA * Variable(variable) + b).simplify();
 
       Expr atanBranch() {
-        final sqrtDelta = Pow(delta, FractionNumber.half).simplify();
+        final sqrtDelta = Pow.of(delta, FractionNumber.half).simplify();
         return ((IntegerNumber.two * left / sqrtDelta) *
-                Atan(twoAxPlusB / sqrtDelta))
+                Fn.atan(twoAxPlusB / sqrtDelta))
             .simplify();
       }
 
       Expr logAbsBranch() {
         final dPos = (-delta).simplify();
-        final sqrtD = Pow(dPos, FractionNumber.half).simplify();
+        final sqrtD = Pow.of(dPos, FractionNumber.half).simplify();
         final arg = ((twoAxPlusB - sqrtD) / (twoAxPlusB + sqrtD)).simplify();
-        return ((left / sqrtD) * Ln(Abs(arg))).simplify();
+        return ((left / sqrtD) * Fn.ln(Fn.abs(arg))).simplify();
       }
 
       if (delta is Number && delta.isZero) {
@@ -306,7 +323,7 @@ Expr? tryAntiDerivDiv(
       if (extractSquareBase(rR) case final u? when u.dependsOn(variable)) {
         final uPrime = u.derivative(variable).simplify();
         if (left.matchScalarMultiple(uPrime, variable) case final k?) {
-          return Atan(u).scale(k);
+          return Fn.atan(u).scale(k);
         }
       }
     }
@@ -318,7 +335,7 @@ Expr? tryAntiDerivDiv(
           when w.dependsOn(variable)) {
         final wPrime = w.derivative(variable).simplify();
         if (left.matchScalarMultiple(wPrime, variable) case final k?) {
-          return Atan(w).scale((k / rL).simplify());
+          return Fn.atan(w).scale((k / rL).simplify());
         }
       }
     }
@@ -338,20 +355,20 @@ Expr? tryAntiDerivDiv(
       if (isSymbolicPositive(aConst)) {
         final sqrtA = aConst == IntegerNumber.one
             ? IntegerNumber.one
-            : Pow(aConst, FractionNumber.half).simplify();
+            : Pow.of(aConst, FractionNumber.half).simplify();
         final negTerm = (-varTerm).simplify();
         if (extractScaledSquareBase(negTerm, variable) case final u?
             when u.dependsOn(variable)) {
           final uPrime = u.derivative(variable).simplify();
           if (left.matchScalarMultiple(uPrime, variable) case final k?) {
-            return Asin(u / sqrtA).scale(k);
+            return Fn.asin(u / sqrtA).scale(k);
           }
         }
         if (extractScaledSquareBase(varTerm, variable) case final u?
             when u.dependsOn(variable)) {
           final uPrime = u.derivative(variable).simplify();
           if (left.matchScalarMultiple(uPrime, variable) case final k?) {
-            return Asinh(u / sqrtA).scale(k);
+            return Fn.asinh(u / sqrtA).scale(k);
           }
         }
       } else if (isSymbolicPositive((-aConst).simplify())) {
@@ -359,7 +376,7 @@ Expr? tryAntiDerivDiv(
             when u.dependsOn(variable)) {
           final uPrime = u.derivative(variable).simplify();
           if (left.matchScalarMultiple(uPrime, variable) case final k?) {
-            return Ln(Abs((u + right).simplify())).scale(k);
+            return Fn.ln(Fn.abs((u + right).simplify())).scale(k);
           }
         }
       }
@@ -369,9 +386,9 @@ Expr? tryAntiDerivDiv(
   // c / ln(ax + b) -> (c / a) * li(ax + b)
   // L / (a + b * ln(c*x + d)) -> (L / (b*c)) * exp(-a/b) * li((c*x + d) * exp(a/b))
   if (!left.dependsOn(variable)) {
-    if (right case Ln(expr: final inner)) {
+    if (right case Call(id: FunctionId.ln, args: [final inner])) {
       if (inner.matchLinear(variable) case (:final a, b: _)) {
-        return ((left / a) * LogIntegral(inner)).simplify();
+        return ((left / a) * Fn.li(inner)).simplify();
       }
     }
     if (matchLinearLog(right, variable) case (
@@ -382,8 +399,8 @@ Expr? tryAntiDerivDiv(
       if (inner.matchLinear(variable) case (a: final c, b: _)) {
         final ratio = (a / b).simplify(assumptions: assumptions);
         return ((left / (b * c)) *
-                Pow(Constant.e, -ratio) *
-                LogIntegral(inner * Pow(Constant.e, ratio)))
+                Pow.of(Constant.e, -ratio) *
+                Fn.li(inner * Pow.of(Constant.e, ratio)))
             .simplify(assumptions: assumptions);
       }
     }
@@ -391,7 +408,12 @@ Expr? tryAntiDerivDiv(
 
   // Split ln(c * x) -> ln(c) + ln(x) when denominator contains ln(x)
   if (depth < 2 &&
-      right.anyNode((n) => n is Ln && n.expr == Variable(variable)) &&
+      right.anyNode(
+        (n) =>
+            n is Call &&
+            n.id == FunctionId.ln &&
+            n.args[0] == Variable(variable),
+      ) &&
       left.anyNode((n) => isScaledVarLn(n, variable))) {
     final splitLeft = splitScaledVarLn(
       left,
@@ -424,7 +446,7 @@ Expr? tryAntiDerivDiv(
     if (vList.length == 1) {
       leftScale = cList.isEmpty
           ? IntegerNumber.one
-          : Mul(cList).simplify(assumptions: assumptions);
+          : Mul.of(cList).simplify(assumptions: assumptions);
       leftFn = vList.first;
     } else {
       leftScale = IntegerNumber.one;
@@ -437,7 +459,7 @@ Expr? tryAntiDerivDiv(
 
   if (right.matchLinear(variable) case (a: final d, b: final c)) {
     switch (leftFn) {
-      case Ln(expr: final inner):
+      case Call(id: FunctionId.ln, args: [final inner]):
         if (inner.matchLinear(variable) case (a: final b, b: final a)) {
           return _integrateLinearLnOverLinear(
             leftScale,
@@ -451,12 +473,12 @@ Expr? tryAntiDerivDiv(
             assumptions,
           );
         }
-      case Atan(expr: final inner):
+      case Call(id: FunctionId.atan, args: [final inner]):
         if (inner.matchLinear(variable) case (a: _, b: final a)) {
           if (a is Number && a.isZero && c is Number && c.isZero) {
             return ((leftScale * ComplexNumber.i / (IntegerNumber.two * d)) *
-                    (Polylog(IntegerNumber.two, -ComplexNumber.i * inner) -
-                        Polylog(IntegerNumber.two, ComplexNumber.i * inner)))
+                    (Fn.polylog(IntegerNumber.two, -ComplexNumber.i * inner) -
+                        Fn.polylog(IntegerNumber.two, ComplexNumber.i * inner)))
                 .simplify(assumptions: assumptions);
           }
           final uPlus = (IntegerNumber.one + ComplexNumber.i * inner).simplify(
@@ -501,16 +523,16 @@ Expr? tryAntiDerivDiv(
         );
         if (!recip.dependsOn(variable) && c is Number && c.isZero) {
           return ((-leftScale * ComplexNumber.i / (IntegerNumber.two * d)) *
-                  (Polylog(IntegerNumber.two, -ComplexNumber.i * inner) -
-                      Polylog(IntegerNumber.two, ComplexNumber.i * inner)))
+                  (Fn.polylog(IntegerNumber.two, -ComplexNumber.i * inner) -
+                      Fn.polylog(IntegerNumber.two, ComplexNumber.i * inner)))
               .simplify(assumptions: assumptions);
         }
-      case Atanh(expr: final inner):
+      case Call(id: FunctionId.atanh, args: [final inner]):
         if (inner.matchLinear(variable) case (a: _, b: final a)) {
           if (a is Number && a.isZero && c is Number && c.isZero) {
             return ((leftScale / (IntegerNumber.two * d)) *
-                    (Polylog(IntegerNumber.two, inner) -
-                        Polylog(IntegerNumber.two, -inner)))
+                    (Fn.polylog(IntegerNumber.two, inner) -
+                        Fn.polylog(IntegerNumber.two, -inner)))
                 .simplify(assumptions: assumptions);
           }
           final uPlus = (IntegerNumber.one + inner).simplify(
@@ -554,11 +576,11 @@ Expr? tryAntiDerivDiv(
         );
         if (!recip.dependsOn(variable) && c is Number && c.isZero) {
           return ((-leftScale / (IntegerNumber.two * d)) *
-                  (Polylog(IntegerNumber.two, inner) -
-                      Polylog(IntegerNumber.two, -inner)))
+                  (Fn.polylog(IntegerNumber.two, inner) -
+                      Fn.polylog(IntegerNumber.two, -inner)))
               .simplify(assumptions: assumptions);
         }
-      case Polylog(left: final order, right: final arg)
+      case Call(id: FunctionId.polylog, args: [final order, final arg])
           when !order.dependsOn(variable) && c is Number && c.isZero:
         RationalNumber? monoExp;
         if (arg case Variable(:final name) when name == variable) {
@@ -590,7 +612,7 @@ Expr? tryAntiDerivDiv(
         }
         if (monoExp != null) {
           return (leftScale *
-                  Polylog(
+                  Fn.polylog(
                     (order + IntegerNumber.one).simplify(
                       assumptions: assumptions,
                     ),
@@ -612,10 +634,10 @@ Expr? tryAntiDerivDiv(
           when k >= 7 && k <= 8) {
         if (rBase.matchLinear(variable) case (a: final c1, b: _)) {
           final kMinus1 = IntegerNumber.of(k - 1);
-          final term1 = (-left / (c1 * kMinus1 * Pow(rBase, kMinus1)))
+          final term1 = (-left / (c1 * kMinus1 * Pow.of(rBase, kMinus1)))
               .simplify();
           final rem = antiDerivative(
-            (a * left / (c1 * kMinus1 * Pow(rBase, kMinus1))).simplify(),
+            (a * left / (c1 * kMinus1 * Pow.of(rBase, kMinus1))).simplify(),
             variable,
             depth: 1,
             assumptions: assumptions,
@@ -638,7 +660,7 @@ Expr? tryAntiDerivDiv(
       final scale = switch (constFactors) {
         [] => IntegerNumber.one,
         [final single] => single,
-        _ => Mul(constFactors).simplify(),
+        _ => Mul.of(constFactors).simplify(),
       };
       Expr? shiftedTrigInt(
         Expr inner,
@@ -664,49 +686,49 @@ Expr? tryAntiDerivDiv(
       }
 
       switch (vf) {
-        case Sin(expr: final inner):
+        case Call(id: FunctionId.sin, args: [final inner]):
           if (shiftedTrigInt(
                 inner,
-                SinIntegral.new,
-                CosIntegral.new,
-                Cos.new,
-                Sin.new,
+                Fn.si.call,
+                Fn.ci.call,
+                Fn.cos.call,
+                Fn.sin.call,
                 1,
               )
               case final res?) {
             return res;
           }
-        case Cos(expr: final inner):
+        case Call(id: FunctionId.cos, args: [final inner]):
           if (shiftedTrigInt(
                 inner,
-                CosIntegral.new,
-                SinIntegral.new,
-                Cos.new,
-                Sin.new,
+                Fn.ci.call,
+                Fn.si.call,
+                Fn.cos.call,
+                Fn.sin.call,
                 -1,
               )
               case final res?) {
             return res;
           }
-        case Sinh(expr: final inner):
+        case Call(id: FunctionId.sinh, args: [final inner]):
           if (shiftedTrigInt(
                 inner,
-                SinhIntegral.new,
-                CoshIntegral.new,
-                Cosh.new,
-                Sinh.new,
+                Fn.shi.call,
+                Fn.chi.call,
+                Fn.cosh.call,
+                Fn.sinh.call,
                 1,
               )
               case final res?) {
             return res;
           }
-        case Cosh(expr: final inner):
+        case Call(id: FunctionId.cosh, args: [final inner]):
           if (shiftedTrigInt(
                 inner,
-                CoshIntegral.new,
-                SinhIntegral.new,
-                Cosh.new,
-                Sinh.new,
+                Fn.chi.call,
+                Fn.shi.call,
+                Fn.cosh.call,
+                Fn.sinh.call,
                 1,
               )
               case final res?) {
@@ -750,14 +772,16 @@ Expr? tryAntiDerivDiv(
             (coeffs[1] == null || coeffs[1] == IntegerNumber.zero)) {
           final cConst = coeffs[0] ?? IntegerNumber.zero;
           if (isSymbolicPositive(cConst)) {
-            final sqrtC = Pow(cConst, FractionNumber.half).simplify();
-            return ((-left / sqrtC) * Ln(Abs((sqrtC + radFactor) / xFactor)))
+            final sqrtC = Pow.of(cConst, FractionNumber.half).simplify();
+            return ((-left / sqrtC) *
+                    Fn.ln(Fn.abs((sqrtC + radFactor) / xFactor)))
                 .simplify();
           }
           final negC = (-cConst).simplify();
           if (isSymbolicPositive(negC)) {
-            final sqrtNegC = Pow(negC, FractionNumber.half).simplify();
-            return ((left / sqrtNegC) * Atan(radFactor / sqrtNegC)).simplify();
+            final sqrtNegC = Pow.of(negC, FractionNumber.half).simplify();
+            return ((left / sqrtNegC) * Fn.atan(radFactor / sqrtNegC))
+                .simplify();
           }
         }
       }
@@ -795,7 +819,7 @@ Expr? tryAntiDerivDiv(
       }
       if (km != null) {
         final oneMinusM = IntegerNumber.of(1 - m);
-        return (km * Pow(uBase, oneMinusM) / oneMinusM).simplify(
+        return (km * Pow.of(uBase, oneMinusM) / oneMinusM).simplify(
           assumptions: assumptions,
         );
       }
@@ -1049,7 +1073,7 @@ Expr? tryAntiDerivDiv(
                   factoredDen *
                   (entry.mult == 1
                       ? entry.factor
-                      : Pow(entry.factor, IntegerNumber.of(entry.mult)));
+                      : Pow.of(entry.factor, IntegerNumber.of(entry.mult)));
             }
             if (sqFree.length == 1) {
               final factor = sqFree.first.factor;
@@ -1070,7 +1094,7 @@ Expr? tryAntiDerivDiv(
             );
             final decomposed = factoredRatio.apart(variable);
             if (decomposed is Add) {
-              return Add([
+              return Add.of([
                 for (final term in decomposed.terms)
                   antiDerivative(
                     term,
@@ -1089,7 +1113,7 @@ Expr? tryAntiDerivDiv(
           final originalRatio = (left / right).simplify();
           final decomposed = originalRatio.apart(variable);
           if (decomposed case Add(:final terms)) {
-            return Add([
+            return Add.of([
               for (final term in terms)
                 antiDerivative(
                   term,
@@ -1110,7 +1134,7 @@ Expr? tryAntiDerivDiv(
                     (newDen.base.matchLinear(variable) != null ||
                         (newDen.exponent is IntegerNumber &&
                             (newDen.exponent as IntegerNumber).value >
-                                Integer.one))) ||
+                                BigInt.one))) ||
                 newDen.matchLinear(variable) != null) {
               return antiDerivative(
                 decomposed,
@@ -1141,7 +1165,9 @@ Expr _integrateLinearLnOverLinear(
 ) {
   final det = (b * c - a * d).expand().simplify(assumptions: assumptions);
   if (det is Number && det.isZero) {
-    return (scale * Pow(Ln(u), IntegerNumber.two) / (IntegerNumber.two * d))
+    return (scale *
+            Pow.of(Fn.ln(u), IntegerNumber.two) /
+            (IntegerNumber.two * d))
         .simplify(assumptions: assumptions);
   }
   if (c is Number && c.isZero) {
@@ -1149,13 +1175,14 @@ Expr _integrateLinearLnOverLinear(
       assumptions: assumptions,
     );
     return ((scale / d) *
-            ((Ln(u) - Ln(IntegerNumber.one + ratio)) *
+            ((Fn.ln(u) - Fn.ln(IntegerNumber.one + ratio)) *
                     logAntiderivative(Variable(variable), assumptions) -
-                Polylog(IntegerNumber.two, -ratio)))
+                Fn.polylog(IntegerNumber.two, -ratio)))
         .simplify(assumptions: assumptions);
   }
   final z = (-d * u / det).simplify(assumptions: assumptions);
   final oneMinusZ = (b * v / det).simplify(assumptions: assumptions);
-  return ((scale / d) * (Ln(u) * Ln(oneMinusZ) + Polylog(IntegerNumber.two, z)))
+  return ((scale / d) *
+          (Fn.ln(u) * Fn.ln(oneMinusZ) + Fn.polylog(IntegerNumber.two, z)))
       .simplify(assumptions: assumptions);
 }

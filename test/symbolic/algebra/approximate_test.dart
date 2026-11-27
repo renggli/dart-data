@@ -17,7 +17,7 @@ void main() {
     test('converts ComplexNumber components to RealNumber', () {
       final c = ComplexNumber.of(
         IntegerNumber.of(3),
-        const FractionNumber(Integer.one, Integer(4)),
+        RationalNumber.of(BigInt.one, BigInt.from(4)),
       );
       final approx = c.approximate();
       check(approx).isA<ComplexNumber>();
@@ -89,27 +89,28 @@ void main() {
           (math.exp(1.0) - math.exp(-1.0)) / (math.exp(1.0) + math.exp(-1.0)),
           1e-12,
         );
-        check((Asinh(IntegerNumber.one).approximate() as RealNumber).value)
+        check((Fn.asinh(IntegerNumber.one).approximate() as RealNumber).value)
             .isCloseTo(math.log(1.0 + math.sqrt(2.0)), 1e-12);
-        check((Acosh(IntegerNumber.two).approximate() as RealNumber).value)
+        check((Fn.acosh(IntegerNumber.two).approximate() as RealNumber).value)
             .isCloseTo(math.log(2.0 + math.sqrt(3.0)), 1e-12);
-        check((Atanh(FractionNumber.half).approximate() as RealNumber).value)
+        check((Fn.atanh(FractionNumber.half).approximate() as RealNumber).value)
             .isCloseTo(0.5 * math.log(3.0), 1e-12);
-        check((Ln(IntegerNumber.two).approximate() as RealNumber).value)
+        check((Fn.ln(IntegerNumber.two).approximate() as RealNumber).value)
             .isCloseTo(math.ln2, 1e-12);
-        check((Erf(IntegerNumber.one).approximate() as RealNumber).value)
+        check((Fn.erf(IntegerNumber.one).approximate() as RealNumber).value)
             .isCloseTo(0.8427007929497149, 1e-7);
-        check((Erfc(IntegerNumber.one).approximate() as RealNumber).value)
+        check((Fn.erfc(IntegerNumber.one).approximate() as RealNumber).value)
             .isCloseTo(1.0 - 0.8427007929497149, 1e-7);
-        check((Gamma(FractionNumber.half).approximate() as RealNumber).value)
+        check((Fn.gamma(FractionNumber.half).approximate() as RealNumber).value)
             .isCloseTo(math.sqrt(math.pi), 1e-12);
-        check((LambertW(IntegerNumber.one).approximate() as RealNumber).value)
-            .isCloseTo(0.5671432904097838, 1e-12);
+        check(
+          (Fn.lambertW(IntegerNumber.one).approximate() as RealNumber).value,
+        ).isCloseTo(0.5671432904097838, 1e-12);
       });
 
       test('evaluates complex-valued unary and power expressions', () {
         // Negative base with fractional exponent in _approximatePow
-        final negPow = Pow(
+        final negPow = Pow.of(
           IntegerNumber.of(-2),
           FractionNumber.third,
         ).approximate();
@@ -121,72 +122,79 @@ void main() {
             .isCloseTo(math.pow(2, 1 / 3) * math.sin(math.pi / 3), 1e-12);
 
         // Overflow in negative base fractional power returns Constant.undefined
-        final overflowPow = Pow(
+        final overflowPow = Pow.of(
           const RealNumber(-1e200),
           const RealNumber(200.5),
         ).approximate();
         check(overflowPow).equals(Constant.undefined);
-        check(Pow(IntegerNumber.zero, IntegerNumber.negativeOne).approximate())
-            .equals(Constant.undefined);
+        check(
+          Pow.of(IntegerNumber.zero, IntegerNumber.negativeOne).approximate(),
+        ).equals(Constant.undefined);
 
         // Unary function where real evaluation is NaN but complex evaluation succeeds
-        final lnNeg1 = Ln(IntegerNumber.negativeOne).approximate();
+        final lnNeg1 = Fn.ln(IntegerNumber.negativeOne).approximate();
         check(lnNeg1).isA<ComplexNumber>();
         check((lnNeg1 as ComplexNumber).imaginary.toDouble())
             .isCloseTo(math.pi, 1e-12);
 
         // Unary function on ComplexNumber producing ComplexNumber
-        final sinComplex = Sin(
+        final sinComplex = Fn.sin(
           ComplexNumber.of(IntegerNumber.one, IntegerNumber.one),
         ).approximate();
         check(sinComplex).isA<ComplexNumber>();
 
         // Unary function on ComplexNumber producing real result (im == 0)
-        final absComplex = Abs(
+        final absComplex = Fn.abs(
           ComplexNumber.of(IntegerNumber.of(3), IntegerNumber.of(4)),
         ).approximate();
         check(absComplex).equals(const RealNumber(5.0));
 
         // Unary function where complex evaluation is NaN or infinite
-        final badUnary = Gamma(
+        final badUnary = Fn.gamma(
           ComplexNumber.of(IntegerNumber.negativeOne, IntegerNumber.zero),
         ).approximate();
         check(badUnary).equals(Constant.undefined);
 
-        final infUnary = Sinh(
+        final infUnary = Fn.sinh(
           ComplexNumber.of(const RealNumber(1000.0), IntegerNumber.one),
         ).approximate();
         check(infUnary).equals(Constant.undefined);
       });
 
       test('evaluates BinaryExpr (Beta) for real and symbolic inputs', () {
-        final realBeta = Beta(
+        final realBeta = Fn.beta(
           FractionNumber.half,
           FractionNumber.half,
         ).approximate();
         check(realBeta).isA<RealNumber>();
         check((realBeta as RealNumber).value).isCloseTo(math.pi, 1e-10);
 
-        final nanBeta = Beta(
+        final nanBeta = Fn.beta(
           IntegerNumber.zero,
           IntegerNumber.one,
         ).approximate();
         check(nanBeta).equals(Constant.undefined);
 
-        final symBeta = Beta(const Variable('x'), Constant.pi).approximate();
-        check(symBeta).isA<Beta>();
-        check((symBeta as Beta).left).isA<RealNumber>();
+        final symBeta = Fn.beta(const Variable('x'), Constant.pi).approximate();
+        check(symBeta)
+            .isA<Call>()
+            .has('id', (Call c) => c.id)
+            .equals(FunctionId.beta);
+        check((symBeta as Call).args[0]).isA<RealNumber>();
       });
 
       test(
         'approximates Piecewise, RelationalExpr, Integral, and OrderTerm',
         () {
-          final rel = LessThan(Constant.pi, IntegerNumber.of(4)).approximate();
+          final rel = Relational.lessThan(
+            Constant.pi,
+            IntegerNumber.of(4),
+          ).approximate();
           check(rel).equals(IntegerNumber.one);
 
           final pw = Piecewise([
             (
-              relation: LessThan(const Variable('x'), Constant.pi),
+              relation: Relational.lessThan(const Variable('x'), Constant.pi),
               expr: FractionNumber.half,
             ),
           ], otherwise: Constant.e).approximate();
@@ -207,13 +215,16 @@ void main() {
           ).approximate();
           check(symInt).isA<Integral>();
 
-          final symPow = Pow(const Variable('x'), Constant.pi).approximate();
+          final symPow = Pow.of(const Variable('x'), Constant.pi).approximate();
           check(symPow).isA<Pow>();
 
-          final symUnary = Sin(const Variable('x')).approximate();
-          check(symUnary).isA<Sin>();
+          final symUnary = Fn.sin(const Variable('x')).approximate();
+          check(symUnary)
+              .isA<Call>()
+              .has('id', (Call c) => c.id)
+              .equals(FunctionId.sin);
 
-          const ord = OrderTerm('x', 3);
+          final ord = OrderTerm('x', 3);
           check(ord.approximate()).equals(ord);
 
           final largeGammaRatio = Expr.parse('gamma(1000.5) / gamma(999.2)')
@@ -251,7 +262,7 @@ void main() {
       check(c1).equals(
         ComplexNumber.of(
           FractionNumber.half,
-          const FractionNumber(Integer.negativeOne, Integer(4)),
+          RationalNumber.of(-BigInt.one, BigInt.from(4)),
         ),
       );
 
@@ -267,11 +278,11 @@ void main() {
     test(
       'rationalizes composite expressions and leaves symbolic leaves intact',
       () {
-        final expr = Add([
-          Mul([const RealNumber(0.5), const Variable('x')]),
+        final expr = Add.of([
+          Mul.of([const RealNumber(0.5), const Variable('x')]),
           const RealNumber(0.125),
           Constant.pi,
-          const OrderTerm('x', 4),
+          OrderTerm('x', 4),
         ]);
         final rat = expr.rationalize();
         check(rat.anyNode((n) => n is RealNumber)).isFalse;
@@ -284,14 +295,17 @@ void main() {
       final z = ComplexNumber(const RealNumber(1.5), const RealNumber(0.5));
       const w = RealNumber(0.5);
 
-      check(Beta(z, w).approximate()).isA<ComplexNumber>();
-      check(Binomial(z, w).approximate()).isA<ComplexNumber>();
-      check(UpperGamma(w, z).approximate()).isA<ComplexNumber>();
-      check(EllipticF(z, w).approximate()).isA<ComplexNumber>();
+      check(Fn.beta(z, w).approximate()).isA<ComplexNumber>();
+      check(Fn.binomial(z, w).approximate()).isA<ComplexNumber>();
+      check(Fn.upperGamma(w, z).approximate()).isA<ComplexNumber>();
+      check(Fn.ellipticF(z, w).approximate()).isA<ComplexNumber>();
 
       // Domain-crossed real binary special function falls back to ComplexNumber
       check(
-        EllipticF(const RealNumber(1.0), const RealNumber(2.0)).approximate(),
+        Fn.ellipticF(
+          const RealNumber(1.0),
+          const RealNumber(2.0),
+        ).approximate(),
       ).isA<ComplexNumber>();
     });
 
@@ -299,25 +313,25 @@ void main() {
       final z = ComplexNumber(const RealNumber(0.5), const RealNumber(0.25));
       const w = RealNumber(0.5);
 
-      check(Erf(z).simplify()).isA<ComplexNumber>();
-      check(Gamma(z).simplify()).isA<ComplexNumber>();
-      check(BesselJ(w, z).simplify()).isA<ComplexNumber>();
-      check(Beta(z, w).simplify()).isA<ComplexNumber>();
-      check(EllipticF(z, w).simplify()).isA<ComplexNumber>();
-      check(LambertW(z).simplify()).isA<ComplexNumber>();
+      check(Fn.erf(z).simplify()).isA<ComplexNumber>();
+      check(Fn.gamma(z).simplify()).isA<ComplexNumber>();
+      check(Fn.besselJ(w, z).simplify()).isA<ComplexNumber>();
+      check(Fn.beta(z, w).simplify()).isA<ComplexNumber>();
+      check(Fn.ellipticF(z, w).simplify()).isA<ComplexNumber>();
+      check(Fn.lambertW(z).simplify()).isA<ComplexNumber>();
     });
 
     test(
       'parses, formats, simplifies, and approximates EllipticPi and Atan2',
       () {
-        final piParsed = Expr.parse('elliptic_pi(0, x, k)');
-        check(piParsed.simplify()).equals(Expr.parse('elliptic_f(x, k)'));
-        check(Expr.parse('elliptic_pi(n, 0, k)').simplify())
+        final piParsed = Expr.parse('ellipticPi(0, x, k)');
+        check(piParsed.simplify()).equals(Expr.parse('ellipticF(x, k)'));
+        check(Expr.parse('ellipticPi(n, 0, k)').simplify())
             .equals(IntegerNumber.zero);
 
-        final piFull = Expr.parse('elliptic_pi(0.3, 0.8, 0.5)');
+        final piFull = Expr.parse('ellipticPi(0.3, 0.8, 0.5)');
         check(piFull.approximate()).isA<RealNumber>();
-        check(piFull.toString()).equals('elliptic_pi(0.3, 0.8, 0.5)');
+        check(piFull.toString()).equals('ellipticPi(0.3, 0.8, 0.5)');
         check(piFull.toLatex()).contains('\\Pi(');
         check(piFull.toMathMl()).contains('<mi>Π</mi>');
 
@@ -336,31 +350,51 @@ void main() {
     test(
       'approximates Min, Max, EllipticE, and symbolic powers accurately',
       () {
-        final eMin = Min([Constant.pi, IntegerNumber.of(4)]);
-        final eMax = Max([Constant.e, IntegerNumber.two]);
+        final eMin = Fn.min([Constant.pi, IntegerNumber.of(4)]);
+        final eMax = Fn.max([Constant.e, IntegerNumber.two]);
         check((eMin.approximate() as RealNumber).value)
             .isCloseTo(math.pi, 1e-12);
         check((eMax.approximate() as RealNumber).value)
             .isCloseTo(math.e, 1e-12);
         check(
-          (EllipticE(const RealNumber(0.5)).approximate() as RealNumber).value,
+          (Fn.ellipticE(const RealNumber(0.5)).approximate() as RealNumber)
+              .value,
         ).isCloseTo(1.467462209339427, 1e-12);
         check(
-          Pow(
+          Pow.of(
             const Variable('x'),
             IntegerNumber.two,
           ).approximate({'x': Constant.pi}),
         ).isA<RealNumber>();
         const x = Variable('x');
         check(
-          Binomial(const RealNumber(5.2), const RealNumber(2.1)).approximate(),
+          Fn.binomial(
+            const RealNumber(5.2),
+            const RealNumber(2.1),
+          ).approximate(),
         ).isA<RealNumber>();
-        check(Factorial(const RealNumber(4.5)).approximate()).isA<RealNumber>();
-        check(Min([x, Constant.pi]).approximate()).isA<Min>();
-        check(Max([x, Constant.pi]).approximate()).isA<Max>();
-        check(Gcd([x, Constant.pi]).approximate()).isA<Gcd>();
-        check(Lcm([x, Constant.pi]).approximate()).isA<Lcm>();
-        check(Tuple([x, Constant.pi]).approximate()).isA<Tuple>();
+        check(Fn.factorial(const RealNumber(4.5)).approximate())
+            .isA<RealNumber>();
+        check(Fn.min([x, Constant.pi]).approximate())
+            .isA<Call>()
+            .has('id', (Call c) => c.id)
+            .equals(FunctionId.min);
+        check(Fn.max([x, Constant.pi]).approximate())
+            .isA<Call>()
+            .has('id', (Call c) => c.id)
+            .equals(FunctionId.max);
+        check(Fn.gcd([x, Constant.pi]).approximate())
+            .isA<Call>()
+            .has('id', (Call c) => c.id)
+            .equals(FunctionId.gcd);
+        check(Fn.lcm([x, Constant.pi]).approximate())
+            .isA<Call>()
+            .has('id', (Call c) => c.id)
+            .equals(FunctionId.lcm);
+        check(Fn.tuple([x, Constant.pi]).approximate())
+            .isA<Call>()
+            .has('id', (Call c) => c.id)
+            .equals(FunctionId.tuple);
       },
     );
   });

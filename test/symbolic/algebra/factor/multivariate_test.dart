@@ -10,7 +10,7 @@ void main() {
       check(extractMonomialGcd(const [])).isNull;
       check(
         extractMonomialGcd([
-          Mul([const RealNumber(2.0), const Variable('x')]),
+          Mul.of([const RealNumber(2.0), const Variable('x')]),
           const Variable('x'),
         ]),
       ).isNull;
@@ -30,13 +30,13 @@ void main() {
       const y = Variable('y');
       check(divideMonomial(x, x)).equals(IntegerNumber.one);
       final withResiduals = divideMonomial(
-        Mul([
+        Mul.of([
           IntegerNumber.of(6),
-          Pow(x, IntegerNumber.of(3)),
-          Pow(y, IntegerNumber.negativeOne),
-          Sin(x),
+          Pow.of(x, IntegerNumber.of(3)),
+          Pow.of(y, IntegerNumber.negativeOne),
+          Fn.sin(x),
         ]),
-        Mul([IntegerNumber.two, x, Sin(x)]),
+        Mul.of([IntegerNumber.two, x, Fn.sin(x)]),
       );
       check(withResiduals.toString()).equals('3 * x ^ 2 / y');
     });
@@ -53,19 +53,19 @@ void main() {
 
         // Partition ((0, 1), (2, 3)) with r1 == r2
         final g1 = factorByGrouping4([
-          Mul([x, z]),
-          Mul([x, w]),
-          Mul([y, z]),
-          Mul([y, w]),
+          Mul.of([x, z]),
+          Mul.of([x, w]),
+          Mul.of([y, z]),
+          Mul.of([y, w]),
         ], assumptions: Assumptions.none);
         check(g1).isNotNull();
 
         // Partition ((0, 2), (1, 3)) with r1 == -r2: x*z - y*w + x*w - y*z
         final g2 = factorByGrouping4([
-          Mul([x, z]),
-          Mul([IntegerNumber.negativeOne, y, w]),
-          Mul([x, w]),
-          Mul([IntegerNumber.negativeOne, y, z]),
+          Mul.of([x, z]),
+          Mul.of([IntegerNumber.negativeOne, y, w]),
+          Mul.of([x, w]),
+          Mul.of([IntegerNumber.negativeOne, y, z]),
         ], assumptions: Assumptions.none);
         check(g2).isNotNull();
         check((g2!.expand() - Expr.parse('x*z - y*w + x*w - y*z')).simplify())
@@ -88,12 +88,12 @@ void main() {
 
         // -4 * x^2 * y^4 + 9 * z^2 (c1 < 0, c2 > 0)
         final diff = matchDifferenceOfSquares([
-          Mul([
+          Mul.of([
             IntegerNumber.of(-4),
-            Pow(x, IntegerNumber.two),
-            Pow(y, IntegerNumber.of(4)),
+            Pow.of(x, IntegerNumber.two),
+            Pow.of(y, IntegerNumber.of(4)),
           ]),
-          Mul([IntegerNumber.of(9), Pow(z, IntegerNumber.two)]),
+          Mul.of([IntegerNumber.of(9), Pow.of(z, IntegerNumber.two)]),
         ]);
         check(diff).isNotNull();
         final (leftRoot, rightRoot) = diff!;
@@ -103,12 +103,12 @@ void main() {
         check(extractBaseSquareRoot(IntegerNumber.one))
             .equals(IntegerNumber.one);
         check(extractBaseSquareRoot(x)).isNull;
-        check(extractBaseSquareRoot(Sin(x))).isNull;
+        check(extractBaseSquareRoot(Fn.sin(x))).isNull;
         check(matchDifferenceOfSquares([x])).isNull;
         check(
           matchDifferenceOfSquares([
-            Mul([const RealNumber(1.0), Pow(x, IntegerNumber.two)]),
-            Mul([const RealNumber(-1.0), Pow(y, IntegerNumber.two)]),
+            Mul.of([const RealNumber(1.0), Pow.of(x, IntegerNumber.two)]),
+            Mul.of([const RealNumber(-1.0), Pow.of(y, IntegerNumber.two)]),
           ]),
         ).isNull;
       },
@@ -123,12 +123,12 @@ void main() {
 
         // -8 * x^3 * y^6 + 27 * z^3 (c1 < 0, c2 > 0)
         final cubes = matchSumOrDifferenceOfCubes([
-          Mul([
+          Mul.of([
             IntegerNumber.of(-8),
-            Pow(x, IntegerNumber.of(3)),
-            Pow(y, IntegerNumber.of(6)),
+            Pow.of(x, IntegerNumber.of(3)),
+            Pow.of(y, IntegerNumber.of(6)),
           ]),
-          Mul([IntegerNumber.of(27), Pow(z, IntegerNumber.of(3))]),
+          Mul.of([IntegerNumber.of(27), Pow.of(z, IntegerNumber.of(3))]),
         ]);
         check(cubes).isNotNull();
         check(cubes!.isDifference).isTrue;
@@ -137,14 +137,14 @@ void main() {
 
         check(extractBaseCubeRoot(IntegerNumber.one)).equals(IntegerNumber.one);
         check(extractBaseCubeRoot(x)).isNull;
-        check(integerCbrt(Integer.zero)).equals(Integer.zero);
-        check(integerCbrt(const Integer(-27))).equals(const Integer(-3));
-        check(integerCbrt(const Integer(10))).isNull;
-        final bigCube = Integer.big(BigInt.from(10).pow(60));
-        check(integerCbrt(bigCube))
-            .equals(Integer.big(BigInt.from(10).pow(20)));
-        final bigSq = Integer.big(BigInt.from(10).pow(60));
-        check(bigSq.isqrt()).equals(Integer.big(BigInt.from(10).pow(30)));
+        check(integerCbrt(BigInt.zero)).equals(BigInt.zero);
+        check(integerCbrt(BigInt.from(-27))).equals(BigInt.from(-3));
+        check(integerCbrt(BigInt.from(10))).isNull;
+        final bigCube = BigInt.from(10).pow(60);
+        check(integerCbrt(bigCube)).equals(BigInt.from(10).pow(20));
+        final bigSq = BigInt.from(10).pow(60);
+        check(Number.exactIntegerRoot(bigSq, 2))
+            .equals(BigInt.from(10).pow(30));
         check(isOne(IntegerNumber.one)).isTrue;
         check(isOne(x)).isFalse;
       },

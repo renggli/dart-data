@@ -52,21 +52,15 @@ void main() {
         check(isNegativeHalf(const RealNumber(0.5))).isFalse;
 
         // Pow(1/2, 1/2) and 2^(-1/2) representations of sqrt(2)/2
-        final powHalf = Pow(FractionNumber.half, FractionNumber.half);
+        final powHalf = Pow.of(FractionNumber.half, FractionNumber.half);
         check(isSqrt2Over2(powHalf)).isTrue;
-        check(
-          isSqrt2Over2(
-            Pow(
-              IntegerNumber.two,
-              const FractionNumber(Integer.negativeOne, Integer.two),
-            ),
-          ),
-        ).isTrue;
+        check(isSqrt2Over2(Pow.of(IntegerNumber.two, RationalNumber(-1, 2))))
+            .isTrue;
         check(isSqrt2Over2(const RealNumber(math.sqrt1_2))).isFalse;
         check(isNegativeSqrt2Over2(const RealNumber(-math.sqrt1_2))).isFalse;
 
         // Direct Pow(3, 1/2) for isSqrt3
-        final sqrt3Pow = Pow(IntegerNumber.of(3), FractionNumber.half);
+        final sqrt3Pow = Pow.of(IntegerNumber.of(3), FractionNumber.half);
         check(isSqrt(sqrt3Pow, 3)).isTrue;
         check(isSqrt(const Variable('x'), 3)).isFalse;
         check(isSqrt3(sqrt3Pow)).isTrue;
@@ -74,21 +68,15 @@ void main() {
         check(isNegativeSqrt3(RealNumber(-math.sqrt(3)))).isFalse;
 
         // 3^(-1/2) representation of sqrt(3)/3
-        check(
-          isSqrt3Over3(
-            Pow(
-              IntegerNumber.of(3),
-              const FractionNumber(Integer.negativeOne, Integer.two),
-            ),
-          ),
-        ).isTrue;
+        check(isSqrt3Over3(Pow.of(IntegerNumber.of(3), RationalNumber(-1, 2))))
+            .isTrue;
         check(isSqrt3Over3(const RealNumber(0.5773502691896257))).isFalse;
         check(isSqrt3Over2(const RealNumber(0.8660254037844386))).isFalse;
 
         // Non-real and free-variable expressions return false
         check(isSqrt3Over2(const Variable('x'))).isFalse;
         check(isSqrt3Over2(ComplexNumber.i)).isFalse;
-        check(isSqrt3Over3(Ln(IntegerNumber.zero))).isFalse;
+        check(isSqrt3Over3(Fn.ln(IntegerNumber.zero))).isFalse;
       },
     );
   });
@@ -200,10 +188,10 @@ void main() {
         check((lnTwo as RealNumber).value).isCloseTo(math.log(2.0), 1e-12);
 
         // Real zero preserves floating domain
-        final sinZero = Sin(const RealNumber(0.0)).simplify();
+        final sinZero = Fn.sin(const RealNumber(0.0)).simplify();
         check(sinZero).equals(const RealNumber(0.0));
 
-        final cosZero = Cos(const RealNumber(0.0)).simplify();
+        final cosZero = Fn.cos(const RealNumber(0.0)).simplify();
         check(cosZero).equals(const RealNumber(1.0));
       },
     );

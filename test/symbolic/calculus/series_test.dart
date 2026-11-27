@@ -16,7 +16,7 @@ void main() {
       check(zero.leadingTerm).isNull;
       check(zero.constantTerm).equals(IntegerNumber.zero);
       check(zero.toExpr(includeOrder: false)).equals(IntegerNumber.zero);
-      check(zero.toExpr()).equals(const OrderTerm('x', 5));
+      check(zero.toExpr()).equals(OrderTerm('x', 5));
 
       final laurent = PowerSeries('x', IntegerNumber.zero, {
         -2: IntegerNumber.of(3),
@@ -90,7 +90,7 @@ void main() {
         check(zero.pow(FractionNumber.half).coefficients).isEmpty;
 
         final shifted =
-            (Pow(x, IntegerNumber.two) + Pow(x, IntegerNumber.of(3)))
+            (Pow.of(x, IntegerNumber.two) + Pow.of(x, IntegerNumber.of(3)))
                 .toPowerSeries('x', order: 5);
         final sqrtShifted = shifted.pow(FractionNumber.half);
         check(sqrtShifted.valuation).equals(1);
@@ -134,36 +134,42 @@ void main() {
   group('Elementary function series expansions', () {
     test('expands constants, variables, products, and poles', () {
       check(IntegerNumber.of(3).series('x', order: 3))
-          .equals(IntegerNumber.of(3) + const OrderTerm('x', 3));
+          .equals(IntegerNumber.of(3) + OrderTerm('x', 3));
       check(Constant.pi.series('x', order: 3))
-          .equals(Constant.pi + const OrderTerm('x', 3));
-      check(y.series('x', order: 3)).equals(y + const OrderTerm('x', 3));
-      check(Sin(y).series('x', order: 3))
-          .equals(Sin(y) + const OrderTerm('x', 3));
+          .equals(Constant.pi + OrderTerm('x', 3));
+      check(y.series('x', order: 3)).equals(y + OrderTerm('x', 3));
+      check(Fn.sin(y).series('x', order: 3))
+          .equals(Fn.sin(y) + OrderTerm('x', 3));
       check(x.series('x', point: IntegerNumber.one, order: 3).toString())
-          .equals('1 + (x - 1) + O((x - 1)^3)');
+          .equals('x + O((x - 1)^3)');
 
       final laurent = Expr.parse('sin(x) / x^2').series('x', order: 3);
-      check(laurent.toString()).equals('1 / x - 1/6 * x + O(x^3)');
+      check(laurent.toString()).equals('-1/6 * x + 1 / x + O(x^3)');
 
-      final leftPole = ((IntegerNumber.one / x) * Sin(x)).series('x', order: 3);
+      final leftPole = ((IntegerNumber.one / x) * Fn.sin(x)).series(
+        'x',
+        order: 3,
+      );
       check(leftPole.toString()).equals('1 - 1/6 * x ^ 2 + O(x^3)');
 
       final bothPoles =
           ((IntegerNumber.one / x) *
-                  (IntegerNumber.one / (x + Pow(x, IntegerNumber.two))))
+                  (IntegerNumber.one / (x + Pow.of(x, IntegerNumber.two))))
               .series('x', order: 2);
       check(bothPoles.removeOrder().evaluate({'x': 0.1}))
           .isCloseTo(1.0 / (0.1 * 0.11), 1e-1);
 
-      final tripleNoPole = (x * Sin(x) * Cos(x)).series('x', order: 5);
+      final tripleNoPole = (x * Fn.sin(x) * Fn.cos(x)).series('x', order: 5);
       check(tripleNoPole.removeOrder().evaluate({'x': 0.1}))
           .isCloseTo(0.1 * 0.1 - 2.0 / 3.0 * 0.0001, 1e-12);
 
       final tripleWithPole =
           (x *
-                  Sin(x) *
-                  Pow(x + Pow(x, IntegerNumber.two), IntegerNumber.negativeOne))
+                  Fn.sin(x) *
+                  Pow.of(
+                    x + Pow.of(x, IntegerNumber.two),
+                    IntegerNumber.negativeOne,
+                  ))
               .series('x', order: 3);
       check(tripleWithPole.removeOrder().evaluate({'x': 0.1}))
           .isCloseTo(0.1 - 0.01, 1e-12);
@@ -194,21 +200,21 @@ void main() {
       ).isCloseTo(0.6931471805599453 + 0.05 - 0.01 / 8.0, 1e-12);
 
       check(
-        Pow(
-          Sin(x),
+        Pow.of(
+          Fn.sin(x),
           IntegerNumber.of(-2),
         ).series('x', order: 1).removeOrder().evaluate({'x': 0.1}),
       ).isCloseTo(100.0 + 1.0 / 3.0, 1e-12);
 
       // Pole base raised to positive power preserves requested order:
-      final polePow = Pow(
+      final polePow = Pow.of(
         IntegerNumber.one / x + x,
         IntegerNumber.two,
       ).series('x', order: 3);
-      check(polePow.toString()).equals('x ^ (-2) + 2 + x ^ 2 + O(x^3)');
+      check(polePow.toString()).equals('2 + x ^ (-2) + x ^ 2 + O(x^3)');
 
       check(
-        Pow(
+        Pow.of(
           IntegerNumber.one + x,
           x,
         ).series('x', order: 3).removeOrder().evaluate({'x': 0.1}),
@@ -221,50 +227,50 @@ void main() {
       check(Expr.parse('tan(x)').series('x', order: 4).toString())
           .equals('x + 1/3 * x ^ 3 + O(x^4)');
       check(
-        Sin(x)
+        Fn.sin(x)
             .series('x', point: IntegerNumber.one, order: 3)
             .removeOrder()
             .evaluate({'x': 1.05}),
-      ).isCloseTo(Sin(x).evaluate({'x': 1.05}), 1e-4);
+      ).isCloseTo(Fn.sin(x).evaluate({'x': 1.05}), 1e-4);
 
-      check(Sinh(x).series('x', order: 4).toString())
+      check(Fn.sinh(x).series('x', order: 4).toString())
           .equals('x + 1/6 * x ^ 3 + O(x^4)');
-      check(Cosh(x).series('x', order: 4).toString())
+      check(Fn.cosh(x).series('x', order: 4).toString())
           .equals('1 + 1/2 * x ^ 2 + O(x^4)');
-      check(Tanh(x).series('x', order: 4).toString())
+      check(Fn.tanh(x).series('x', order: 4).toString())
           .equals('x - 1/3 * x ^ 3 + O(x^4)');
 
-      check(Asin(x).series('x', order: 4).toString())
+      check(Fn.asin(x).series('x', order: 4).toString())
           .equals('x + 1/6 * x ^ 3 + O(x^4)');
-      check(Acos(x).series('x', order: 4).removeOrder().evaluate({'x': 0.1}))
+      check(Fn.acos(x).series('x', order: 4).removeOrder().evaluate({'x': 0.1}))
           .isCloseTo(1.5707963267948966 - 0.1 - 0.001 / 6.0, 1e-12);
-      check(Atan(x).series('x', order: 4).toString())
+      check(Fn.atan(x).series('x', order: 4).toString())
           .equals('x - 1/3 * x ^ 3 + O(x^4)');
 
-      check(Asinh(x).series('x', order: 4).toString())
+      check(Fn.asinh(x).series('x', order: 4).toString())
           .equals('x - 1/6 * x ^ 3 + O(x^4)');
-      check(Atanh(x).series('x', order: 4).toString())
+      check(Fn.atanh(x).series('x', order: 4).toString())
           .equals('x + 1/3 * x ^ 3 + O(x^4)');
       check(
-        Acosh(x)
+        Fn.acosh(x)
             .series('x', point: IntegerNumber.two, order: 3)
             .removeOrder()
             .evaluate({'x': 2.05}),
-      ).isCloseTo(Acosh(x).evaluate({'x': 2.05}), 1e-4);
+      ).isCloseTo(Fn.acosh(x).evaluate({'x': 2.05}), 1e-4);
     });
   });
 
   group('Special functions, Piecewise, and singularity errors', () {
     test('expands Abs, LambertW, Erf, Erfc, and Piecewise', () {
-      check(Abs(x + IntegerNumber.two).series('x', order: 3).removeOrder())
+      check(Fn.abs(x + IntegerNumber.two).series('x', order: 3).removeOrder())
           .equals(IntegerNumber.two + x);
-      check(Abs(x - IntegerNumber.two).series('x', order: 3).removeOrder())
+      check(Fn.abs(x - IntegerNumber.two).series('x', order: 3).removeOrder())
           .equals(IntegerNumber.two - x);
 
-      check(LambertW(x).series('x', order: 4).toString())
+      check(Fn.lambertW(x).series('x', order: 4).toString())
           .equals('x - x ^ 2 + 3/2 * x ^ 3 + O(x^4)');
       check(
-        LambertW(x).series('x', point: Constant.e, order: 3).simplify(),
+        Fn.lambertW(x).series('x', point: Constant.e, order: 3).simplify(),
       ).equals(
         Expr.parse('1 + (x - e)/(2*e) - 3*(x - e)^2/(16*e^2) + O((x - e)^3)')
             .simplify(),
@@ -275,18 +281,18 @@ void main() {
           .throws<UnsupportedError>();
       check(
         () =>
-            LambertW(x)
+            Fn.lambertW(x)
                 .series('x', point: -IntegerNumber.one / Constant.e, order: 3),
       ).throws<UnsupportedError>();
 
-      check(Erf(x).series('x', order: 4).removeOrder().evaluate({'x': 0.1}))
-          .isCloseTo(Erf(x).evaluate({'x': 0.1}), 1e-5);
-      check(Erfc(x).series('x', order: 4).removeOrder().evaluate({'x': 0.1}))
-          .isCloseTo(Erfc(x).evaluate({'x': 0.1}), 1e-5);
+      check(Fn.erf(x).series('x', order: 4).removeOrder().evaluate({'x': 0.1}))
+          .isCloseTo(Fn.erf(x).evaluate({'x': 0.1}), 1e-5);
+      check(Fn.erfc(x).series('x', order: 4).removeOrder().evaluate({'x': 0.1}))
+          .isCloseTo(Fn.erfc(x).evaluate({'x': 0.1}), 1e-5);
 
       final pw = Piecewise([
-        (relation: LessThan(x, IntegerNumber.zero), expr: -x),
-      ], otherwise: Pow(x, IntegerNumber.two));
+        (relation: Relational.lessThan(x, IntegerNumber.zero), expr: -x),
+      ], otherwise: Pow.of(x, IntegerNumber.two));
       check(
         pw
             .series('x', point: IntegerNumber.negativeOne, order: 3)
@@ -301,102 +307,105 @@ void main() {
 
       // Sign, Floor, Ceil, Round at non-singular points
       check(
-        Sign(x).series('x', point: IntegerNumber.two, order: 3).removeOrder(),
+        Fn.sign(x)
+            .series('x', point: IntegerNumber.two, order: 3)
+            .removeOrder(),
       ).equals(IntegerNumber.one);
       check(
-        Sign(x)
+        Fn.sign(x)
             .series('x', point: IntegerNumber.negativeOne, order: 3)
             .removeOrder(),
       ).equals(IntegerNumber.negativeOne);
       check(
-        Floor(x)
+        Fn.floor(x)
             .series('x', point: RationalNumber(3, 2), order: 3)
             .removeOrder(),
       ).equals(IntegerNumber.one);
       check(
-        Ceil(x)
+        Fn.ceil(x)
             .series('x', point: RationalNumber(6, 5), order: 3)
             .removeOrder(),
       ).equals(IntegerNumber.two);
       check(
-        Round(x)
+        Fn.round(x)
             .series('x', point: RationalNumber(6, 5), order: 3)
             .removeOrder(),
       ).equals(IntegerNumber.one);
 
       // Gamma, Digamma, Polygamma, Zeta, BesselJ at analytic points
-      final gammaS = Gamma(x)
+      final gammaS = Fn.gamma(x)
           .toPowerSeries('x', point: IntegerNumber.one, order: 2);
       check(gammaS.coefficients[0]).equals(IntegerNumber.one);
-      check(gammaS.coefficients[1]).equals(Digamma(IntegerNumber.one));
+      check(gammaS.coefficients[1]).equals(Fn.digamma(IntegerNumber.one));
 
-      final zetaS = Zeta(x)
+      final zetaS = Fn.zeta(x)
           .toPowerSeries('x', point: IntegerNumber.two, order: 1);
-      check(zetaS.coefficients[0]).equals(Zeta(IntegerNumber.two).simplify());
+      check(zetaS.coefficients[0])
+          .equals(Fn.zeta(IntegerNumber.two).simplify());
 
-      check(BesselJ(IntegerNumber.zero, x).series('x', order: 5).toString())
+      check(Fn.besselJ(IntegerNumber.zero, x).series('x', order: 5).toString())
           .equals('1 - 1/4 * x ^ 2 + 1/64 * x ^ 4 + O(x^5)');
-      check(BesselJ(IntegerNumber.one, x).series('x', order: 5).toString())
+      check(Fn.besselJ(IntegerNumber.one, x).series('x', order: 5).toString())
           .equals('1/2 * x - 1/16 * x ^ 3 + O(x^5)');
     });
 
     test('throws UnsupportedError on singularities and unsupported nodes', () {
-      check(() => Pow(Constant.e, IntegerNumber.one / x).series('x'))
+      check(() => Pow.of(Constant.e, IntegerNumber.one / x).series('x'))
           .throws<UnsupportedError>();
-      check(() => Ln(x).series('x')).throws<UnsupportedError>();
-      check(() => Abs(x).series('x')).throws<UnsupportedError>();
-      check(() => LambertW(x, branch: -1).series('x'))
+      check(() => Fn.ln(x).series('x')).throws<UnsupportedError>();
+      check(() => Fn.abs(x).series('x')).throws<UnsupportedError>();
+      check(() => Fn.lambertW(x, IntegerNumber.negativeOne).series('x'))
           .throws<UnsupportedError>();
-      check(() => Acosh(x).series('x')).throws<UnsupportedError>();
+      check(() => Fn.acosh(x).series('x')).throws<UnsupportedError>();
 
       final pw = Piecewise([
-        (relation: LessThan(x, IntegerNumber.zero), expr: -x),
+        (relation: Relational.lessThan(x, IntegerNumber.zero), expr: -x),
       ], otherwise: x);
       check(() => pw.series('x', point: IntegerNumber.zero))
           .throws<UnsupportedError>();
       check(() => pw.series('x', point: y)).throws<UnsupportedError>();
 
       final pwNoOtherwise = Piecewise([
-        (relation: LessThan(x, IntegerNumber.zero), expr: -x),
+        (relation: Relational.lessThan(x, IntegerNumber.zero), expr: -x),
       ]);
       check(() => pwNoOtherwise.series('x', point: IntegerNumber.one))
           .throws<UnsupportedError>();
 
-      check(() => Gamma(x).series('x')).throws<UnsupportedError>();
-      check(() => Gamma(x).series('x', point: IntegerNumber.negativeOne))
+      check(() => Fn.gamma(x).series('x')).throws<UnsupportedError>();
+      check(() => Fn.gamma(x).series('x', point: IntegerNumber.negativeOne))
           .throws<UnsupportedError>();
-      check(() => Zeta(x).series('x', point: IntegerNumber.one))
+      check(() => Fn.zeta(x).series('x', point: IntegerNumber.one))
           .throws<UnsupportedError>();
-      check(() => Sign(x).series('x', point: IntegerNumber.zero))
+      check(() => Fn.sign(x).series('x', point: IntegerNumber.zero))
           .throws<UnsupportedError>();
-      check(() => Floor(x).series('x', point: IntegerNumber.one))
+      check(() => Fn.floor(x).series('x', point: IntegerNumber.one))
           .throws<UnsupportedError>();
-      check(() => Ceil(x).series('x', point: IntegerNumber.one))
+      check(() => Fn.ceil(x).series('x', point: IntegerNumber.one))
           .throws<UnsupportedError>();
-      check(() => Round(x).series('x', point: RealNumber.fromDouble(1.5)))
+      check(() => Fn.round(x).series('x', point: RealNumber.fromDouble(1.5)))
           .throws<UnsupportedError>();
       check(
-        () => BesselJ(
+        () => Fn.besselJ(
           FractionNumber.half,
           x,
         ).series('x', point: IntegerNumber.zero),
       ).throws<UnsupportedError>();
-      check(() => Beta(x, IntegerNumber.two).series('x'))
+      check(() => Fn.beta(x, IntegerNumber.two).series('x'))
           .throws<UnsupportedError>();
-      check(() => LessThan(x, IntegerNumber.zero).series('x'))
+      check(() => Relational.lessThan(x, IntegerNumber.zero).series('x'))
           .throws<UnsupportedError>();
-      check(() => Integral(Sin(x), 'x').series('x')).throws<UnsupportedError>();
-      check(() => const OrderTerm('x', 3).series('x'))
+      check(() => Integral(Fn.sin(x), 'x').series('x'))
           .throws<UnsupportedError>();
-      check(() => Sin(x).series('x', point: '??? invalid'))
+      check(() => OrderTerm('x', 3).series('x')).throws<UnsupportedError>();
+      check(() => Fn.sin(x).series('x', point: '??? invalid'))
           .throws<ArgumentError>();
     });
 
     test('expands with includeOrder: false and int, BigInt, double, and symbolic points', () {
-      final sinTaylor = Sin(x).series('x', order: 6, includeOrder: false);
+      final sinTaylor = Fn.sin(x).series('x', order: 6, includeOrder: false);
       check(sinTaylor.toString()).equals('x - 1/6 * x ^ 3 + 1/120 * x ^ 5');
 
-      final lnTaylor = Ln(x)
+      final lnTaylor = Fn.ln(x)
           .series('x', point: 1, order: 4, includeOrder: false);
       check(lnTaylor.evaluate({'x': 1.1}))
           .isCloseTo(0.1 - 0.01 / 2 + 0.001 / 3, 1e-12);
@@ -417,16 +426,16 @@ void main() {
       );
       check(rationalCenter.evaluate({'x': 1.5})).isCloseTo(2.25, 1e-12);
 
-      final realCenter = Sin(x)
+      final realCenter = Fn.sin(x)
           .series('x', point: 3.141592653589793, order: 4, includeOrder: false);
       check(realCenter.evaluate({'x': 3.141592653589793 + 0.1}))
           .isCloseTo(-0.09983341664682815, 1e-5);
 
-      final absPlusPi = Abs(x + Constant.pi)
+      final absPlusPi = Fn.abs(x + Constant.pi)
           .series('x', point: 0, order: 3, includeOrder: false);
       check(absPlusPi).equals(Constant.pi + x);
 
-      final absMinusPi = Abs(x - Constant.pi)
+      final absMinusPi = Fn.abs(x - Constant.pi)
           .series('x', point: 0, order: 3, includeOrder: false);
       check(absMinusPi).equals(Constant.pi - x);
     });
@@ -450,7 +459,7 @@ void main() {
 
     test('Taylor expansion of exp(x) around 0.0', () {
       const x = Variable('x');
-      final expr = Pow(Constant.e, x);
+      final expr = Pow.of(Constant.e, x);
       final poly = expr.toPolynomial<double>('x', order: 4);
 
       check(poly.degree).equals(4);
@@ -466,7 +475,7 @@ void main() {
 
     test('Taylor expansion of sin(x) and cos(x) around 0.0', () {
       const x = Variable('x');
-      final sinPoly = Sin(x).toPolynomial<double>('x', order: 5);
+      final sinPoly = Fn.sin(x).toPolynomial<double>('x', order: 5);
       // sin(x) = x - x^3/6 + x^5/120
       check(sinPoly[0]).isCloseTo(0.0, 1e-9);
       check(sinPoly[1]).isCloseTo(1.0, 1e-9);
@@ -475,7 +484,7 @@ void main() {
       check(sinPoly[4]).isCloseTo(0.0, 1e-9);
       check(sinPoly[5]).isCloseTo(1.0 / 120.0, 1e-9);
 
-      final cosPoly = Cos(x).toPolynomial<double>('x', order: 4);
+      final cosPoly = Fn.cos(x).toPolynomial<double>('x', order: 4);
       // cos(x) = 1 - x^2/2 + x^4/24
       check(cosPoly[0]).isCloseTo(1.0, 1e-9);
       check(cosPoly[1]).isCloseTo(0.0, 1e-9);
@@ -503,13 +512,13 @@ void main() {
 
     test('negative order returns zero polynomial', () {
       const x = Variable('x');
-      final poly = Pow(Constant.e, x).toPolynomial<double>('x', order: -1);
+      final poly = Pow.of(Constant.e, x).toPolynomial<double>('x', order: -1);
       check(poly.degree).equals(-1);
     });
 
     test('handles removable singularities and symbolic Expr coefficients via toPowerSeries', () {
       const x = Variable('x');
-      final sinc = Sin(x) / x;
+      final sinc = Fn.sin(x) / x;
       final poly = sinc.toPolynomial<double>('x', order: 4);
       check(poly.degree).equals(4);
       check(poly[0]).isCloseTo(1.0, 1e-12);
@@ -554,99 +563,102 @@ void main() {
     test('expands special integral and elliptic functions', () {
       const x = Variable('x');
       check(
-        Erfi(x).series('x', order: 4, includeOrder: false).expand().simplify(),
+        Fn.erfi(x)
+            .series('x', order: 4, includeOrder: false)
+            .expand()
+            .simplify(),
       ).equals(
         Expr.parse('2/sqrt(pi)*x + 2/(3*sqrt(pi))*x^3').expand().simplify(),
       );
-      check(FresnelS(x).series('x', order: 4, includeOrder: false).simplify())
-          .equals(Expr.parse('pi/6*x^3').simplify());
-      check(FresnelC(x).series('x', order: 2, includeOrder: false).simplify())
-          .equals(x);
       check(
-        SinIntegral(x).series('x', order: 4, includeOrder: false).simplify(),
-      ).equals(Expr.parse('x - x^3/18').simplify());
+        Fn.fresnelS(x).series('x', order: 4, includeOrder: false).simplify(),
+      ).equals(Expr.parse('pi/6*x^3').simplify());
       check(
-        SinhIntegral(x).series('x', order: 4, includeOrder: false).simplify(),
-      ).equals(Expr.parse('x + x^3/18').simplify());
+        Fn.fresnelC(x).series('x', order: 2, includeOrder: false).simplify(),
+      ).equals(x);
+      check(Fn.si(x).series('x', order: 4, includeOrder: false).simplify())
+          .equals(Expr.parse('x - x^3/18').simplify());
+      check(Fn.shi(x).series('x', order: 4, includeOrder: false).simplify())
+          .equals(Expr.parse('x + x^3/18').simplify());
       check(
-        Polylog(
+        Fn.polylog(
           IntegerNumber.two,
           x,
         ).series('x', order: 4, includeOrder: false).simplify(),
       ).equals(Expr.parse('x + x^2/4 + x^3/9').simplify());
       check(
-        EllipticF(
+        Fn.ellipticF(
           x,
           FractionNumber.half,
         ).series('x', order: 4, includeOrder: false).simplify(),
       ).equals(Expr.parse('x + x^3/24').simplify());
       check(
-        EllipticE(
+        Fn.ellipticE(
+          x,
           FractionNumber.half,
-          amplitude: x,
         ).series('x', order: 4, includeOrder: false).simplify(),
       ).equals(Expr.parse('x - x^3/24').simplify());
-      final kSeries = EllipticK(x)
+      final kSeries = Fn.ellipticK(x)
           .series('x', order: 5, includeOrder: false)
           .simplify();
       check(kSeries)
           .equals(Expr.parse('pi/2 + pi/8*x^2 + 9*pi/128*x^4').simplify());
       check(kSeries.evaluate({'x': 0.2}))
-          .isCloseTo(EllipticK(const RealNumber(0.2)).evaluate(), 2e-5);
+          .isCloseTo(Fn.ellipticK(const RealNumber(0.2)).evaluate(), 2e-5);
       check(
-        EllipticK(x)
+        Fn.ellipticK(x)
             .series('x', order: 7, includeOrder: false)
             .evaluate({'x': 0.2}),
-      ).isCloseTo(EllipticK(const RealNumber(0.2)).evaluate(), 1e-6);
-      final eSeries = EllipticE(x)
+      ).isCloseTo(Fn.ellipticK(const RealNumber(0.2)).evaluate(), 1e-6);
+      final eSeries = Fn.ellipticE(x)
           .series('x', order: 5, includeOrder: false)
           .simplify();
       check(eSeries)
           .equals(Expr.parse('pi/2 - pi/8*x^2 - 3*pi/128*x^4').simplify());
       check(eSeries.evaluate({'x': 0.2}))
-          .isCloseTo(EllipticE(const RealNumber(0.2)).evaluate(), 1e-5);
+          .isCloseTo(Fn.ellipticE(const RealNumber(0.2)).evaluate(), 1e-5);
       check(
-        EllipticE(x)
+        Fn.ellipticE(x)
             .series('x', order: 7, includeOrder: false)
             .evaluate({'x': 0.2}),
-      ).isCloseTo(EllipticE(const RealNumber(0.2)).evaluate(), 1e-6);
+      ).isCloseTo(Fn.ellipticE(const RealNumber(0.2)).evaluate(), 1e-6);
       check(
-        ExpIntegral(x)
+        Fn.ei(x)
             .series('x', point: 1, order: 2, includeOrder: false)
             .simplify(),
       ).equals(Expr.parse('Ei(1) + e*(x - 1)').simplify());
       check(
-        LogIntegral(x)
+        Fn.li(x)
             .series('x', point: 2, order: 2, includeOrder: false)
             .simplify(),
       ).equals(Expr.parse('li(2) + (x - 2)/ln(2)').simplify());
       check(
-        CosIntegral(x)
+        Fn.ci(x)
             .series('x', point: 1, order: 2, includeOrder: false)
             .simplify(),
       ).equals(Expr.parse('Ci(1) + cos(1)*(x - 1)').simplify());
       check(
-        CoshIntegral(x)
+        Fn.chi(x)
             .series('x', point: 1, order: 2, includeOrder: false)
             .simplify(),
       ).equals(Expr.parse('Chi(1) + cosh(1)*(x - 1)').simplify());
       check(
-        UpperGamma(
+        Fn.upperGamma(
           IntegerNumber.two,
           x,
         ).series('x', point: 1, order: 2, includeOrder: false).simplify(),
       ).equals(
-        (UpperGamma(IntegerNumber.two, IntegerNumber.one) -
+        (Fn.upperGamma(IntegerNumber.two, IntegerNumber.one) -
                 (x - IntegerNumber.one) / Constant.e)
             .simplify(),
       );
       check(
-        LowerGamma(
+        Fn.lowerGamma(
           IntegerNumber.two,
           x,
         ).series('x', point: 1, order: 2, includeOrder: false).simplify(),
       ).equals(
-        (LowerGamma(IntegerNumber.two, IntegerNumber.one) +
+        (Fn.lowerGamma(IntegerNumber.two, IntegerNumber.one) +
                 (x - IntegerNumber.one) / Constant.e)
             .simplify(),
       );
@@ -656,21 +668,24 @@ void main() {
       'expands BesselI, Factorial, Beta, and Binomial into Taylor series',
       () {
         const x = Variable('x');
-        check(BesselI(IntegerNumber.zero, x).series('x', order: 4)).equals(
+        check(Fn.besselI(IntegerNumber.zero, x).series('x', order: 4)).equals(
           (IntegerNumber.one +
-                  RationalNumber(1, 4) * Pow(x, IntegerNumber.two) +
-                  const OrderTerm('x', 4))
+                  RationalNumber(1, 4) * Pow.of(x, IntegerNumber.two) +
+                  OrderTerm('x', 4))
               .simplify(),
         );
-        check(Factorial(x).series('x', order: 2).toString())
-            .equals('1 + digamma(1) * x + O(x^2)');
+        check(Fn.factorial(x).series('x', order: 2).toString())
+            .equals('1 + x * digamma(1) + O(x^2)');
         check(
-          Beta(x, IntegerNumber.one).series('x', point: 1, order: 2).toString(),
-        ).equals('1 - (x - 1) + O((x - 1)^2)');
-        check(Binomial(x, IntegerNumber.two).series('x', order: 3)).equals(
+          Fn.beta(
+            x,
+            IntegerNumber.one,
+          ).series('x', point: 1, order: 2).toString(),
+        ).equals('2 - x + O((x - 1)^2)');
+        check(Fn.binomial(x, IntegerNumber.two).series('x', order: 3)).equals(
           (FractionNumber.negativeHalf * x +
-                  FractionNumber.half * Pow(x, IntegerNumber.two) +
-                  const OrderTerm('x', 3))
+                  FractionNumber.half * Pow.of(x, IntegerNumber.two) +
+                  OrderTerm('x', 3))
               .simplify(),
         );
       },
@@ -681,47 +696,46 @@ void main() {
         (Expr.parse('erf(x)').series('x', order: 4) -
                 Expr.parse('2 / sqrt(pi) * x - 2 / (3 * sqrt(pi)) * x^3'))
             .simplify(),
-      ).equals(const OrderTerm('x', 4));
+      ).equals(OrderTerm('x', 4));
       check(
         (Expr.parse('erfc(x)').series('x', order: 4) -
                 Expr.parse('1 - 2 / sqrt(pi) * x + 2 / (3 * sqrt(pi)) * x^3'))
             .simplify(),
-      ).equals(const OrderTerm('x', 4));
+      ).equals(OrderTerm('x', 4));
       check(
         (Expr.parse('erfi(x)').series('x', order: 4) -
                 Expr.parse('2 / sqrt(pi) * x + 2 / (3 * sqrt(pi)) * x^3'))
             .simplify(),
-      ).equals(const OrderTerm('x', 4));
+      ).equals(OrderTerm('x', 4));
       check(
         (Expr.parse('Si(x)').series('x', order: 4) -
                 Expr.parse('x - 1/18 * x^3'))
             .simplify(),
-      ).equals(const OrderTerm('x', 4));
+      ).equals(OrderTerm('x', 4));
       check(
         (Expr.parse('Shi(x)').series('x', order: 4) -
                 Expr.parse('x + 1/18 * x^3'))
             .simplify(),
-      ).equals(const OrderTerm('x', 4));
+      ).equals(OrderTerm('x', 4));
       check(
-        (Expr.parse('fresnels(x)').series('x', order: 4) -
+        (Expr.parse('fresnelS(x)').series('x', order: 4) -
                 Expr.parse('1/6 * pi * x^3'))
             .simplify(),
-      ).equals(const OrderTerm('x', 4));
+      ).equals(OrderTerm('x', 4));
       check(
-        (Expr.parse('fresnelc(x)').series('x', order: 4) - Expr.parse('x'))
+        (Expr.parse('fresnelC(x)').series('x', order: 4) - Expr.parse('x'))
             .simplify(),
-      ).equals(const OrderTerm('x', 4));
+      ).equals(OrderTerm('x', 4));
     });
 
     test('handles OrderTerm derivatives, discrete errors, Tan/Tanh poles, and Piecewise', () {
       const x = Variable('x');
-      check(const OrderTerm('x', 0).derivative('x'))
-          .equals(const OrderTerm('x', 0));
-      check(() => Floor(x).series('x')).throws<UnsupportedError>();
-      check(() => Ceil(x).series('x')).throws<UnsupportedError>();
-      check(() => Round(x).series('x', point: RationalNumber(1, 2)))
+      check(OrderTerm('x', 0).derivative('x')).equals(OrderTerm('x', 0));
+      check(() => Fn.floor(x).series('x')).throws<UnsupportedError>();
+      check(() => Fn.ceil(x).series('x')).throws<UnsupportedError>();
+      check(() => Fn.round(x).series('x', point: RationalNumber(1, 2)))
           .throws<UnsupportedError>();
-      check(() => Sign(x).series('x')).throws<UnsupportedError>();
+      check(() => Fn.sign(x).series('x')).throws<UnsupportedError>();
       check(
         Expr.parse('1 / cos(x)')
             .series(
@@ -733,8 +747,11 @@ void main() {
       ).contains('x - 1/2 * pi');
       check(
         Piecewise([
-              (relation: GreaterThan(x, IntegerNumber.zero), expr: Sin(x)),
-            ], otherwise: -Sin(x))
+              (
+                relation: Relational.greaterThan(x, IntegerNumber.zero),
+                expr: Fn.sin(x),
+              ),
+            ], otherwise: -Fn.sin(x))
             .series('x', point: IntegerNumber.one, order: 3)
             .removeOrder()
             .evaluate({'x': 1.1}),
@@ -743,62 +760,60 @@ void main() {
 
     test('expands shifted SinIntegral/SinhIntegral, zero-leading powers, order-0, and branch singularities', () {
       const x = Variable('x');
-      final siShifted = SinIntegral(x + IntegerNumber.one)
-          .series('x', order: 3);
+      final siShifted = Fn.si(x + IntegerNumber.one).series('x', order: 3);
       check(siShifted.removeOrder().evaluate({'x': 0.1}))
-          .isCloseTo(SinIntegral(const RealNumber(1.1)).evaluate(), 1e-3);
-      final shiShifted = SinhIntegral(x + IntegerNumber.one)
-          .series('x', order: 3);
+          .isCloseTo(Fn.si(const RealNumber(1.1)).evaluate(), 1e-3);
+      final shiShifted = Fn.shi(x + IntegerNumber.one).series('x', order: 3);
       check(shiShifted.removeOrder().evaluate({'x': 0.1}))
-          .isCloseTo(SinhIntegral(const RealNumber(1.1)).evaluate(), 1e-3);
+          .isCloseTo(Fn.shi(const RealNumber(1.1)).evaluate(), 1e-3);
 
-      final zeroLead = Pow(
-        IntegerNumber.one - Cos(x),
+      final zeroLead = Pow.of(
+        IntegerNumber.one - Fn.cos(x),
         FractionNumber.half,
       ).series('x', order: 3);
       check(zeroLead.removeOrder().evaluate({'x': 0.1}))
           .isCloseTo(math.sqrt(1.0 - math.cos(0.1)), 1e-4);
 
-      final ord0 = SinIntegral(x).series('x', order: 0);
-      check(ord0).equals(const OrderTerm('x', 0));
-      check(SinhIntegral(x).series('x', order: 0))
-          .equals(const OrderTerm('x', 0));
+      final ord0 = Fn.si(x).series('x', order: 0);
+      check(ord0).equals(OrderTerm('x', 0));
+      check(Fn.shi(x).series('x', order: 0)).equals(OrderTerm('x', 0));
 
-      check(() => Sign(const RealNumber(0.0) + x).series('x'))
+      check(() => Fn.sign(const RealNumber(0.0) + x).series('x'))
           .throws<UnsupportedError>();
-      check(() => Floor(const RealNumber(1.0) + x).series('x'))
+      check(() => Fn.floor(const RealNumber(1.0) + x).series('x'))
           .throws<UnsupportedError>();
-      check(() => Ceil(const RealNumber(1.0) + x).series('x'))
+      check(() => Fn.ceil(const RealNumber(1.0) + x).series('x'))
           .throws<UnsupportedError>();
-      check(() => Round(const RealNumber(0.5) + x).series('x'))
+      check(() => Fn.round(const RealNumber(0.5) + x).series('x'))
           .throws<UnsupportedError>();
-      check(() => Asin(x).series('x', point: IntegerNumber.one))
+      check(() => Fn.asin(x).series('x', point: IntegerNumber.one))
           .throws<UnsupportedError>();
-      check(() => Acos(x).series('x', point: IntegerNumber.one))
+      check(() => Fn.acos(x).series('x', point: IntegerNumber.one))
           .throws<UnsupportedError>();
 
-      check(Digamma(x + IntegerNumber.one).series('x', order: 2)).isNotNull();
-      check(() => Digamma(x - IntegerNumber.one).series('x', order: 2))
+      check(Fn.digamma(x + IntegerNumber.one).series('x', order: 2))
+          .isNotNull();
+      check(() => Fn.digamma(x - IntegerNumber.one).series('x', order: 2))
           .throws<UnsupportedError>();
       check(
-        Polygamma(
+        Fn.polygamma(
           IntegerNumber.one,
           x + IntegerNumber.one,
         ).series('x', order: 2),
       ).isNotNull();
       check(
-        () => Polygamma(
+        () => Fn.polygamma(
           IntegerNumber.one,
           x - IntegerNumber.one,
         ).series('x', order: 2),
       ).throws<UnsupportedError>();
       check(
-        Binomial(
+        Fn.binomial(
           x + IntegerNumber.two,
           x + IntegerNumber.one,
         ).series('x', order: 2),
       ).isNotNull();
-      check(() => Atan2(x, -x - IntegerNumber.one).series('x', order: 2))
+      check(() => Fn.atan2(x, -x - IntegerNumber.one).series('x', order: 2))
           .throws<UnsupportedError>();
     });
   });

@@ -42,9 +42,9 @@ void main() {
       final posPow = Expr.parse('(x^2 - 1)^2').factor();
       check(posPow.evaluate({'x': 2.0})).equals(9.0);
 
-      final invProd = Mul([
-        Pow(Expr.parse('x - 1'), IntegerNumber.negativeOne),
-        Pow(Expr.parse('x + 1'), IntegerNumber.negativeOne),
+      final invProd = Mul.of([
+        Pow.of(Expr.parse('x - 1'), IntegerNumber.negativeOne),
+        Pow.of(Expr.parse('x + 1'), IntegerNumber.negativeOne),
       ]).factor();
       check(invProd.evaluate({'x': 2.0})).isCloseTo(1.0 / 3.0, 1e-12);
     });
@@ -59,7 +59,7 @@ void main() {
 
       // (x + 1)^2 - 2*x - 1 -> x^2 (Pow after expand)
       check(Expr.parse('(x + 1)^2 - 2*x - 1').factor())
-          .equals(Pow(const Variable('x'), IntegerNumber.two));
+          .equals(Pow.of(const Variable('x'), IntegerNumber.two));
 
       // 4-term grouping via factor()
       final grouped = Expr.parse('x * y + x + y + 1').factor();
@@ -87,12 +87,16 @@ void main() {
         check(fRat.toString()).equals('2 ^ 2 * 3 / 5 ^ 2');
         check(fRat.simplify()).equals(RationalNumber(12, 25));
 
-        final unsimplifiedMul = Mul([IntegerNumber.of(12), IntegerNumber.of(2)])
-            .factor();
+        final unsimplifiedMul = Mul.of([
+          IntegerNumber.of(12),
+          IntegerNumber.of(2),
+        ]).factor();
         check(unsimplifiedMul.toString()).equals('2 ^ 3 * 3');
 
-        final unsimplifiedAdd = Add([IntegerNumber.of(20), IntegerNumber.of(4)])
-            .factor();
+        final unsimplifiedAdd = Add.of([
+          IntegerNumber.of(20),
+          IntegerNumber.of(4),
+        ]).factor();
         check(unsimplifiedAdd.toString()).equals('2 ^ 3 * 3');
       },
     );
@@ -173,7 +177,7 @@ void main() {
 
     test('Pollard rho factorization of large composite integers > 10^6', () {
       // Product of two primes: 1000003 * 1000033 = 1000036000099
-      final bigComposite = IntegerNumber(Integer.parse('1000036000099'));
+      final bigComposite = IntegerNumber(BigInt.parse('1000036000099'));
       final factored = bigComposite.factor();
       check(factored).isA<Mul>();
       check(factored.simplify()).equals(bigComposite);
@@ -182,9 +186,7 @@ void main() {
       // Product of two larger primes exceeding 63 bits:
       // p1 = 3037000493, p2 = 3037000507
       // n = 9223372063853112951 > 2^63 - 1 (which is 9223372036854775807)
-      final hugeComposite = IntegerNumber(
-        Integer.big(BigInt.parse('9223372063853112951')),
-      );
+      final hugeComposite = IntegerNumber(BigInt.parse('9223372063853112951'));
       final hugeFactored = hugeComposite.factor();
       check(hugeFactored).isA<Mul>();
       check(hugeFactored.simplify()).equals(hugeComposite);
@@ -197,10 +199,9 @@ void main() {
 
     test('factors multivariate quadratic and homogeneous polynomials', () {
       check(Expr.parse('x^2 + 2*x*y + y^2').factor()).equals(
-        Pow(
-          Add([const Variable('x'), const Variable('y')], isSimplified: true),
+        Pow.of(
+          Add.of([const Variable('x'), const Variable('y')]),
           IntegerNumber.two,
-          isSimplified: true,
         ),
       );
       check(Expr.parse('x^2 - x*y - 6*y^2').factor())
@@ -212,7 +213,7 @@ void main() {
     });
 
     test('skips prime factorization cleanly for integers above 96 bits', () {
-      final hugePow = Pow(
+      final hugePow = Pow.of(
         IntegerNumber.of(2024),
         IntegerNumber.of(100),
       ).simplify();

@@ -5,6 +5,7 @@ import '../../algebra/simplify.dart';
 import '../../algebra/trig.dart';
 import '../../assumptions.dart';
 import '../../ast.dart';
+import '../../functions/fn.dart';
 import '../linear_form.dart';
 import 'definite.dart';
 import 'integration.dart';
@@ -21,12 +22,16 @@ Expr? tryExpandTrigBinomialProduct(
   if (depth >= 2 || varFactors.length < 2) return null;
 
   bool isLinearTrigOrHyp(Expr node) => switch (node) {
-    Sin(:final expr) ||
-    Cos(:final expr) ||
-    Tan(:final expr) ||
-    Sinh(:final expr) ||
-    Cosh(:final expr) ||
-    Tanh(:final expr) => expr.matchLinear(variable) != null,
+    Call(
+      id: FunctionId.sin ||
+          FunctionId.cos ||
+          FunctionId.tan ||
+          FunctionId.sinh ||
+          FunctionId.cosh ||
+          FunctionId.tanh,
+      args: [final expr],
+    ) =>
+      expr.matchLinear(variable) != null,
     _ => false,
   };
 
@@ -72,7 +77,7 @@ Expr? tryExpandTrigBinomialProduct(
       }
     }
     if (rest.isNotEmpty) {
-      scaleFactor = Mul(rest).simplify(assumptions: assumptions);
+      scaleFactor = Mul.of(rest).simplify(assumptions: assumptions);
     }
   }
   if (expandedAdd == null) return null;
@@ -83,7 +88,7 @@ Expr? tryExpandTrigBinomialProduct(
   ];
   final otherExpr = otherFactors.length == 1
       ? otherFactors.first
-      : Mul(otherFactors).simplify(assumptions: assumptions);
+      : Mul.of(otherFactors).simplify(assumptions: assumptions);
 
   final results = <Expr>[];
   for (final term in expandedAdd.terms) {
@@ -99,33 +104,41 @@ Expr? tryExpandTrigBinomialProduct(
     if (hasUnevaluatedIntegral(res, variable)) return null;
     results.add(res);
   }
-  return Add(results).simplify(assumptions: assumptions);
+  return Add.of(results).simplify(assumptions: assumptions);
 }
 
 /// Integrates products of two sines or cosines via product-to-sum identities.
 Expr? tryTrigProduct(Expr left, Expr right, String variable) {
-  if (left case Sin(expr: final a) when a.matchLinear(variable) != null) {
-    if (right case Cos(expr: final b) when b.matchLinear(variable) != null) {
+  if (left case Call(id: FunctionId.sin, args: [final a])
+      when a.matchLinear(variable) != null) {
+    if (right case Call(id: FunctionId.cos, args: [final b])
+        when b.matchLinear(variable) != null) {
       final sum = (a + b).simplify();
       final diff = (a - b).simplify();
-      final expanded = ((Sin(sum) + Sin(diff)) / IntegerNumber.two).simplify();
+      final expanded = ((Fn.sin(sum) + Fn.sin(diff)) / IntegerNumber.two)
+          .simplify();
       return antiDerivative(expanded, variable, assumptions: Assumptions.none);
     }
-    if (right case Sin(expr: final b) when b.matchLinear(variable) != null) {
+    if (right case Call(id: FunctionId.sin, args: [final b])
+        when b.matchLinear(variable) != null) {
       final diff = (a - b).simplify();
       final sum = (a + b).simplify();
-      final expanded = ((Cos(diff) - Cos(sum)) / IntegerNumber.two).simplify();
+      final expanded = ((Fn.cos(diff) - Fn.cos(sum)) / IntegerNumber.two)
+          .simplify();
       return antiDerivative(expanded, variable, assumptions: Assumptions.none);
     }
   }
-  if (left case Cos(expr: final a) when a.matchLinear(variable) != null) {
-    if (right case Sin()) {
+  if (left case Call(id: FunctionId.cos, args: [final a])
+      when a.matchLinear(variable) != null) {
+    if (right case Call(id: FunctionId.sin)) {
       return tryTrigProduct(right, left, variable);
     }
-    if (right case Cos(expr: final b) when b.matchLinear(variable) != null) {
+    if (right case Call(id: FunctionId.cos, args: [final b])
+        when b.matchLinear(variable) != null) {
       final diff = (a - b).simplify();
       final sum = (a + b).simplify();
-      final expanded = ((Cos(diff) + Cos(sum)) / IntegerNumber.two).simplify();
+      final expanded = ((Fn.cos(diff) + Fn.cos(sum)) / IntegerNumber.two)
+          .simplify();
       return antiDerivative(expanded, variable, assumptions: Assumptions.none);
     }
   }
@@ -154,18 +167,18 @@ Expr? tryWeierstrassSubstitution(Expr left, Expr right, String variable) {
       coeff = switch (constFactors) {
         [] => IntegerNumber.one,
         [final single] => single,
-        _ => Mul(constFactors).simplify(),
+        _ => Mul.of(constFactors).simplify(),
       };
     }
     switch (varPart) {
-      case Sin(expr: final arg):
+      case Call(id: FunctionId.sin, args: [final arg]):
         if (inner == null) {
           inner = arg;
         } else if (inner != arg) {
           return null;
         }
         bSin = (bSin + coeff).simplify();
-      case Cos(expr: final arg):
+      case Call(id: FunctionId.cos, args: [final arg]):
         if (inner == null) {
           inner = arg;
         } else if (inner != arg) {
@@ -201,7 +214,7 @@ Expr? tryWeierstrassSubstitution(Expr left, Expr right, String variable) {
   if (hasUnevaluatedIntegral(tAntideriv, tName)) return null;
 
   return tAntideriv
-      .substitute(tName, Tan((inner / IntegerNumber.two).simplify()))
+      .substitute(tName, Fn.tan((inner / IntegerNumber.two).simplify()))
       .simplify();
 }
 
@@ -230,7 +243,7 @@ Expr? tryTrigPowerProduct(Expr num, Expr den, String variable) {
 
   if (q < 0 && p == -q && p >= 2) {
     final res = antiDerivative(
-      Pow(Tan(inner), IntegerNumber.of(p)),
+      Pow.of(Fn.tan(inner), IntegerNumber.of(p)),
       variable,
       assumptions: Assumptions.none,
     );
@@ -247,8 +260,9 @@ Expr? tryTrigPowerProduct(Expr num, Expr den, String variable) {
     final k = (p - 1) ~/ 2;
     final cosPow = k == 0
         ? IntegerNumber.one
-        : Pow(IntegerNumber.one - tVar * tVar, IntegerNumber.of(k));
-    final rawIntegrand = (-scale / a) * cosPow * Pow(tVar, IntegerNumber.of(q));
+        : Pow.of(IntegerNumber.one - tVar * tVar, IntegerNumber.of(k));
+    final rawIntegrand =
+        (-scale / a) * cosPow * Pow.of(tVar, IntegerNumber.of(q));
     final integrand = k >= 0
         ? rawIntegrand.expand().simplify()
         : rawIntegrand.simplify();
@@ -259,7 +273,7 @@ Expr? tryTrigPowerProduct(Expr num, Expr den, String variable) {
       assumptions: Assumptions.none,
     );
     if (!hasUnevaluatedIntegral(tInt, tName)) {
-      return tInt.substitute(tName, Cos(inner)).simplify();
+      return tInt.substitute(tName, Fn.cos(inner)).simplify();
     }
   }
 
@@ -267,8 +281,9 @@ Expr? tryTrigPowerProduct(Expr num, Expr den, String variable) {
     final k = (q - 1) ~/ 2;
     final sinPow = k == 0
         ? IntegerNumber.one
-        : Pow(IntegerNumber.one - tVar * tVar, IntegerNumber.of(k));
-    final rawIntegrand = (scale / a) * Pow(tVar, IntegerNumber.of(p)) * sinPow;
+        : Pow.of(IntegerNumber.one - tVar * tVar, IntegerNumber.of(k));
+    final rawIntegrand =
+        (scale / a) * Pow.of(tVar, IntegerNumber.of(p)) * sinPow;
     final integrand = k >= 0
         ? rawIntegrand.expand().simplify()
         : rawIntegrand.simplify();
@@ -279,7 +294,7 @@ Expr? tryTrigPowerProduct(Expr num, Expr den, String variable) {
       assumptions: Assumptions.none,
     );
     if (!hasUnevaluatedIntegral(tInt, tName)) {
-      return tInt.substitute(tName, Sin(inner)).simplify();
+      return tInt.substitute(tName, Fn.sin(inner)).simplify();
     }
   }
 
@@ -287,8 +302,8 @@ Expr? tryTrigPowerProduct(Expr num, Expr den, String variable) {
     final m = -(p + q) ~/ 2 - 1;
     final integrand =
         ((scale / a) *
-                Pow(tVar, IntegerNumber.of(p)) *
-                Pow(IntegerNumber.one + tVar * tVar, IntegerNumber.of(m)))
+                Pow.of(tVar, IntegerNumber.of(p)) *
+                Pow.of(IntegerNumber.one + tVar * tVar, IntegerNumber.of(m)))
             .expand()
             .simplify();
     final tInt = antiDerivative(
@@ -298,18 +313,18 @@ Expr? tryTrigPowerProduct(Expr num, Expr den, String variable) {
       assumptions: Assumptions.none,
     );
     if (!hasUnevaluatedIntegral(tInt, tName)) {
-      return tInt.substitute(tName, Tan(inner)).simplify();
+      return tInt.substitute(tName, Fn.tan(inner)).simplify();
     }
   }
 
   if (p >= 0 && q >= 0 && p.isEven && q.isEven) {
     final twoInner = (IntegerNumber.two * inner).simplify();
-    final sin2 = (IntegerNumber.one - Cos(twoInner)) / IntegerNumber.two;
-    final cos2 = (IntegerNumber.one + Cos(twoInner)) / IntegerNumber.two;
+    final sin2 = (IntegerNumber.one - Fn.cos(twoInner)) / IntegerNumber.two;
+    final cos2 = (IntegerNumber.one + Fn.cos(twoInner)) / IntegerNumber.two;
     final expanded =
         (scale *
-                Pow(sin2, IntegerNumber.of(p ~/ 2)) *
-                Pow(cos2, IntegerNumber.of(q ~/ 2)))
+                Pow.of(sin2, IntegerNumber.of(p ~/ 2)) *
+                Pow.of(cos2, IntegerNumber.of(q ~/ 2)))
             .expand()
             .simplify();
     if (expanded is Add || expanded != (num / den).simplify()) {
@@ -335,7 +350,7 @@ Expr? tryTrigPowerProduct(Expr num, Expr den, String variable) {
       final termInt = antiDerivative(
         (scale *
                 IntegerNumber.of(coeff) *
-                Pow(Cos(inner), IntegerNumber.of(q + 2 * j)))
+                Pow.of(Fn.cos(inner), IntegerNumber.of(q + 2 * j)))
             .simplify(),
         variable,
         depth: 2,
@@ -347,7 +362,7 @@ Expr? tryTrigPowerProduct(Expr num, Expr den, String variable) {
       }
       terms.add(termInt);
     }
-    if (terms.isNotEmpty) return Add(terms).simplify();
+    if (terms.isNotEmpty) return Add.of(terms).simplify();
   }
   if (q >= 2 && q.isEven && p < 0 && p.isOdd) {
     final k = q ~/ 2;
@@ -359,7 +374,7 @@ Expr? tryTrigPowerProduct(Expr num, Expr den, String variable) {
       final termInt = antiDerivative(
         (scale *
                 IntegerNumber.of(coeff) *
-                Pow(Sin(inner), IntegerNumber.of(p + 2 * j)))
+                Pow.of(Fn.sin(inner), IntegerNumber.of(p + 2 * j)))
             .simplify(),
         variable,
         depth: 2,
@@ -371,7 +386,7 @@ Expr? tryTrigPowerProduct(Expr num, Expr den, String variable) {
       }
       terms.add(termInt);
     }
-    if (terms.isNotEmpty) return Add(terms).simplify();
+    if (terms.isNotEmpty) return Add.of(terms).simplify();
   }
 
   return null;
@@ -396,7 +411,7 @@ Expr? tryPolyTrigPowerReduction(List<Expr> varFactors, String variable) {
       if (isReducible) {
         final otherExpr = others.length == 1
             ? others.first
-            : Mul(others).simplify();
+            : Mul.of(others).simplify();
         final expanded = (otherExpr * reduced).expand().simplify();
         final res = antiDerivative(
           expanded,
@@ -413,27 +428,30 @@ Expr? tryPolyTrigPowerReduction(List<Expr> varFactors, String variable) {
       final f1 = varFactors[i];
       final f2 = varFactors[j];
       Expr? pairReduced;
-      if (f1 case Sin(expr: final a) when a.matchLinear(variable) != null) {
-        if (f2 case Cos(expr: final b) when b.matchLinear(variable) != null) {
-          pairReduced =
-              (Sin((a + b).simplify()) + Sin((a - b).simplify())) /
-              IntegerNumber.two;
-        } else if (f2 case Sin(expr: final b)
+      if (f1 case Call(id: FunctionId.sin, args: [final a])
+          when a.matchLinear(variable) != null) {
+        if (f2 case Call(id: FunctionId.cos, args: [final b])
             when b.matchLinear(variable) != null) {
           pairReduced =
-              (Cos((a - b).simplify()) - Cos((a + b).simplify())) /
+              (Fn.sin((a + b).simplify()) + Fn.sin((a - b).simplify())) /
+              IntegerNumber.two;
+        } else if (f2 case Call(id: FunctionId.sin, args: [final b])
+            when b.matchLinear(variable) != null) {
+          pairReduced =
+              (Fn.cos((a - b).simplify()) - Fn.cos((a + b).simplify())) /
               IntegerNumber.two;
         }
-      } else if (f1 case Cos(expr: final a)
+      } else if (f1 case Call(id: FunctionId.cos, args: [final a])
           when a.matchLinear(variable) != null) {
-        if (f2 case Sin(expr: final b) when b.matchLinear(variable) != null) {
-          pairReduced =
-              (Sin((a + b).simplify()) - Sin((a - b).simplify())) /
-              IntegerNumber.two;
-        } else if (f2 case Cos(expr: final b)
+        if (f2 case Call(id: FunctionId.sin, args: [final b])
             when b.matchLinear(variable) != null) {
           pairReduced =
-              (Cos((a + b).simplify()) + Cos((a - b).simplify())) /
+              (Fn.sin((a + b).simplify()) - Fn.sin((a - b).simplify())) /
+              IntegerNumber.two;
+        } else if (f2 case Call(id: FunctionId.cos, args: [final b])
+            when b.matchLinear(variable) != null) {
+          pairReduced =
+              (Fn.cos((a + b).simplify()) + Fn.cos((a - b).simplify())) /
               IntegerNumber.two;
         }
       }
@@ -445,8 +463,9 @@ Expr? tryPolyTrigPowerReduction(List<Expr> varFactors, String variable) {
         final isReducibleProduct = others.every(
           (o) =>
               polynomialDegree(o, variable) != null ||
-              (o is Sin && o.expr.matchLinear(variable) != null) ||
-              (o is Cos && o.expr.matchLinear(variable) != null) ||
+              (o is Call &&
+                  (o.id == FunctionId.sin || o.id == FunctionId.cos) &&
+                  o.args[0].matchLinear(variable) != null) ||
               (o is Pow &&
                   !o.base.dependsOn(variable) &&
                   o.exponent.matchLinear(variable) != null),
@@ -454,7 +473,7 @@ Expr? tryPolyTrigPowerReduction(List<Expr> varFactors, String variable) {
         if (isReducibleProduct) {
           final otherExpr = others.length == 1
               ? others.first
-              : Mul(others).simplify();
+              : Mul.of(others).simplify();
           final expanded = (otherExpr * pairReduced).expand().simplify();
           final res = antiDerivative(
             expanded,
@@ -496,7 +515,7 @@ Expr? tryLinearTrigQuotient(Expr left, Expr right, String variable) {
 
   var res = (alpha * Variable(variable)).simplify();
   if (beta != IntegerNumber.zero) {
-    res = (res + (beta / k) * Ln(Abs(right))).simplify();
+    res = (res + (beta / k) * Fn.ln(Fn.abs(right))).simplify();
   }
   if (gamma != IntegerNumber.zero) {
     final remInt = tryWeierstrassSubstitution(gamma, right, variable);
@@ -553,7 +572,7 @@ Expr? tryRationalTrigSubstitution(
             );
             if (!hasUnevaluatedIntegral(tInt, tName)) {
               return tInt
-                  .substitute(tName, Tan(tanInner))
+                  .substitute(tName, Fn.tan(tanInner))
                   .simplify(assumptions: assumptions);
             }
           }
@@ -593,7 +612,7 @@ Expr? tryRationalTrigSubstitution(
         );
         if (!hasUnevaluatedIntegral(tInt, tName)) {
           return tInt
-              .substitute(tName, Tan(inner))
+              .substitute(tName, Fn.tan(inner))
               .simplify(assumptions: assumptions);
         }
       }
@@ -625,7 +644,7 @@ Expr? tryRationalTrigSubstitution(
               return tInt
                   .substitute(
                     tName,
-                    Tan((inner / IntegerNumber.two).simplify()),
+                    Fn.tan((inner / IntegerNumber.two).simplify()),
                   )
                   .simplify(assumptions: assumptions);
             }
@@ -656,7 +675,13 @@ Expr? tryOddTrigHypSubstitution(
         when k.abs() <= 11 && k.isOdd) {
       fnBase = base;
       exp = k;
-    } else if (f is Cos || f is Sin || f is Cosh || f is Sinh) {
+    } else if (f is Call &&
+        const {
+          FunctionId.cos,
+          FunctionId.sin,
+          FunctionId.cosh,
+          FunctionId.sinh,
+        }.contains(f.id)) {
       fnBase = f;
       exp = 1;
     } else {
@@ -665,18 +690,20 @@ Expr? tryOddTrigHypSubstitution(
 
     final Expr inner;
     final int kind; // 0: cos, 1: sin, 2: cosh, 3: sinh
-    if (fnBase case Cos(expr: final u)) {
+    if (fnBase case Call(:final id, args: [final u])) {
       inner = u;
-      kind = 0;
-    } else if (fnBase case Sin(expr: final u)) {
-      inner = u;
-      kind = 1;
-    } else if (fnBase case Cosh(expr: final u)) {
-      inner = u;
-      kind = 2;
-    } else if (fnBase case Sinh(expr: final u)) {
-      inner = u;
-      kind = 3;
+      switch (id) {
+        case FunctionId.cos:
+          kind = 0;
+        case FunctionId.sin:
+          kind = 1;
+        case FunctionId.cosh:
+          kind = 2;
+        case FunctionId.sinh:
+          kind = 3;
+        default:
+          continue;
+      }
     } else {
       continue;
     }
@@ -691,7 +718,7 @@ Expr? tryOddTrigHypSubstitution(
     ];
     final otherExpr = otherFactors.length == 1
         ? otherFactors.first
-        : Mul(otherFactors).simplify(assumptions: assumptions);
+        : Mul.of(otherFactors).simplify(assumptions: assumptions);
 
     final sName = freshIntegrationVar('_ts', expr, variable, depth);
     final sVar = Variable(sName);
@@ -701,10 +728,10 @@ Expr? tryOddTrigHypSubstitution(
       _ => (sVar * sVar - IntegerNumber.one).simplify(),
     };
     final subTarget = switch (kind) {
-      0 => Sin(inner),
-      1 => Cos(inner),
-      2 => Sinh(inner),
-      _ => Cosh(inner),
+      0 => Fn.sin(inner),
+      1 => Fn.cos(inner),
+      2 => Fn.sinh(inner),
+      _ => Fn.cosh(inner),
     };
     final derivSign = kind == 1 ? IntegerNumber.negativeOne : IntegerNumber.one;
 
@@ -714,7 +741,7 @@ Expr? tryOddTrigHypSubstitution(
       if (node
           case Pow(base: final pBase, exponent: IntegerNumber(asInt: final m?))
           when pBase == fnBase && m.isEven && m.abs() <= 12) {
-        return Pow(sqExpr, IntegerNumber.of(m ~/ 2));
+        return Pow.of(sqExpr, IntegerNumber.of(m ~/ 2));
       }
       if (node is Add) {
         final mapped = <Expr>[];
@@ -723,7 +750,7 @@ Expr? tryOddTrigHypSubstitution(
           if (rt == null) return null;
           mapped.add(rt);
         }
-        return Add(mapped);
+        return Add.of(mapped);
       }
       if (node is Mul) {
         final mapped = <Expr>[];
@@ -732,12 +759,12 @@ Expr? tryOddTrigHypSubstitution(
           if (rm == null) return null;
           mapped.add(rm);
         }
-        return Mul(mapped);
+        return Mul.of(mapped);
       }
       if (node is Pow && !node.exponent.dependsOn(variable)) {
         final rb = replaceOther(node.base);
         if (rb == null) return null;
-        return Pow(rb, node.exponent);
+        return Pow.of(rb, node.exponent);
       }
       return null;
     }
@@ -748,7 +775,7 @@ Expr? tryOddTrigHypSubstitution(
     final r = (exp - 1) ~/ 2;
     final remCos = r == 0
         ? IntegerNumber.one
-        : Pow(sqExpr, IntegerNumber.of(r));
+        : Pow.of(sqExpr, IntegerNumber.of(r));
     final transformed = (derivSign * replacedOther * remCos / kSlope).simplify(
       assumptions: assumptions,
     );
@@ -807,8 +834,8 @@ Expr? tryHypPowerProduct(
     final oneMT2 = (IntegerNumber.one - tVar * tVar).simplify();
     final integrand =
         ((scale / a) *
-                Pow(tVar, IntegerNumber.of(p)) *
-                Pow(oneMT2, IntegerNumber.of(m)))
+                Pow.of(tVar, IntegerNumber.of(p)) *
+                Pow.of(oneMT2, IntegerNumber.of(m)))
             .expand()
             .simplify(assumptions: assumptions);
     final tInt = antiDerivative(
@@ -819,7 +846,7 @@ Expr? tryHypPowerProduct(
     );
     if (!hasUnevaluatedIntegral(tInt, tName)) {
       return tInt
-          .substitute(tName, Tanh(inner))
+          .substitute(tName, Fn.tanh(inner))
           .simplify(assumptions: assumptions);
     }
   }
@@ -828,11 +855,12 @@ Expr? tryHypPowerProduct(
     final k = (p - 1) ~/ 2;
     final coshPow = k == 0
         ? IntegerNumber.one
-        : Pow(
+        : Pow.of(
             (tVar * tVar - IntegerNumber.one).simplify(),
             IntegerNumber.of(k),
           );
-    final rawIntegrand = (scale / a) * coshPow * Pow(tVar, IntegerNumber.of(q));
+    final rawIntegrand =
+        (scale / a) * coshPow * Pow.of(tVar, IntegerNumber.of(q));
     final integrand = k >= 0
         ? rawIntegrand.expand().simplify(assumptions: assumptions)
         : rawIntegrand.simplify(assumptions: assumptions);
@@ -844,7 +872,7 @@ Expr? tryHypPowerProduct(
     );
     if (!hasUnevaluatedIntegral(tInt, tName)) {
       return tInt
-          .substitute(tName, Cosh(inner))
+          .substitute(tName, Fn.cosh(inner))
           .simplify(assumptions: assumptions);
     }
   }
@@ -853,11 +881,12 @@ Expr? tryHypPowerProduct(
     final k = (q - 1) ~/ 2;
     final sinhPow = k == 0
         ? IntegerNumber.one
-        : Pow(
+        : Pow.of(
             (IntegerNumber.one + tVar * tVar).simplify(),
             IntegerNumber.of(k),
           );
-    final rawIntegrand = (scale / a) * Pow(tVar, IntegerNumber.of(p)) * sinhPow;
+    final rawIntegrand =
+        (scale / a) * Pow.of(tVar, IntegerNumber.of(p)) * sinhPow;
     final integrand = k >= 0
         ? rawIntegrand.expand().simplify(assumptions: assumptions)
         : rawIntegrand.simplify(assumptions: assumptions);
@@ -869,19 +898,19 @@ Expr? tryHypPowerProduct(
     );
     if (!hasUnevaluatedIntegral(tInt, tName)) {
       return tInt
-          .substitute(tName, Sinh(inner))
+          .substitute(tName, Fn.sinh(inner))
           .simplify(assumptions: assumptions);
     }
   }
 
   if (p >= 0 && q >= 0 && p.isEven && q.isEven) {
     final twoInner = (IntegerNumber.two * inner).simplify();
-    final sinh2 = (Cosh(twoInner) - IntegerNumber.one) / IntegerNumber.two;
-    final cosh2 = (Cosh(twoInner) + IntegerNumber.one) / IntegerNumber.two;
+    final sinh2 = (Fn.cosh(twoInner) - IntegerNumber.one) / IntegerNumber.two;
+    final cosh2 = (Fn.cosh(twoInner) + IntegerNumber.one) / IntegerNumber.two;
     final expanded =
         (scale *
-                Pow(sinh2, IntegerNumber.of(p ~/ 2)) *
-                Pow(cosh2, IntegerNumber.of(q ~/ 2)))
+                Pow.of(sinh2, IntegerNumber.of(p ~/ 2)) *
+                Pow.of(cosh2, IntegerNumber.of(q ~/ 2)))
             .expand()
             .simplify(assumptions: assumptions);
     if (expanded is Add || expanded != (num / den).simplify()) {
@@ -930,7 +959,7 @@ Expr? tryHyperbolicRationalSubstitution(
       );
       if (!hasUnevaluatedIntegral(tInt, tName)) {
         return tInt
-            .substitute(tName, Tanh(inner))
+            .substitute(tName, Fn.tanh(inner))
             .simplify(assumptions: assumptions);
       }
     }
@@ -962,7 +991,7 @@ Expr? tryHyperbolicRationalSubstitution(
   if (hasUnevaluatedIntegral(wInt, wName)) return null;
 
   return wInt
-      .substitute(wName, Pow(Constant.e, inner))
+      .substitute(wName, Pow.of(Constant.e, inner))
       .simplify(assumptions: assumptions);
 }
 
@@ -973,7 +1002,7 @@ Expr? _findSingleLinearTanInner(Expr expr, String variable) {
   void scan(Expr n) {
     if (!valid || !n.dependsOn(variable)) return;
     switch (n) {
-      case Tan(:final expr):
+      case Call(id: FunctionId.tan, args: [final expr]):
         if (expr.matchLinear(variable) == null) {
           valid = false;
           return;
@@ -984,7 +1013,7 @@ Expr? _findSingleLinearTanInner(Expr expr, String variable) {
         } else if (found != expr) {
           valid = false;
         }
-      case Sin(:final expr) || Cos(:final expr):
+      case Call(id: FunctionId.sin || FunctionId.cos, args: [final expr]):
         if (expr.matchLinear(variable) == null) {
           valid = false;
           return;
@@ -1036,21 +1065,21 @@ Expr? _findSingleLinearTanInner(Expr expr, String variable) {
       exp = asInt;
     }
     switch (base) {
-      case Sinh(expr: final arg):
+      case Call(id: FunctionId.sinh, args: [final arg]):
         if (inner == null) {
           inner = arg;
         } else if (inner != arg) {
           return null;
         }
         sinhExp += exp;
-      case Cosh(expr: final arg):
+      case Call(id: FunctionId.cosh, args: [final arg]):
         if (inner == null) {
           inner = arg;
         } else if (inner != arg) {
           return null;
         }
         coshExp += exp;
-      case Tanh(expr: final arg):
+      case Call(id: FunctionId.tanh, args: [final arg]):
         if (inner == null) {
           inner = arg;
         } else if (inner != arg) {
@@ -1088,21 +1117,21 @@ Expr? _findSingleLinearTanInner(Expr expr, String variable) {
       exp = asInt;
     }
     switch (base) {
-      case Sin(expr: final arg):
+      case Call(id: FunctionId.sin, args: [final arg]):
         if (inner == null) {
           inner = arg;
         } else if (inner != arg) {
           return null;
         }
         sinExp += exp;
-      case Cos(expr: final arg):
+      case Call(id: FunctionId.cos, args: [final arg]):
         if (inner == null) {
           inner = arg;
         } else if (inner != arg) {
           return null;
         }
         cosExp += exp;
-      case Tan(expr: final arg):
+      case Call(id: FunctionId.tan, args: [final arg]):
         if (inner == null) {
           inner = arg;
         } else if (inner != arg) {

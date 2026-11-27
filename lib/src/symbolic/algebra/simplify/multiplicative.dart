@@ -2,8 +2,6 @@ import 'dart:math' as math;
 
 import '../../assumptions.dart';
 import '../../ast.dart';
-import '../../number/integer.dart';
-import '../structural_order.dart';
 import '../term_accumulator.dart';
 import 'additive.dart';
 import 'domain.dart';
@@ -164,10 +162,7 @@ Expr simplifyMul(
   final remainingFactors = <Expr>[];
   var needsRecombine = false;
   for (final MapEntry(key: base, value: exp) in baseExponents.entries) {
-    final term =
-        (exp == IntegerNumber.one &&
-            base.isSimplified &&
-            (identical(assumptions, Assumptions.none) || assumptions.isEmpty))
+    final term = exp == IntegerNumber.one
         ? base
         : simplifyPow(base, exp, assumptions: assumptions);
     switch (term) {
@@ -263,9 +258,9 @@ Expr simplifySymbolicProduct(Number coeff, List<Expr> remainingFactors) {
   if (coeff.isOne) {
     return remainingFactors.length == 1
         ? remainingFactors.first
-        : Mul(remainingFactors, isSimplified: true);
+        : Mul.of(remainingFactors);
   }
-  return Mul([coeff, ...remainingFactors], isSimplified: true);
+  return Mul.of([coeff, ...remainingFactors]);
 }
 
 void _combineRadicalBases(
@@ -375,12 +370,12 @@ RationalNumber _absorbRationalCoeffIntoRadicals(
       in baseExponents.entries.toList()) {
     if ((base, exp)
         case (final IntegerNumber intBase, final FractionNumber fracExp)
-        when intBase.value > Integer.one && fracExp.isNegative) {
+        when intBase.value > BigInt.one && fracExp.isNegative) {
       final b = intBase.value;
       RationalNumber newExp = fracExp;
       while (newExp is FractionNumber &&
           newExp.isNegative &&
-          (currentCoeff.numerator % b).isZero) {
+          currentCoeff.numerator % b == BigInt.zero) {
         currentCoeff = currentCoeff.divRational(intBase);
         newExp = newExp.addRational(IntegerNumber.one);
       }
@@ -432,7 +427,7 @@ Expr? _tryDistributeExactDivision(
     final candidates = <Expr>[
       negFactor,
       if (negFactor.exponent case IntegerNumber(asInt: final k?) when k < -1)
-        Pow(negFactor.base, IntegerNumber.negativeOne, isSimplified: true),
+        Pow.of(negFactor.base, IntegerNumber.negativeOne),
     ];
 
     for (final divisor in candidates) {
@@ -541,14 +536,15 @@ Number _reduceFactorialAndGammaFactors(
 
   for (final MapEntry(key: base, value: exp) in baseExponents.entries) {
     if (exp case IntegerNumber(asInt: final e?) when e != 0) {
-      if (base is Binomial) {
+      if (base is Call && base.id == FunctionId.binomial) {
         expMap[base] = e;
         if (e > 0) {
           posBinomials.add(base);
         } else {
           negBinomials.add(base);
         }
-      } else if (base is Factorial || base is Gamma) {
+      } else if (base is Call &&
+          (base.id == FunctionId.factorial || base.id == FunctionId.gamma)) {
         expMap[base] = e;
         if (e > 0) {
           posGammas.add(base);
@@ -599,10 +595,10 @@ Number _reduceFactorialAndGammaFactors(
 
   List<(Expr, int)>? collectGammaRatio(Expr a, Expr b, int d, int power) {
     if (d == 0) return const [];
-    if (a case IntegerNumber(:final value) when value <= Integer.zero) {
+    if (a case IntegerNumber(:final value) when value <= BigInt.zero) {
       return null;
     }
-    if (b case IntegerNumber(:final value) when value <= Integer.zero) {
+    if (b case IntegerNumber(:final value) when value <= BigInt.zero) {
       return null;
     }
     final start = d > 0 ? b : a;
@@ -634,39 +630,43 @@ Number _reduceFactorialAndGammaFactors(
     for (final p in posBinomials) {
       var pExp = expMap[p]!;
       if (pExp <= 0) continue;
-      final b1 = p as Binomial;
+      final b1 = p as Call;
+      final b1Left = b1.args[0];
+      final b1Right = b1.args[1];
       for (final q in negBinomials) {
         final qExp = expMap[q]!;
         if (qExp >= 0) continue;
-        final b2 = q as Binomial;
-        final dn = simplifySub(b1.left, b2.left, assumptions: assumptions);
-        final dk = simplifySub(b1.right, b2.right, assumptions: assumptions);
+        final b2 = q as Call;
+        final b2Left = b2.args[0];
+        final b2Right = b2.args[1];
+        final dn = simplifySub(b1Left, b2Left, assumptions: assumptions);
+        final dk = simplifySub(b1Right, b2Right, assumptions: assumptions);
         if (dn case IntegerNumber(asInt: final dnInt?)) {
           if (dk case IntegerNumber(asInt: final dkInt?)
               when dnInt.abs() + dkInt.abs() <= 1000) {
             final units = math.min(pExp, -qExp);
             final n1p1 = simplifyAdd([
-              b1.left,
+              b1Left,
               IntegerNumber.one,
             ], assumptions: assumptions);
             final n2p1 = simplifyAdd([
-              b2.left,
+              b2Left,
               IntegerNumber.one,
             ], assumptions: assumptions);
             final k1p1 = simplifyAdd([
-              b1.right,
+              b1Right,
               IntegerNumber.one,
             ], assumptions: assumptions);
             final k2p1 = simplifyAdd([
-              b2.right,
+              b2Right,
               IntegerNumber.one,
             ], assumptions: assumptions);
             final nk1p1 = simplifyAdd([
-              simplifySub(b1.left, b1.right, assumptions: assumptions),
+              simplifySub(b1Left, b1Right, assumptions: assumptions),
               IntegerNumber.one,
             ], assumptions: assumptions);
             final nk2p1 = simplifyAdd([
-              simplifySub(b2.left, b2.right, assumptions: assumptions),
+              simplifySub(b2Left, b2Right, assumptions: assumptions),
               IntegerNumber.one,
             ], assumptions: assumptions);
 
@@ -694,8 +694,8 @@ Number _reduceFactorialAndGammaFactors(
   // Pairwise Factorial / Gamma cancellation
   if (posGammas.isNotEmpty && negGammas.isNotEmpty) {
     Expr gammaArg(Expr node) => switch (node) {
-      Gamma(:final expr) => expr,
-      Factorial(:final expr) => simplifyAdd([
+      Call(id: FunctionId.gamma, args: [final expr]) => expr,
+      Call(id: FunctionId.factorial, args: [final expr]) => simplifyAdd([
         expr,
         IntegerNumber.one,
       ], assumptions: assumptions),

@@ -300,7 +300,7 @@ final class NotebookCompletion {
     }
 
     for (final info in ExprSyntax.standardFunctions) {
-      if (info.name == ctx.name || info.aliases.contains(ctx.name)) {
+      if (info.name == ctx.name) {
         final active = ctx.positionalIndex < info.params.length
             ? info.params[ctx.positionalIndex]
             : null;

@@ -4,6 +4,7 @@ import '../assumptions.dart';
 import '../ast.dart';
 import '../calculus/product.dart';
 import '../calculus/summation.dart';
+import '../functions/fn.dart';
 import 'expand.dart';
 import 'helpers.dart';
 import 'simplify/additive.dart';
@@ -48,19 +49,10 @@ extension SimplifierExtension on Expr {
 }
 
 /// Recursively evaluates and canonically simplifies [expr] under [assumptions].
-Expr simplifyExpr(Expr expr, {required Assumptions assumptions}) {
-  if ((identical(assumptions, Assumptions.none) || assumptions.isEmpty) &&
-      expr.isSimplified) {
-    return expr;
-  }
-  return _simplify(expr, assumptions, HashMap<Expr, Expr>());
-}
+Expr simplifyExpr(Expr expr, {required Assumptions assumptions}) =>
+    _simplify(expr, assumptions, HashMap<Expr, Expr>());
 
 Expr _simplify(Expr expr, Assumptions assumptions, Map<Expr, Expr> cache) {
-  if (expr.isSimplified &&
-      (identical(assumptions, Assumptions.none) || assumptions.isEmpty)) {
-    return expr;
-  }
   if (expr is Number || expr is Constant || expr is Variable) {
     return expr;
   }
@@ -69,20 +61,6 @@ Expr _simplify(Expr expr, Assumptions assumptions, Map<Expr, Expr> cache) {
 
   final result = switch (expr) {
     Number() || Constant() || Variable() => expr,
-    VariableFunction(:final name, :final arguments) => () {
-      var changed = false;
-      final newArgs = <Expr>[
-        for (final argument in arguments)
-          () {
-            final simplified = _simplify(argument, assumptions, cache);
-            if (!identical(simplified, argument)) changed = true;
-            return simplified;
-          }(),
-      ];
-      return changed
-          ? VariableFunction(name, newArgs, isSimplified: true)
-          : expr;
-    }(),
     OrderTerm(:final variable, :final order, :final point) => () {
       final newPoint = _simplify(point, assumptions, cache);
       return identical(newPoint, point)
@@ -102,274 +80,10 @@ Expr _simplify(Expr expr, Assumptions assumptions, Map<Expr, Expr> cache) {
       _simplify(exponent, assumptions, cache),
       assumptions: assumptions,
     ),
-    Sin(:final expr) => simplifySin(
-      _simplify(expr, assumptions, cache),
-      assumptions: assumptions,
-    ),
-    Cos(:final expr) => simplifyCos(
-      _simplify(expr, assumptions, cache),
-      assumptions: assumptions,
-    ),
-    Tan(:final expr) => simplifyTan(
-      _simplify(expr, assumptions, cache),
-      assumptions: assumptions,
-    ),
-    Asin(:final expr) => simplifyAsin(
-      _simplify(expr, assumptions, cache),
-      assumptions: assumptions,
-    ),
-    Acos(:final expr) => simplifyAcos(
-      _simplify(expr, assumptions, cache),
-      assumptions: assumptions,
-    ),
-    Atan(:final expr) => simplifyAtan(
-      _simplify(expr, assumptions, cache),
-      assumptions: assumptions,
-    ),
-    Atan2(:final left, :final right) => simplifyAtan2(
-      _simplify(left, assumptions, cache),
-      _simplify(right, assumptions, cache),
-      assumptions: assumptions,
-    ),
-    Sinh(:final expr) => simplifySinh(
-      _simplify(expr, assumptions, cache),
-      assumptions: assumptions,
-    ),
-    Cosh(:final expr) => simplifyCosh(
-      _simplify(expr, assumptions, cache),
-      assumptions: assumptions,
-    ),
-    Tanh(:final expr) => simplifyTanh(
-      _simplify(expr, assumptions, cache),
-      assumptions: assumptions,
-    ),
-    Abs(:final expr) => simplifyAbs(
-      _simplify(expr, assumptions, cache),
-      assumptions: assumptions,
-    ),
-    Ln(:final expr) => simplifyLn(
-      _simplify(expr, assumptions, cache),
-      assumptions: assumptions,
-    ),
-    Re(:final expr) => simplifyRe(
-      _simplify(expr, assumptions, cache),
-      assumptions: assumptions,
-    ),
-    Im(:final expr) => simplifyIm(
-      _simplify(expr, assumptions, cache),
-      assumptions: assumptions,
-    ),
-    Arg(:final expr) => simplifyArg(
-      _simplify(expr, assumptions, cache),
-      assumptions: assumptions,
-    ),
-    Conjugate(:final expr) => simplifyConjugate(
-      _simplify(expr, assumptions, cache),
-      assumptions: assumptions,
-    ),
-    LambertW(:final expr, :final branch) => simplifyLambertW(
-      _simplify(expr, assumptions, cache),
-      branch,
-      assumptions: assumptions,
-    ),
-    Erf(:final expr) => simplifyErf(
-      _simplify(expr, assumptions, cache),
-      assumptions: assumptions,
-    ),
-    Erfc(:final expr) => simplifyErfc(
-      _simplify(expr, assumptions, cache),
-      assumptions: assumptions,
-    ),
-    Gamma(:final expr) => simplifyGamma(
-      _simplify(expr, assumptions, cache),
-      assumptions: assumptions,
-    ),
-    Zeta(:final expr, :final shift) => simplifyZeta(
-      _simplify(expr, assumptions, cache),
-      shift: shift == null ? null : _simplify(shift, assumptions, cache),
-    ),
-    Digamma(:final expr) => simplifyDigamma(
-      _simplify(expr, assumptions, cache),
-    ),
-    LogGamma(:final expr) => simplifyLogGamma(
-      _simplify(expr, assumptions, cache),
-    ),
-    Polygamma(:final left, :final right) => simplifyPolygamma(
-      _simplify(left, assumptions, cache),
-      _simplify(right, assumptions, cache),
-    ),
-    BesselJ(:final left, :final right) => simplifyBesselJ(
-      _simplify(left, assumptions, cache),
-      _simplify(right, assumptions, cache),
-    ),
-    BesselY(:final left, :final right) => simplifyBesselY(
-      _simplify(left, assumptions, cache),
-      _simplify(right, assumptions, cache),
-    ),
-    BesselI(:final left, :final right) => simplifyBesselI(
-      _simplify(left, assumptions, cache),
-      _simplify(right, assumptions, cache),
-    ),
-    BesselK(:final left, :final right) => simplifyBesselK(
-      _simplify(left, assumptions, cache),
-      _simplify(right, assumptions, cache),
-    ),
-    EllipticK(:final expr) => simplifyEllipticK(
-      _simplify(expr, assumptions, cache),
-      assumptions: assumptions,
-    ),
-    EllipticE(:final expr, :final amplitude) => simplifyEllipticE(
-      _simplify(expr, assumptions, cache),
-      amplitude: amplitude == null
-          ? null
-          : _simplify(amplitude, assumptions, cache),
-      assumptions: assumptions,
-    ),
-    Erfi(:final expr) => simplifyErfi(
-      _simplify(expr, assumptions, cache),
-      assumptions: assumptions,
-    ),
-    FresnelS(:final expr) => simplifyFresnelS(
-      _simplify(expr, assumptions, cache),
-      assumptions: assumptions,
-    ),
-    FresnelC(:final expr) => simplifyFresnelC(
-      _simplify(expr, assumptions, cache),
-      assumptions: assumptions,
-    ),
-    ExpIntegral(:final expr) => simplifyExpIntegralEi(
-      _simplify(expr, assumptions, cache),
-    ),
-    LogIntegral(:final expr) => simplifyLogIntegralLi(
-      _simplify(expr, assumptions, cache),
-    ),
-    SinIntegral(:final expr) => simplifySinIntegralSi(
-      _simplify(expr, assumptions, cache),
-      assumptions: assumptions,
-    ),
-    CosIntegral(:final expr) => simplifyCosIntegralCi(
-      _simplify(expr, assumptions, cache),
-    ),
-    SinhIntegral(:final expr) => simplifySinhIntegralShi(
-      _simplify(expr, assumptions, cache),
-      assumptions: assumptions,
-    ),
-    CoshIntegral(:final expr) => simplifyCoshIntegralChi(
-      _simplify(expr, assumptions, cache),
-    ),
-    UpperGamma(:final left, :final right) => simplifyUpperGamma(
-      _simplify(left, assumptions, cache),
-      _simplify(right, assumptions, cache),
-      assumptions: assumptions,
-    ),
-    LowerGamma(:final left, :final right) => simplifyLowerGamma(
-      _simplify(left, assumptions, cache),
-      _simplify(right, assumptions, cache),
-      assumptions: assumptions,
-    ),
-    Polylog(:final left, :final right) => simplifyPolylog(
-      _simplify(left, assumptions, cache),
-      _simplify(right, assumptions, cache),
-      assumptions: assumptions,
-    ),
-    EllipticF(:final left, :final right) => simplifyEllipticF(
-      _simplify(left, assumptions, cache),
-      _simplify(right, assumptions, cache),
-      assumptions: assumptions,
-    ),
-    EllipticPi(:final characteristic, :final amplitude, :final modulus) =>
-      simplifyEllipticPi(
-        _simplify(characteristic, assumptions, cache),
-        _simplify(amplitude, assumptions, cache),
-        _simplify(modulus, assumptions, cache),
-        assumptions: assumptions,
-      ),
-    ExpIntegralE(:final left, :final right) => simplifyExpIntegralE(
-      _simplify(left, assumptions, cache),
-      _simplify(right, assumptions, cache),
-    ),
-    Hypergeometric(:final upper, :final lower, :final argument) =>
-      simplifyHypergeometric(
-        upper.map((u) => _simplify(u, assumptions, cache)).toList(),
-        lower.map((l) => _simplify(l, assumptions, cache)).toList(),
-        _simplify(argument, assumptions, cache),
-      ),
-    AppellF1(:final a, :final b1, :final b2, :final c, :final x, :final y) =>
-      simplifyAppellF1(
-        _simplify(a, assumptions, cache),
-        _simplify(b1, assumptions, cache),
-        _simplify(b2, assumptions, cache),
-        _simplify(c, assumptions, cache),
-        _simplify(x, assumptions, cache),
-        _simplify(y, assumptions, cache),
-        assumptions: assumptions,
-      ),
-    Min(:final args) => simplifyMin(
-      args.map((a) => _simplify(a, assumptions, cache)).toList(),
-    ),
-    Max(:final args) => simplifyMax(
-      args.map((a) => _simplify(a, assumptions, cache)).toList(),
-    ),
-    Gcd(:final args) => simplifyGcd(
-      args.map((a) => _simplify(a, assumptions, cache)).toList(),
-      assumptions: assumptions,
-    ),
-    Lcm(:final args) => simplifyLcm(
-      args.map((a) => _simplify(a, assumptions, cache)).toList(),
-      assumptions: assumptions,
-    ),
-    Tuple(:final args) => Tuple(
-      args.map((a) => _simplify(a, assumptions, cache)).toList(),
-      isSimplified: true,
-    ),
-    Beta(:final left, :final right) => simplifyBeta(
-      _simplify(left, assumptions, cache),
-      _simplify(right, assumptions, cache),
-      assumptions: assumptions,
-    ),
-    Factorial(:final expr) => simplifyFactorial(
-      _simplify(expr, assumptions, cache),
-      assumptions: assumptions,
-    ),
-    Binomial(:final left, :final right) => simplifyBinomial(
-      _simplify(left, assumptions, cache),
-      _simplify(right, assumptions, cache),
-      assumptions: assumptions,
-    ),
-    Floor(:final expr) => simplifyFloor(
-      _simplify(expr, assumptions, cache),
-      assumptions: assumptions,
-    ),
-    Ceil(:final expr) => simplifyCeil(
-      _simplify(expr, assumptions, cache),
-      assumptions: assumptions,
-    ),
-    Round(:final expr) => simplifyRound(
-      _simplify(expr, assumptions, cache),
-      assumptions: assumptions,
-    ),
-    Sign(:final expr) => simplifySign(
-      _simplify(expr, assumptions, cache),
-      assumptions: assumptions,
-    ),
-    Mod(:final left, :final right) => simplifyMod(
-      _simplify(left, assumptions, cache),
-      _simplify(right, assumptions, cache),
-      assumptions: assumptions,
-    ),
-    Asinh(:final expr) => simplifyAsinh(
-      _simplify(expr, assumptions, cache),
-      assumptions: assumptions,
-    ),
-    Acosh(:final expr) => simplifyAcosh(
-      _simplify(expr, assumptions, cache),
-      assumptions: assumptions,
-    ),
-    Atanh(:final expr) => simplifyAtanh(
-      _simplify(expr, assumptions, cache),
-      assumptions: assumptions,
-    ),
-    RelationalExpr() => simplifyRelational(expr, assumptions: assumptions),
+    Call(:final id, :final args) => _simplifyCall(expr, id, [
+      for (final arg in args) _simplify(arg, assumptions, cache),
+    ], assumptions),
+    Relational() => simplifyRelational(expr, assumptions: assumptions),
     Piecewise() => simplifyPiecewise(expr, assumptions: assumptions),
     Integral(:final integrand, :final variable, :final lower, :final upper) =>
       simplifyIntegral(
@@ -411,6 +125,152 @@ Expr _simplify(Expr expr, Assumptions assumptions, Map<Expr, Expr> cache) {
   return result;
 }
 
+Expr _simplifyCall(
+  Call call,
+  FunctionId id,
+  List<Expr> args,
+  Assumptions assumptions,
+) => switch (id) {
+  FunctionId.sin => simplifySin(args[0], assumptions: assumptions),
+  FunctionId.cos => simplifyCos(args[0], assumptions: assumptions),
+  FunctionId.tan => simplifyTan(args[0], assumptions: assumptions),
+  FunctionId.asin => simplifyAsin(args[0], assumptions: assumptions),
+  FunctionId.acos => simplifyAcos(args[0], assumptions: assumptions),
+  FunctionId.atan => simplifyAtan(args[0], assumptions: assumptions),
+  FunctionId.atan2 => simplifyAtan2(args[0], args[1], assumptions: assumptions),
+  FunctionId.sinh => simplifySinh(args[0], assumptions: assumptions),
+  FunctionId.cosh => simplifyCosh(args[0], assumptions: assumptions),
+  FunctionId.tanh => simplifyTanh(args[0], assumptions: assumptions),
+  FunctionId.asinh => simplifyAsinh(args[0], assumptions: assumptions),
+  FunctionId.acosh => simplifyAcosh(args[0], assumptions: assumptions),
+  FunctionId.atanh => simplifyAtanh(args[0], assumptions: assumptions),
+  FunctionId.abs => simplifyAbs(args[0], assumptions: assumptions),
+  FunctionId.ln => simplifyLn(args[0], assumptions: assumptions),
+  FunctionId.re => simplifyRe(args[0], assumptions: assumptions),
+  FunctionId.im => simplifyIm(args[0], assumptions: assumptions),
+  FunctionId.arg => simplifyArg(args[0], assumptions: assumptions),
+  FunctionId.conj => simplifyConjugate(args[0], assumptions: assumptions),
+  FunctionId.factorial => simplifyFactorial(args[0], assumptions: assumptions),
+  FunctionId.binomial => simplifyBinomial(
+    args[0],
+    args[1],
+    assumptions: assumptions,
+  ),
+  FunctionId.floor => simplifyFloor(args[0], assumptions: assumptions),
+  FunctionId.ceil => simplifyCeil(args[0], assumptions: assumptions),
+  FunctionId.round => simplifyRound(args[0], assumptions: assumptions),
+  FunctionId.sign => simplifySign(args[0], assumptions: assumptions),
+  FunctionId.mod => simplifyMod(args[0], args[1], assumptions: assumptions),
+  FunctionId.min => simplifyMin(args),
+  FunctionId.max => simplifyMax(args),
+  FunctionId.gcd => simplifyGcd(args, assumptions: assumptions),
+  FunctionId.lcm => simplifyLcm(args, assumptions: assumptions),
+  FunctionId.tuple => () {
+    for (var i = 0; i < args.length; i++) {
+      if (!identical(args[i], call.args[i])) {
+        return Fn.tuple(args);
+      }
+    }
+    return call;
+  }(),
+  FunctionId.erf => simplifyErf(args[0], assumptions: assumptions),
+  FunctionId.erfc => simplifyErfc(args[0], assumptions: assumptions),
+  FunctionId.erfi => simplifyErfi(args[0], assumptions: assumptions),
+  FunctionId.fresnelS => simplifyFresnelS(args[0], assumptions: assumptions),
+  FunctionId.fresnelC => simplifyFresnelC(args[0], assumptions: assumptions),
+  FunctionId.ei => simplifyExpIntegralEi(args[0]),
+  FunctionId.expIntegralE => simplifyExpIntegralE(args[0], args[1]),
+  FunctionId.li => simplifyLogIntegralLi(args[0]),
+  FunctionId.si => simplifySinIntegralSi(args[0], assumptions: assumptions),
+  FunctionId.ci => simplifyCosIntegralCi(args[0]),
+  FunctionId.shi => simplifySinhIntegralShi(args[0], assumptions: assumptions),
+  FunctionId.chi => simplifyCoshIntegralChi(args[0]),
+  FunctionId.gamma => simplifyGamma(args[0], assumptions: assumptions),
+  FunctionId.upperGamma => simplifyUpperGamma(
+    args[0],
+    args[1],
+    assumptions: assumptions,
+  ),
+  FunctionId.lowerGamma => simplifyLowerGamma(
+    args[0],
+    args[1],
+    assumptions: assumptions,
+  ),
+  FunctionId.logGamma => simplifyLogGamma(args[0]),
+  FunctionId.digamma => simplifyDigamma(args[0]),
+  FunctionId.polygamma => simplifyPolygamma(args[0], args[1]),
+  FunctionId.zeta => simplifyZeta(
+    args[0],
+    shift: args.length > 1 ? args[1] : null,
+  ),
+  FunctionId.beta => simplifyBeta(args[0], args[1], assumptions: assumptions),
+  FunctionId.polylog => simplifyPolylog(
+    args[0],
+    args[1],
+    assumptions: assumptions,
+  ),
+  FunctionId.besselJ => simplifyBesselJ(args[0], args[1]),
+  FunctionId.besselY => simplifyBesselY(args[0], args[1]),
+  FunctionId.besselI => simplifyBesselI(args[0], args[1]),
+  FunctionId.besselK => simplifyBesselK(args[0], args[1]),
+  FunctionId.ellipticK => simplifyEllipticK(args[0], assumptions: assumptions),
+  FunctionId.ellipticE =>
+    args.length == 1
+        ? simplifyEllipticE(args[0], assumptions: assumptions)
+        : simplifyEllipticE(
+            args[1],
+            amplitude: args[0],
+            assumptions: assumptions,
+          ),
+  FunctionId.ellipticF => simplifyEllipticF(
+    args[0],
+    args[1],
+    assumptions: assumptions,
+  ),
+  FunctionId.ellipticPi => simplifyEllipticPi(
+    args[0],
+    args[1],
+    args[2],
+    assumptions: assumptions,
+  ),
+  FunctionId.hypergeometric => simplifyHypergeometric(
+    args[0] is Call && (args[0] as Call).id == FunctionId.tuple
+        ? (args[0] as Call).args
+        : [args[0]],
+    args[1] is Call && (args[1] as Call).id == FunctionId.tuple
+        ? (args[1] as Call).args
+        : [args[1]],
+    args[2],
+  ),
+  FunctionId.appellF1 => simplifyAppellF1(
+    args[0],
+    args[1],
+    args[2],
+    args[3],
+    args[4],
+    args[5],
+    assumptions: assumptions,
+  ),
+  FunctionId.lambertW => () {
+    final branchExpr = args.length > 1 ? args[1] : null;
+    if (branchExpr == null) {
+      return simplifyLambertW(args[0], 0, assumptions: assumptions);
+    }
+    if (branchExpr case IntegerNumber(asInt: final b?)) {
+      return simplifyLambertW(args[0], b, assumptions: assumptions);
+    }
+    return Fn.lambertW(args[0], branchExpr);
+  }(),
+  FunctionId.symbolic => () {
+    for (var i = 0; i < args.length; i++) {
+      if (!identical(args[i], call.args[i])) {
+        return Call(call.spec, args);
+      }
+    }
+    return call;
+  }(),
+};
+
 Expr _simplifyRootSum(
   Expr polynomial,
   String variable,
@@ -433,7 +293,7 @@ Expr _simplifyRootSum(
     if (simpPoly is Number && !simpPoly.isZero) {
       return IntegerNumber.zero;
     }
-    return RootSum(simpPoly, variable, simpBody, isSimplified: true);
+    return RootSum(simpPoly, variable, simpBody);
   }
 
   final coeffs = extractPolynomialCoefficients(
@@ -458,5 +318,5 @@ Expr _simplifyRootSum(
     }
   }
 
-  return RootSum(simpPoly, variable, simpBody, isSimplified: true);
+  return RootSum(simpPoly, variable, simpBody);
 }

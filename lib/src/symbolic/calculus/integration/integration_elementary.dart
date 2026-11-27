@@ -4,6 +4,7 @@ import '../../algebra/simplify.dart';
 import '../../algebra/simplify/domain.dart';
 import '../../assumptions.dart';
 import '../../ast.dart';
+import '../../functions/fn.dart';
 import '../differentiation.dart';
 import '../limit.dart';
 import '../linear_form.dart';
@@ -13,7 +14,7 @@ import 'integration_power_mul.dart';
 
 Expr? antiDerivSin(Expr inner, String variable) {
   if (inner.matchLinear(variable) case (:final a, b: _)) {
-    return (-Cos(inner) / a).simplify();
+    return (-Fn.cos(inner) / a).simplify();
   }
   if (matchScaledSquare(inner, variable) case final a?) {
     final absA = isNegativeConstant(a) ? (-a).simplify() : a;
@@ -21,25 +22,25 @@ Expr? antiDerivSin(Expr inner, String variable) {
         ? IntegerNumber.negativeOne
         : IntegerNumber.one;
     final twoA = (IntegerNumber.two * absA).simplify();
-    final scale = Pow(Constant.pi / twoA, FractionNumber.half);
+    final scale = Pow.of(Constant.pi / twoA, FractionNumber.half);
     final arg =
-        Pow(twoA / Constant.pi, FractionNumber.half) * Variable(variable);
-    return (sign * scale * FresnelS(arg)).simplify();
+        Pow.of(twoA / Constant.pi, FractionNumber.half) * Variable(variable);
+    return (sign * scale * Fn.fresnelS(arg)).simplify();
   }
   return null;
 }
 
 Expr? antiDerivCos(Expr inner, String variable) {
   if (inner.matchLinear(variable) case (:final a, b: _)) {
-    return (Sin(inner) / a).simplify();
+    return (Fn.sin(inner) / a).simplify();
   }
   if (matchScaledSquare(inner, variable) case final a?) {
     final absA = isNegativeConstant(a) ? (-a).simplify() : a;
     final twoA = (IntegerNumber.two * absA).simplify();
-    final scale = Pow(Constant.pi / twoA, FractionNumber.half);
+    final scale = Pow.of(Constant.pi / twoA, FractionNumber.half);
     final arg =
-        Pow(twoA / Constant.pi, FractionNumber.half) * Variable(variable);
-    return (scale * FresnelC(arg)).simplify();
+        Pow.of(twoA / Constant.pi, FractionNumber.half) * Variable(variable);
+    return (scale * Fn.fresnelC(arg)).simplify();
   }
   return null;
 }
@@ -74,19 +75,19 @@ Expr logAntiderivative(Expr u, Assumptions assumptions) {
     if (expTerms.isNotEmpty) {
       final linSum = expTerms.length == 1
           ? expTerms.first
-          : Add(expTerms).simplify(assumptions: assumptions);
+          : Add.of(expTerms).simplify(assumptions: assumptions);
       if (rest.isEmpty) return linSum;
       final restProd = rest.length == 1
           ? rest.first
-          : Mul(rest).simplify(assumptions: assumptions);
+          : Mul.of(rest).simplify(assumptions: assumptions);
       return (linSum + logAntiderivative(restProd, assumptions)).simplify(
         assumptions: assumptions,
       );
     }
   }
   return isPositiveExpr(u, assumptions: assumptions) || mayBeComplexExpr(u)
-      ? Ln(u)
-      : Ln(Abs(u));
+      ? Fn.ln(u)
+      : Fn.ln(Fn.abs(u));
 }
 
 Expr? antiDerivTan(
@@ -95,7 +96,7 @@ Expr? antiDerivTan(
   required Assumptions assumptions,
 }) => switch (inner.matchLinear(variable)) {
   (:final a, b: _) =>
-    (-logAntiderivative(Cos(inner), assumptions) / a).simplify(
+    (-logAntiderivative(Fn.cos(inner), assumptions) / a).simplify(
       assumptions: assumptions,
     ),
   null => null,
@@ -108,9 +109,9 @@ Expr? _matchReciprocalLinear(Expr inner, String variable) {
 
 Expr? antiDerivAsin(Expr inner, String variable) {
   if (inner.matchLinear(variable) case (:final a, b: _)) {
-    return ((inner * Asin(inner) +
-                Pow(
-                  IntegerNumber.one - Pow(inner, IntegerNumber.two),
+    return ((inner * Fn.asin(inner) +
+                Pow.of(
+                  IntegerNumber.one - Pow.of(inner, IntegerNumber.two),
                   FractionNumber.half,
                 )) /
             a)
@@ -118,11 +119,11 @@ Expr? antiDerivAsin(Expr inner, String variable) {
   }
   if (_matchReciprocalLinear(inner, variable) case final c?) {
     final xVar = Variable(variable);
-    final s = Pow(
-      IntegerNumber.one - Pow(inner, IntegerNumber.two),
+    final s = Pow.of(
+      IntegerNumber.one - Pow.of(inner, IntegerNumber.two),
       FractionNumber.half,
     );
-    return (xVar * Asin(inner) +
+    return (xVar * Fn.asin(inner) +
             c *
                 logAntiderivative(
                   (xVar * (IntegerNumber.one + s)) / c,
@@ -135,9 +136,9 @@ Expr? antiDerivAsin(Expr inner, String variable) {
 
 Expr? antiDerivAcos(Expr inner, String variable) {
   if (inner.matchLinear(variable) case (:final a, b: _)) {
-    return ((inner * Acos(inner) -
-                Pow(
-                  IntegerNumber.one - Pow(inner, IntegerNumber.two),
+    return ((inner * Fn.acos(inner) -
+                Pow.of(
+                  IntegerNumber.one - Pow.of(inner, IntegerNumber.two),
                   FractionNumber.half,
                 )) /
             a)
@@ -145,11 +146,11 @@ Expr? antiDerivAcos(Expr inner, String variable) {
   }
   if (_matchReciprocalLinear(inner, variable) case final c?) {
     final xVar = Variable(variable);
-    final s = Pow(
-      IntegerNumber.one - Pow(inner, IntegerNumber.two),
+    final s = Pow.of(
+      IntegerNumber.one - Pow.of(inner, IntegerNumber.two),
       FractionNumber.half,
     );
-    return (xVar * Acos(inner) -
+    return (xVar * Fn.acos(inner) -
             c *
                 logAntiderivative(
                   (xVar * (IntegerNumber.one + s)) / c,
@@ -162,17 +163,22 @@ Expr? antiDerivAcos(Expr inner, String variable) {
 
 Expr? antiDerivAtan(Expr inner, String variable) {
   if (inner.matchLinear(variable) case (:final a, b: _)) {
-    return ((inner * Atan(inner) -
+    return ((inner * Fn.atan(inner) -
                 FractionNumber.half *
-                    Ln(IntegerNumber.one + Pow(inner, IntegerNumber.two))) /
+                    Fn.ln(
+                      IntegerNumber.one + Pow.of(inner, IntegerNumber.two),
+                    )) /
             a)
         .simplify();
   }
   if (_matchReciprocalLinear(inner, variable) case final c?) {
     final xVar = Variable(variable);
-    return (xVar * Atan(inner) +
+    return (xVar * Fn.atan(inner) +
             (c / IntegerNumber.two) *
-                Ln(Pow(xVar, IntegerNumber.two) + Pow(c, IntegerNumber.two)))
+                Fn.ln(
+                  Pow.of(xVar, IntegerNumber.two) +
+                      Pow.of(c, IntegerNumber.two),
+                ))
         .simplify();
   }
   if (_matchExpScaledLinear(inner, variable) case (
@@ -181,11 +187,11 @@ Expr? antiDerivAtan(Expr inner, String variable) {
     :final a,
     b: _,
   )) {
-    final lnBase = base == Constant.e ? IntegerNumber.one : Ln(base);
+    final lnBase = base == Constant.e ? IntegerNumber.one : Fn.ln(base);
     final cEff = (a * lnBase).simplify();
     return ((ComplexNumber.i / (IntegerNumber.two * cEff)) *
-            (Polylog(IntegerNumber.two, -ComplexNumber.i * inner) -
-                Polylog(IntegerNumber.two, ComplexNumber.i * inner)))
+            (Fn.polylog(IntegerNumber.two, -ComplexNumber.i * inner) -
+                Fn.polylog(IntegerNumber.two, ComplexNumber.i * inner)))
         .simplify();
   }
   return null;
@@ -193,26 +199,26 @@ Expr? antiDerivAtan(Expr inner, String variable) {
 
 Expr? antiDerivSinh(Expr inner, String variable) =>
     switch (inner.matchLinear(variable)) {
-      (:final a, b: _) => (Cosh(inner) / a).simplify(),
+      (:final a, b: _) => (Fn.cosh(inner) / a).simplify(),
       null => null,
     };
 
 Expr? antiDerivCosh(Expr inner, String variable) =>
     switch (inner.matchLinear(variable)) {
-      (:final a, b: _) => (Sinh(inner) / a).simplify(),
+      (:final a, b: _) => (Fn.sinh(inner) / a).simplify(),
       null => null,
     };
 
 Expr? antiDerivTanh(Expr inner, String variable) =>
     switch (inner.matchLinear(variable)) {
-      (:final a, b: _) => (Ln(Cosh(inner)) / a).simplify(),
+      (:final a, b: _) => (Fn.ln(Fn.cosh(inner)) / a).simplify(),
       null => null,
     };
 
 Expr? antiDerivAbs(Expr inner, String variable) =>
     switch (inner.matchLinear(variable)) {
       (:final a, b: _) =>
-        ((inner * Abs(inner)) / (IntegerNumber.two * a)).simplify(),
+        ((inner * Fn.abs(inner)) / (IntegerNumber.two * a)).simplify(),
       null => null,
     };
 
@@ -223,7 +229,9 @@ Expr? antiDerivLn(
   int depth = 0,
 }) {
   if (inner.matchLinear(variable) case (:final a, b: _)) {
-    return ((inner * Ln(inner) - inner) / a).simplify(assumptions: assumptions);
+    return ((inner * Fn.ln(inner) - inner) / a).simplify(
+      assumptions: assumptions,
+    );
   }
   if (_matchLinPlusExp(inner, variable) case (
     :final constTerm,
@@ -234,13 +242,13 @@ Expr? antiDerivLn(
     final r = (expTerm / constTerm).simplify(assumptions: assumptions);
     final lnBase = base == Constant.e
         ? IntegerNumber.one
-        : Ln(base).simplify(assumptions: assumptions);
+        : Fn.ln(base).simplify(assumptions: assumptions);
     final cEff = (slope * lnBase).simplify(assumptions: assumptions);
-    return (Ln(constTerm) * Variable(variable) -
-            Polylog(IntegerNumber.two, -r) / cEff)
+    return (Fn.ln(constTerm) * Variable(variable) -
+            Fn.polylog(IntegerNumber.two, -r) / cEff)
         .simplify(assumptions: assumptions);
   }
-  if (inner case Abs(expr: final sub)) {
+  if (inner case Call(id: FunctionId.abs, args: [final sub])) {
     if (_matchLinPlusExp(sub, variable) case (
       :final constTerm,
       :final expTerm,
@@ -250,10 +258,10 @@ Expr? antiDerivLn(
       final r = (expTerm / constTerm).simplify(assumptions: assumptions);
       final lnBase = base == Constant.e
           ? IntegerNumber.one
-          : Ln(base).simplify(assumptions: assumptions);
+          : Fn.ln(base).simplify(assumptions: assumptions);
       final cEff = (slope * lnBase).simplify(assumptions: assumptions);
-      return (Ln(Abs(constTerm)) * Variable(variable) -
-              Polylog(IntegerNumber.two, -r) / cEff)
+      return (Fn.ln(Fn.abs(constTerm)) * Variable(variable) -
+              Fn.polylog(IntegerNumber.two, -r) / cEff)
           .simplify(assumptions: assumptions);
     }
   }
@@ -263,13 +271,15 @@ Expr? antiDerivLn(
     var allPositiveOrAbs = true;
     for (final f in rawFactors) {
       if (f case Pow(:final base, exponent: IntegerNumber(asInt: final k?))) {
-        if (base is Abs || isPositiveExpr(base, assumptions: assumptions)) {
+        if ((base is Call && base.id == FunctionId.abs) ||
+            isPositiveExpr(base, assumptions: assumptions)) {
           items.add((base: base, exp: k));
         } else {
           allPositiveOrAbs = false;
           break;
         }
-      } else if (f is Abs || isPositiveExpr(f, assumptions: assumptions)) {
+      } else if ((f is Call && f.id == FunctionId.abs) ||
+          isPositiveExpr(f, assumptions: assumptions)) {
         items.add((base: f, exp: 1));
       } else {
         allPositiveOrAbs = false;
@@ -284,14 +294,14 @@ Expr? antiDerivLn(
       for (final (:base, :exp) in items) {
         if (!base.dependsOn(variable)) {
           sumTerms.add(
-            (IntegerNumber.of(exp) * Ln(base) * Variable(variable)).simplify(
+            (IntegerNumber.of(exp) * Fn.ln(base) * Variable(variable)).simplify(
               assumptions: assumptions,
             ),
           );
           continue;
         }
         final subInt = antiDerivative(
-          Ln(base),
+          Fn.ln(base),
           variable,
           assumptions: assumptions,
           depth: depth + 1,
@@ -305,13 +315,13 @@ Expr? antiDerivLn(
         );
       }
       if (allOk) {
-        return Add(sumTerms).simplify(assumptions: assumptions);
+        return Add.of(sumTerms).simplify(assumptions: assumptions);
       }
     }
   }
-  if (inner case Ln(expr: final arg)) {
+  if (inner case Call(id: FunctionId.ln, args: [final arg])) {
     if (arg.matchLinear(variable) case (:final a, b: _)) {
-      return ((arg * Ln(inner) - LogIntegral(arg)) / a).simplify(
+      return ((arg * Fn.ln(inner) - Fn.li(arg)) / a).simplify(
         assumptions: assumptions,
       );
     }
@@ -321,7 +331,7 @@ Expr? antiDerivLn(
         when !base.dependsOn(variable) &&
             (base == Constant.e ||
                 isPositiveExpr(base, assumptions: assumptions))) {
-      final lnBase = base == Constant.e ? IntegerNumber.one : Ln(base);
+      final lnBase = base == Constant.e ? IntegerNumber.one : Fn.ln(base);
       final gInt = antiDerivative(
         exponent,
         variable,
@@ -355,7 +365,7 @@ Expr? antiDerivLn(
       depth: depth + 1,
     );
     if (!hasUnevaluatedIntegral(remInt, variable)) {
-      return (Variable(variable) * Ln(inner) - remInt).simplify(
+      return (Variable(variable) * Fn.ln(inner) - remInt).simplify(
         assumptions: assumptions,
       );
     }
@@ -363,22 +373,24 @@ Expr? antiDerivLn(
   return null;
 }
 
-Expr? antiDerivLambertW(Expr inner, int branch, String variable) =>
-    switch (inner.matchLinear(variable)) {
-      (:final a, b: _) =>
-        ((inner * (LambertW(inner, branch: branch) - IntegerNumber.one) +
-                    Pow(Constant.e, LambertW(inner, branch: branch))) /
-                a)
-            .simplify(),
-      null => null,
-    };
+Expr? antiDerivLambertW(Expr inner, int branch, String variable) {
+  final wExpr = branch == 0
+      ? Fn.lambertW(inner)
+      : Fn.lambertW(inner, IntegerNumber.of(branch));
+  return switch (inner.matchLinear(variable)) {
+    (:final a, b: _) =>
+      ((inner * (wExpr - IntegerNumber.one) + Pow.of(Constant.e, wExpr)) / a)
+          .simplify(),
+    null => null,
+  };
+}
 
 Expr? antiDerivErf(Expr inner, String variable) =>
     switch (inner.matchLinear(variable)) {
       (:final a, b: _) =>
-        ((inner * Erf(inner) +
-                    Pow(Constant.e, -Pow(inner, IntegerNumber.two)) /
-                        Pow(Constant.pi, FractionNumber.half)) /
+        ((inner * Fn.erf(inner) +
+                    Pow.of(Constant.e, -Pow.of(inner, IntegerNumber.two)) /
+                        Pow.of(Constant.pi, FractionNumber.half)) /
                 a)
             .simplify(),
       null => null,
@@ -387,9 +399,9 @@ Expr? antiDerivErf(Expr inner, String variable) =>
 Expr? antiDerivErfc(Expr inner, String variable) =>
     switch (inner.matchLinear(variable)) {
       (:final a, b: _) =>
-        ((inner * Erfc(inner) -
-                    Pow(Constant.e, -Pow(inner, IntegerNumber.two)) /
-                        Pow(Constant.pi, FractionNumber.half)) /
+        ((inner * Fn.erfc(inner) -
+                    Pow.of(Constant.e, -Pow.of(inner, IntegerNumber.two)) /
+                        Pow.of(Constant.pi, FractionNumber.half)) /
                 a)
             .simplify(),
       null => null,
@@ -398,9 +410,9 @@ Expr? antiDerivErfc(Expr inner, String variable) =>
 Expr? antiDerivErfi(Expr inner, String variable) =>
     switch (inner.matchLinear(variable)) {
       (:final a, b: _) =>
-        ((inner * Erfi(inner) -
-                    Pow(Constant.e, Pow(inner, IntegerNumber.two)) /
-                        Pow(Constant.pi, FractionNumber.half)) /
+        ((inner * Fn.erfi(inner) -
+                    Pow.of(Constant.e, Pow.of(inner, IntegerNumber.two)) /
+                        Pow.of(Constant.pi, FractionNumber.half)) /
                 a)
             .simplify(),
       null => null,
@@ -409,10 +421,10 @@ Expr? antiDerivErfi(Expr inner, String variable) =>
 Expr? antiDerivFresnelS(Expr inner, String variable) =>
     switch (inner.matchLinear(variable)) {
       (:final a, b: _) =>
-        ((inner * FresnelS(inner) +
-                    Cos(
+        ((inner * Fn.fresnelS(inner) +
+                    Fn.cos(
                           Constant.pi *
-                              Pow(inner, IntegerNumber.two) /
+                              Pow.of(inner, IntegerNumber.two) /
                               IntegerNumber.two,
                         ) /
                         Constant.pi) /
@@ -424,10 +436,10 @@ Expr? antiDerivFresnelS(Expr inner, String variable) =>
 Expr? antiDerivFresnelC(Expr inner, String variable) =>
     switch (inner.matchLinear(variable)) {
       (:final a, b: _) =>
-        ((inner * FresnelC(inner) -
-                    Sin(
+        ((inner * Fn.fresnelC(inner) -
+                    Fn.sin(
                           Constant.pi *
-                              Pow(inner, IntegerNumber.two) /
+                              Pow.of(inner, IntegerNumber.two) /
                               IntegerNumber.two,
                         ) /
                         Constant.pi) /
@@ -439,52 +451,47 @@ Expr? antiDerivFresnelC(Expr inner, String variable) =>
 Expr? antiDerivExpIntegralEi(Expr inner, String variable) =>
     switch (inner.matchLinear(variable)) {
       (:final a, b: _) =>
-        ((inner * ExpIntegral(inner) - Pow(Constant.e, inner)) / a).simplify(),
+        ((inner * Fn.ei(inner) - Pow.of(Constant.e, inner)) / a).simplify(),
       null => null,
     };
 
-Expr? antiDerivLogIntegralLi(Expr inner, String variable) => switch (inner
+Expr? antiDerivLogIntegralLi(Expr inner, String variable) =>
+    switch (inner.matchLinear(variable)) {
+      (:final a, b: _) =>
+        ((inner * Fn.li(inner) - Fn.ei(IntegerNumber.two * Fn.ln(inner))) / a)
+            .simplify(),
+      null => null,
+    };
+
+Expr? antiDerivSinIntegralSi(Expr inner, String variable) => switch (inner
     .matchLinear(variable)) {
-  (:final a, b: _) =>
-    ((inner * LogIntegral(inner) - ExpIntegral(IntegerNumber.two * Ln(inner))) /
-            a)
-        .simplify(),
+  (:final a, b: _) => ((inner * Fn.si(inner) + Fn.cos(inner)) / a).simplify(),
   null => null,
 };
 
-Expr? antiDerivSinIntegralSi(Expr inner, String variable) =>
-    switch (inner.matchLinear(variable)) {
-      (:final a, b: _) =>
-        ((inner * SinIntegral(inner) + Cos(inner)) / a).simplify(),
-      null => null,
-    };
+Expr? antiDerivCosIntegralCi(Expr inner, String variable) => switch (inner
+    .matchLinear(variable)) {
+  (:final a, b: _) => ((inner * Fn.ci(inner) - Fn.sin(inner)) / a).simplify(),
+  null => null,
+};
 
-Expr? antiDerivCosIntegralCi(Expr inner, String variable) =>
-    switch (inner.matchLinear(variable)) {
-      (:final a, b: _) =>
-        ((inner * CosIntegral(inner) - Sin(inner)) / a).simplify(),
-      null => null,
-    };
+Expr? antiDerivSinhIntegralShi(Expr inner, String variable) => switch (inner
+    .matchLinear(variable)) {
+  (:final a, b: _) => ((inner * Fn.shi(inner) - Fn.cosh(inner)) / a).simplify(),
+  null => null,
+};
 
-Expr? antiDerivSinhIntegralShi(Expr inner, String variable) =>
-    switch (inner.matchLinear(variable)) {
-      (:final a, b: _) =>
-        ((inner * SinhIntegral(inner) - Cosh(inner)) / a).simplify(),
-      null => null,
-    };
-
-Expr? antiDerivCoshIntegralChi(Expr inner, String variable) =>
-    switch (inner.matchLinear(variable)) {
-      (:final a, b: _) =>
-        ((inner * CoshIntegral(inner) - Sinh(inner)) / a).simplify(),
-      null => null,
-    };
+Expr? antiDerivCoshIntegralChi(Expr inner, String variable) => switch (inner
+    .matchLinear(variable)) {
+  (:final a, b: _) => ((inner * Fn.chi(inner) - Fn.sinh(inner)) / a).simplify(),
+  null => null,
+};
 
 Expr? antiDerivAsinh(Expr inner, String variable) {
   if (inner.matchLinear(variable) case (:final a, b: _)) {
-    return ((inner * Asinh(inner) -
-                Pow(
-                  Pow(inner, IntegerNumber.two) + IntegerNumber.one,
+    return ((inner * Fn.asinh(inner) -
+                Pow.of(
+                  Pow.of(inner, IntegerNumber.two) + IntegerNumber.one,
                   FractionNumber.half,
                 )) /
             a)
@@ -492,11 +499,11 @@ Expr? antiDerivAsinh(Expr inner, String variable) {
   }
   if (_matchReciprocalLinear(inner, variable) case final c?) {
     final xVar = Variable(variable);
-    final s = Pow(
-      IntegerNumber.one + Pow(inner, IntegerNumber.two),
+    final s = Pow.of(
+      IntegerNumber.one + Pow.of(inner, IntegerNumber.two),
       FractionNumber.half,
     );
-    return (xVar * Asinh(inner) +
+    return (xVar * Fn.asinh(inner) +
             c *
                 logAntiderivative(
                   (xVar * (IntegerNumber.one + s)) / c,
@@ -509,9 +516,9 @@ Expr? antiDerivAsinh(Expr inner, String variable) {
 
 Expr? antiDerivAcosh(Expr inner, String variable) {
   if (inner.matchLinear(variable) case (:final a, b: _)) {
-    return ((inner * Acosh(inner) -
-                Pow(
-                  Pow(inner, IntegerNumber.two) - IntegerNumber.one,
+    return ((inner * Fn.acosh(inner) -
+                Pow.of(
+                  Pow.of(inner, IntegerNumber.two) - IntegerNumber.one,
                   FractionNumber.half,
                 )) /
             a)
@@ -520,27 +527,30 @@ Expr? antiDerivAcosh(Expr inner, String variable) {
   if (_matchReciprocalLinear(inner, variable) case final c?) {
     final xVar = Variable(variable);
     final s =
-        Pow(inner - IntegerNumber.one, FractionNumber.half) *
-        Pow(inner + IntegerNumber.one, FractionNumber.half);
-    return (xVar * Acosh(inner) - c * Atan(s)).simplify();
+        Pow.of(inner - IntegerNumber.one, FractionNumber.half) *
+        Pow.of(inner + IntegerNumber.one, FractionNumber.half);
+    return (xVar * Fn.acosh(inner) - c * Fn.atan(s)).simplify();
   }
   return null;
 }
 
 Expr? antiDerivAtanh(Expr inner, String variable) {
   if (inner.matchLinear(variable) case (:final a, b: _)) {
-    return ((inner * Atanh(inner) +
+    return ((inner * Fn.atanh(inner) +
                 FractionNumber.half *
-                    Ln(IntegerNumber.one - Pow(inner, IntegerNumber.two))) /
+                    Fn.ln(
+                      IntegerNumber.one - Pow.of(inner, IntegerNumber.two),
+                    )) /
             a)
         .simplify();
   }
   if (_matchReciprocalLinear(inner, variable) case final c?) {
     final xVar = Variable(variable);
-    return (xVar * Atanh(inner) +
+    return (xVar * Fn.atanh(inner) +
             (c / IntegerNumber.two) *
                 logAntiderivative(
-                  Pow(xVar, IntegerNumber.two) - Pow(c, IntegerNumber.two),
+                  Pow.of(xVar, IntegerNumber.two) -
+                      Pow.of(c, IntegerNumber.two),
                   Assumptions.none,
                 ))
         .simplify();
@@ -551,11 +561,11 @@ Expr? antiDerivAtanh(Expr inner, String variable) {
     :final a,
     b: _,
   )) {
-    final lnBase = base == Constant.e ? IntegerNumber.one : Ln(base);
+    final lnBase = base == Constant.e ? IntegerNumber.one : Fn.ln(base);
     final cEff = (a * lnBase).simplify();
     return ((IntegerNumber.one / (IntegerNumber.two * cEff)) *
-            (Polylog(IntegerNumber.two, inner) -
-                Polylog(IntegerNumber.two, -inner)))
+            (Fn.polylog(IntegerNumber.two, inner) -
+                Fn.polylog(IntegerNumber.two, -inner)))
         .simplify();
   }
   return null;
@@ -577,8 +587,8 @@ Expr? antiDerivPolylog(
   )) {
     final lnBase = base == Constant.e
         ? IntegerNumber.one
-        : Ln(base).simplify(assumptions: assumptions);
-    return (Polylog(
+        : Fn.ln(base).simplify(assumptions: assumptions);
+    return (Fn.polylog(
               (order + IntegerNumber.one).simplify(assumptions: assumptions),
               arg,
             ) /
@@ -656,14 +666,19 @@ Expr antiDerivPiecewise(
 }
 
 Expr? _extractBoundaryPoint(Expr cond, String variable) => switch (cond) {
-  LessThan(left: Variable(:final name), right: final bound) ||
-  LessEqual(left: Variable(:final name), right: final bound) ||
-  GreaterThan(left: Variable(:final name), right: final bound) ||
-  GreaterEqual(left: Variable(:final name), right: final bound) ||
-  GreaterThan(left: final bound, right: Variable(:final name)) ||
-  GreaterEqual(left: final bound, right: Variable(:final name)) ||
-  LessThan(left: final bound, right: Variable(:final name)) ||
-  LessEqual(
+  Relational(
+    op: RelOp.lessThan ||
+        RelOp.lessEqual ||
+        RelOp.greaterThan ||
+        RelOp.greaterEqual,
+    left: Variable(:final name),
+    right: final bound,
+  ) ||
+  Relational(
+    op: RelOp.lessThan ||
+        RelOp.lessEqual ||
+        RelOp.greaterThan ||
+        RelOp.greaterEqual,
     left: final bound,
     right: Variable(:final name),
   ) when name == variable && !bound.dependsOn(variable) => bound,
@@ -689,7 +704,7 @@ Expr? _extractBoundaryPoint(Expr cond, String variable) => switch (cond) {
   if (expPow == null || !isValidExponentialBase(expPow.base)) return null;
   final lin = expPow.exponent.matchLinear(variable);
   if (lin == null) return null;
-  final scale = consts.isEmpty ? IntegerNumber.one : Mul(consts).simplify();
+  final scale = consts.isEmpty ? IntegerNumber.one : Mul.of(consts).simplify();
   return (scale: scale, base: expPow.base, a: lin.a, b: lin.b);
 }
 
@@ -710,7 +725,7 @@ Expr? _extractBoundaryPoint(Expr cond, String variable) => switch (cond) {
   if (constTerms.isEmpty || varTerms.length != 1) return null;
   final constTerm = constTerms.length == 1
       ? constTerms.first
-      : Add(constTerms).simplify();
+      : Add.of(constTerms).simplify();
   if (constTerm is Number && constTerm.isZero) return null;
   final expMatch = _matchExpScaledLinear(varTerms.first, variable);
   if (expMatch == null) return null;

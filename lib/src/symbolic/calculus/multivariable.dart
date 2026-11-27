@@ -200,7 +200,7 @@ Expr _multivariableLaplacian(
   for (final v in variables) {
     terms.add(function.derivative(v, order: 2, assumptions: assumptions));
   }
-  return Add(terms).simplify(assumptions: assumptions);
+  return Add.of(terms).simplify(assumptions: assumptions);
 }
 
 Expr _multivariableDivergence(
@@ -220,7 +220,7 @@ Expr _multivariableDivergence(
       vectorField[i].derivative(variables[i], assumptions: assumptions),
     );
   }
-  return Add(terms).simplify(assumptions: assumptions);
+  return Add.of(terms).simplify(assumptions: assumptions);
 }
 
 Vector<Expr> _multivariableCurl(

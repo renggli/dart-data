@@ -1,12 +1,10 @@
 part of '../ast.dart';
 
 /// Landau asymptotic order remainder term: `O((x - a)^n)`.
-///
-/// Represents truncated higher-order terms in a Taylor or Laurent series
-/// expansion around [point] `a` of degree [order] `n` in [variable] `x`.
 final class OrderTerm extends Expr {
   /// Creates an asymptotic remainder term `O((x - a)^n)`.
-  const new(this.variable, this.order, {this.point = IntegerNumber.zero});
+  new(this.variable, this.order, {Expr? point})
+    : point = point ?? IntegerNumber.zero;
 
   /// Variable of expansion `x`.
   final String variable;
@@ -18,10 +16,17 @@ final class OrderTerm extends Expr {
   final int order;
 
   @override
-  bool get isSimplified => point.isSimplified;
+  int get flags => kFlagHasVariable | kFlagHasOrder | point.flags;
 
   @override
-  Set<String> get freeVariables => {variable, ...point.freeVariables};
+  int get nodeCount => 1 + point.nodeCount;
+
+  @override
+  int get structuralTag => 100;
+
+  @override
+  Set<String> get freeVariables =>
+      Set.unmodifiable({variable, ...point.freeVariables});
 
   @override
   bool dependsOn(String variable) =>
@@ -56,12 +61,18 @@ final class OrderTerm extends Expr {
       return this;
     }
     final newPoint = point.substitute(variable, replacement);
-    return OrderTerm(this.variable, order, point: newPoint);
+    return identical(newPoint, point)
+        ? this
+        : OrderTerm(this.variable, order, point: newPoint);
   }
 
   @override
-  Expr mapChildren(Expr Function(Expr) transform) =>
-      OrderTerm(variable, order, point: transform(point));
+  Expr mapChildren(Expr Function(Expr) transform) {
+    final next = transform(point);
+    return identical(next, point)
+        ? this
+        : OrderTerm(variable, order, point: next);
+  }
 
   @override
   bool anyNode(bool Function(Expr) predicate) =>
@@ -71,36 +82,32 @@ final class OrderTerm extends Expr {
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is OrderTerm &&
+          hashCode == other.hashCode &&
           variable == other.variable &&
           order == other.order &&
           point == other.point);
 
   @override
-  int get hashCode => Object.hash(OrderTerm, variable, order, point);
+  late final int hashCode = Object.hash(OrderTerm, variable, order, point);
 }
 
-/// Extension on [Expr] for inspecting and stripping Landau [OrderTerm] remainders.
+/// Extension on [Expr] for stripping Landau [OrderTerm] remainders.
 extension OrderTermExtension on Expr {
   /// Strips any [OrderTerm] remainder from this expression, returning the pure
   /// polynomial or Laurent approximation.
   Expr removeOrder() => _removeOrder(this);
 }
 
-Expr _removeOrder(Expr expr) => switch (expr) {
-  OrderTerm() => IntegerNumber.zero,
-  Mul(:final factors) when factors.any((f) => f is OrderTerm) =>
-    IntegerNumber.zero,
-  Add(:final terms) => switch ([
-    for (final term in terms)
-      if (term is! OrderTerm)
-        switch (_removeOrder(term)) {
-          OrderTerm() || Number(isZero: true) => null,
-          final cleaned => cleaned,
-        },
-  ].nonNulls.toList()) {
-    [] => IntegerNumber.zero,
-    [final single] => single,
-    final filtered => Add(filtered),
-  },
-  _ => expr.mapChildren(_removeOrder),
-};
+Expr _removeOrder(Expr expr) {
+  if (!expr.hasOrder) return expr;
+  return switch (expr) {
+    OrderTerm() => IntegerNumber.zero,
+    Mul(:final factors) when factors.any((f) => f is OrderTerm) =>
+      IntegerNumber.zero,
+    Add(:final terms) => Add.of([
+      for (final term in terms)
+        if (term is! OrderTerm) _removeOrder(term),
+    ]),
+    _ => expr.mapChildren(_removeOrder),
+  };
+}

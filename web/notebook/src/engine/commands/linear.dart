@@ -256,10 +256,10 @@ final List<Command> linearCommands = [
         Expr sumSq = IntegerNumber.zero;
         for (var i = 0; i < v.length; i++) {
           final e = v.getUnchecked(i);
-          sumSq = sumSq + Pow(Abs(e), IntegerNumber.two);
+          sumSq = sumSq + Pow.of(Fn.abs(e), IntegerNumber.two);
         }
         return ExprValue(
-          Pow(
+          Pow.of(
             sumSq,
             FractionNumber.half,
           ).simplify(assumptions: ctx.assumptions),
@@ -268,16 +268,18 @@ final List<Command> linearCommands = [
       if (p == 1.0) {
         Expr sumAbs = IntegerNumber.zero;
         for (var i = 0; i < v.length; i++) {
-          sumAbs = sumAbs + Abs(v.getUnchecked(i));
+          sumAbs = sumAbs + Fn.abs(v.getUnchecked(i));
         }
         return ExprValue(sumAbs.simplify(assumptions: ctx.assumptions));
       }
       Expr sumP = IntegerNumber.zero;
       final pNum = RealNumber.fromDouble(p);
       for (var i = 0; i < v.length; i++) {
-        sumP = sumP + Pow(Abs(v.getUnchecked(i)), pNum);
+        sumP = sumP + Pow.of(Fn.abs(v.getUnchecked(i)), pNum);
       }
-      return ExprValue(Pow(sumP, RealNumber.fromDouble(1.0 / p)).approximate());
+      return ExprValue(
+        Pow.of(sumP, RealNumber.fromDouble(1.0 / p)).approximate(),
+      );
     },
   ),
 ];

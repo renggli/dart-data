@@ -265,7 +265,7 @@ final List<Command> plotCommands = [
     examples: ['ode(-y, y, t, y0: 1, from: 0, to: 5)'],
     run: (args, _) {
       var rhs = args.expr('rhs');
-      if (rhs case Equal(:final right)) rhs = right;
+      if (rhs case Relational(op: RelOp.equal, :final right)) rhs = right;
       final yVar = args.symbolOrNull('y') ?? 'y';
       final tVar = args.symbolOrNull('t') ?? 't';
       final y0 = args.doubleVal('y0');

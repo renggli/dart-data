@@ -127,22 +127,19 @@ Expr hermiteHe(int n, [Expr x = const Variable('x')]) {
 /// ```dart
 /// final l2 = laguerreL(2); // x^2 / 2 - 2*x + 1
 /// ```
-Expr laguerreL(
-  int n, [
-  Expr x = const Variable('x'),
-  Expr alpha = IntegerNumber.zero,
-]) {
+Expr laguerreL(int n, [Expr x = const Variable('x'), Expr? alpha]) {
   RangeError.checkNotNegative(n, 'n');
+  final effectiveAlpha = alpha ?? IntegerNumber.zero;
   if (n == 0) return IntegerNumber.one;
-  final l1Init = (IntegerNumber.one + alpha - x).expand();
+  final l1Init = (IntegerNumber.one + effectiveAlpha - x).expand();
   if (n == 1) return l1Init;
   var p0 = IntegerNumber.one as Expr;
   var p1 = l1Init;
   for (var k = 1; k < n; k++) {
     final kExp = IntegerNumber.of(k);
     final next =
-        (((IntegerNumber.of(2 * k + 1) + alpha - x) * p1 -
-                    (kExp + alpha) * p0) /
+        (((IntegerNumber.of(2 * k + 1) + effectiveAlpha - x) * p1 -
+                    (kExp + effectiveAlpha) * p0) /
                 IntegerNumber.of(k + 1))
             .expand();
     p0 = p1;

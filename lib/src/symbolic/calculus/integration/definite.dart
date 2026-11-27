@@ -8,7 +8,7 @@ import '../../algebra/simplify/domain.dart';
 import '../../assumptions.dart';
 import '../../ast.dart';
 import '../../compiler.dart';
-import '../../number/integer.dart';
+import '../../functions/fn.dart';
 import '../../solver/univariate.dart';
 import '../differentiation.dart';
 import '../limit.dart';
@@ -17,10 +17,7 @@ import '../summation.dart';
 import 'definite_tables.dart';
 
 /// Canonical negative infinity expression `-oo`.
-final Expr negInfinity = Mul(const [
-  IntegerNumber.negativeOne,
-  Constant.infinity,
-], isSimplified: true);
+final Expr negInfinity = Mul.of([IntegerNumber.negativeOne, Constant.infinity]);
 
 /// Returns `true` if [bound] represents positive or negative infinity.
 bool isInfiniteBound(Expr bound) =>
@@ -93,7 +90,10 @@ Expr evaluateDefiniteIntegral(
 
   // Floor / Ceil piecewise splitting and summation on finite intervals
   if (function.anyNode(
-    (n) => (n is Floor || n is Ceil) && n.dependsOn(variable),
+    (n) =>
+        n is Call &&
+        (n.id == FunctionId.floor || n.id == FunctionId.ceil) &&
+        n.dependsOn(variable),
   )) {
     if (_tryFloorCeilDefinite(
           function,
@@ -110,7 +110,12 @@ Expr evaluateDefiniteIntegral(
 
   // Abs / Min / Max piecewise region splitting on finite intervals
   if (function.anyNode(
-    (n) => (n is Abs || n is Min || n is Max) && n.dependsOn(variable),
+    (n) =>
+        n is Call &&
+        (n.id == FunctionId.abs ||
+            n.id == FunctionId.min ||
+            n.id == FunctionId.max) &&
+        n.dependsOn(variable),
   )) {
     if (_tryPiecewiseAbsMinMax(
           function,
@@ -174,7 +179,7 @@ Expr evaluateDefiniteIntegral(
         (n) =>
             n is Pow &&
             n.exponent is IntegerNumber &&
-            (n.exponent as IntegerNumber).value.abs() > const Integer(20),
+            (n.exponent as IntegerNumber).value.abs() > BigInt.from(20),
       )) {
     final quickDef = definiteIntegralSpecialCases(
       function.simplify(assumptions: assumptions),
@@ -248,7 +253,8 @@ Expr evaluateDefiniteIntegral(
               vHigh.isFinite) {
             final mid = 0.5 * (vLow + vHigh);
             final hasNegLnArg = function.anyNode((n) {
-              if (n case Ln(:final expr) when expr.dependsOn(variable)) {
+              if (n case Call(id: FunctionId.ln, args: [final expr])
+                  when expr.dependsOn(variable)) {
                 try {
                   final v = expr.evaluate({variable: mid});
                   return v.isNaN || v <= 0.0;
@@ -362,7 +368,7 @@ Expr evaluateDefiniteIntegral(
           if (hasNegInf) {
             return isAscending ? negInfinity : Constant.infinity;
           }
-          final total = Add(pieces).simplify(assumptions: assumptions);
+          final total = Add.of(pieces).simplify(assumptions: assumptions);
           if (!total.anyNode((n) => n is Limit || n == Constant.undefined)) {
             return isAscending
                 ? total
@@ -444,7 +450,7 @@ Expr evaluateDefiniteIntegral(
           }
         }
         if (ok) {
-          final total = Add(pieces).simplify(assumptions: assumptions);
+          final total = Add.of(pieces).simplify(assumptions: assumptions);
           return isAscending
               ? total
               : (-total).simplify(assumptions: assumptions);
@@ -638,7 +644,7 @@ Expr evaluateDefiniteIntegral(
             }
           }
           if (ok) {
-            final total = Add(pieces).simplify(assumptions: assumptions);
+            final total = Add.of(pieces).simplify(assumptions: assumptions);
             if (!total.anyNode((n) => n is Limit || n == Constant.undefined)) {
               return isAscending
                   ? total
@@ -655,7 +661,6 @@ Expr evaluateDefiniteIntegral(
     variable,
     lower: fromExpr,
     upper: toExpr,
-    isSimplified: true,
   );
 }
 
@@ -698,10 +703,10 @@ List<Expr> extractDenominatorFactors(Expr expr) {
       for (final t in e.terms) {
         visit(t);
       }
-    } else if (e case Tan(expr: final arg)) {
-      factors.add(Cos(arg));
+    } else if (e case Call(id: FunctionId.tan, args: [final arg])) {
+      factors.add(Fn.cos(arg));
       visit(arg);
-    } else if (e case Ln(expr: final arg)) {
+    } else if (e case Call(id: FunctionId.ln, args: [final arg])) {
       factors.add(arg);
       visit(arg);
     }
@@ -753,16 +758,16 @@ List<double> findDenominatorRoots(Expr expr, String variable) {
   return roots.toList();
 }
 
-/// Wraps any [Ln] call in [expr] with an [Abs] if the argument is not already
-/// guaranteed positive.
+/// Wraps any natural logarithm call in [expr] with [Fn.abs] if the argument is
+/// not already guaranteed positive.
 Expr wrapLnWithAbs(Expr expr, Assumptions assumptions) {
-  if (expr is Ln) {
-    if (expr.expr is Abs ||
-        isPositiveConstant(expr.expr) ||
-        isPositiveExpr(expr.expr, assumptions: assumptions)) {
-      return Ln(wrapLnWithAbs(expr.expr, assumptions));
+  if (expr case Call(id: FunctionId.ln, args: [final arg])) {
+    if ((arg is Call && arg.id == FunctionId.abs) ||
+        isPositiveConstant(arg) ||
+        isPositiveExpr(arg, assumptions: assumptions)) {
+      return Fn.ln(wrapLnWithAbs(arg, assumptions));
     }
-    return Ln(Abs(wrapLnWithAbs(expr.expr, assumptions)));
+    return Fn.ln(Fn.abs(wrapLnWithAbs(arg, assumptions)));
   }
   return expr.mapChildren((e) => wrapLnWithAbs(e, assumptions));
 }
@@ -824,9 +829,10 @@ bool _hasAnyDenominatorPole(
   final factors = extractDenominatorFactors(expr);
   for (final factor in factors) {
     if (!factor.dependsOn(variable)) continue;
-    // Periodic trig factors: Sin(arg), Cos(arg)
-    if (factor case Sin(:final expr) || Cos(:final expr)
-        when expr.dependsOn(variable)) {
+    // Periodic trig factors: sin(arg), cos(arg)
+    if (factor case Call(:final id, args: [final expr])
+        when (id == FunctionId.sin || id == FunctionId.cos) &&
+            expr.dependsOn(variable)) {
       if (low.isFinite && high.isFinite) {
         try {
           final u1 = expr.evaluate({variable: low});
@@ -834,7 +840,7 @@ bool _hasAnyDenominatorPole(
           if (u1.isFinite && u2.isFinite) {
             final uMin = math.min(u1, u2);
             final uMax = math.max(u1, u2);
-            if (factor is Sin) {
+            if (id == FunctionId.sin) {
               final kMin = ((uMin + eps) / math.pi).ceil();
               final kMax = ((uMax - eps) / math.pi).floor();
               if (kMin <= kMax) return true;
@@ -924,7 +930,7 @@ Expr _resolveEvenPowerOnInterval(
         final signedBase = val > 0
             ? u
             : (-u).simplify(assumptions: assumptions);
-        return Pow(
+        return Pow.of(
           signedBase,
           r.mulRational(IntegerNumber.two),
         ).simplify(assumptions: assumptions);
@@ -959,15 +965,18 @@ List<({double value, Expr expr})>? _collectSymbolicInteriorPoles(
 
   for (final factor in extractDenominatorFactors(expr)) {
     if (!factor.dependsOn(variable)) continue;
-    if (factor case Sin(expr: final arg) || Cos(expr: final arg)
-        when arg.dependsOn(variable) && low.isFinite && high.isFinite) {
+    if (factor case Call(:final id, args: [final arg])
+        when (id == FunctionId.sin || id == FunctionId.cos) &&
+            arg.dependsOn(variable) &&
+            low.isFinite &&
+            high.isFinite) {
       try {
         final u1 = arg.evaluate({variable: low});
         final u2 = arg.evaluate({variable: high});
         if (u1.isFinite && u2.isFinite) {
           final uMin = math.min(u1, u2);
           final uMax = math.max(u1, u2);
-          final isSin = factor is Sin;
+          final isSin = id == FunctionId.sin;
           final kMin = ((uMin + 1e-9) / math.pi - (isSin ? 0.0 : 0.5)).ceil();
           final kMax = ((uMax - 1e-9) / math.pi - (isSin ? 0.0 : 0.5)).floor();
           if (kMax - kMin <= 16 && kMin <= kMax) {
@@ -1022,7 +1031,8 @@ bool _hasInteriorPole(Expr expr, String variable, double low, double high) {
   }
 
   return expr.anyNode((node) {
-    if (node case Tan(expr: final arg) when arg.dependsOn(variable)) {
+    if (node case Call(id: FunctionId.tan, args: [final arg])
+        when arg.dependsOn(variable)) {
       try {
         final u1 = arg.evaluate({variable: low});
         final u2 = arg.evaluate({variable: high});
@@ -1041,7 +1051,8 @@ bool _hasInteriorPole(Expr expr, String variable, double low, double high) {
         // Fall back to root checking
       }
     }
-    if (node case Ln(expr: final arg) when arg.dependsOn(variable)) {
+    if (node case Call(id: FunctionId.ln, args: [final arg])
+        when arg.dependsOn(variable)) {
       try {
         final u1 = arg.evaluate({variable: low});
         final u2 = arg.evaluate({variable: high});
@@ -1086,7 +1097,8 @@ List<({double value, Expr expr})>? _antiderivativeJumps(
 
   void collect(Expr node) {
     if (tooMany) return;
-    if (node case Tan(expr: final arg) when arg.dependsOn(variable)) {
+    if (node case Call(id: FunctionId.tan, args: [final arg])
+        when arg.dependsOn(variable)) {
       if (!low.isFinite || !high.isFinite) {
         tooMany = true;
         return;
@@ -1153,7 +1165,8 @@ List<({double value, Expr expr})>? _antiderivativeJumps(
           // Ignored.
         }
       }
-    } else if (node case Sign(expr: final arg) when arg.dependsOn(variable)) {
+    } else if (node case Call(id: FunctionId.sign, args: [final arg])
+        when arg.dependsOn(variable)) {
       if (!low.isFinite || !high.isFinite) {
         tooMany = true;
         return;
@@ -1221,7 +1234,7 @@ Expr? _tryKingsProperty(
       base: Pow(base: final innerBase, exponent: Number(isNegativeOne: true)),
       :final exponent,
     )) {
-      return Pow(innerBase, (-exponent).simplify(assumptions: assumptions));
+      return Pow.of(innerBase, (-exponent).simplify(assumptions: assumptions));
     }
     if (mapped case Pow(
       base: Add(terms: [final t0, final t1]),
@@ -1231,13 +1244,16 @@ Expr? _tryKingsProperty(
         bool isNegExp(Expr exp) =>
             (exp is RealNumeric && exp.sign < 0) || isNegativeConstant(exp);
         if (t case Pow(:final base, :final exponent) when isNegExp(exponent)) {
-          return Pow(base, (-exponent).simplify(assumptions: assumptions));
+          return Pow.of(base, (-exponent).simplify(assumptions: assumptions));
         }
         if (t case Mul(:final factors)) {
           for (final f in factors) {
             if (f case Pow(:final base, :final exponent)
                 when isNegExp(exponent)) {
-              return Pow(base, (-exponent).simplify(assumptions: assumptions));
+              return Pow.of(
+                base,
+                (-exponent).simplify(assumptions: assumptions),
+              );
             }
           }
         }
@@ -1269,35 +1285,24 @@ Expr? _tryKingsProperty(
 
     Expr posArg(Expr e) => (-e).expand().simplify(assumptions: assumptions);
 
-    if (mapped case Sin(:final expr) when isLeadingNegAdd(expr)) {
-      return (-Sin(
-        posArg(expr),
-        isSimplified: true,
-      )).simplify(assumptions: assumptions);
-    }
-    if (mapped case Tan(:final expr) when isLeadingNegAdd(expr)) {
-      return (-Tan(
-        posArg(expr),
-        isSimplified: true,
-      )).simplify(assumptions: assumptions);
-    }
-    if (mapped case Sinh(:final expr) when isLeadingNegAdd(expr)) {
-      return (-Sinh(
-        posArg(expr),
-        isSimplified: true,
-      )).simplify(assumptions: assumptions);
-    }
-    if (mapped case Tanh(:final expr) when isLeadingNegAdd(expr)) {
-      return (-Tanh(
-        posArg(expr),
-        isSimplified: true,
-      )).simplify(assumptions: assumptions);
-    }
-    if (mapped case Cos(:final expr) when isLeadingNegAdd(expr)) {
-      return Cos(posArg(expr), isSimplified: true);
-    }
-    if (mapped case Cosh(:final expr) when isLeadingNegAdd(expr)) {
-      return Cosh(posArg(expr), isSimplified: true);
+    if (mapped case Call(:final id, args: [final expr])
+        when isLeadingNegAdd(expr)) {
+      switch (id) {
+        case FunctionId.sin:
+          return (-Fn.sin(posArg(expr))).simplify(assumptions: assumptions);
+        case FunctionId.tan:
+          return (-Fn.tan(posArg(expr))).simplify(assumptions: assumptions);
+        case FunctionId.sinh:
+          return (-Fn.sinh(posArg(expr))).simplify(assumptions: assumptions);
+        case FunctionId.tanh:
+          return (-Fn.tanh(posArg(expr))).simplify(assumptions: assumptions);
+        case FunctionId.cos:
+          return Fn.cos(posArg(expr));
+        case FunctionId.cosh:
+          return Fn.cosh(posArg(expr));
+        default:
+          break;
+      }
     }
     return mapped;
   }
@@ -1400,17 +1405,14 @@ Expr? _subtractEndpointValues(Expr upper, Expr lower, Assumptions assumptions) {
 }
 
 Expr _expandLnForEndpointLimit(Expr expr) {
-  if (expr case Ln(:final expr)) {
-    if (expr case Abs(:final expr)) {
-      final (num, den) = splitNumeratorDenominator(expr);
-      if (den != IntegerNumber.one) {
-        return (Ln(Abs(num)) - Ln(Abs(den))).simplify();
-      }
-    } else {
-      final (num, den) = splitNumeratorDenominator(expr);
-      if (den != IntegerNumber.one) {
-        return (Ln(Abs(num)) - Ln(Abs(den))).simplify();
-      }
+  if (expr case Call(id: FunctionId.ln, args: [final inner])) {
+    final unwrapped = switch (inner) {
+      Call(id: FunctionId.abs, args: [final innerAbs]) => innerAbs,
+      _ => inner,
+    };
+    final (num, den) = splitNumeratorDenominator(unwrapped);
+    if (den != IntegerNumber.one) {
+      return (Fn.ln(Fn.abs(num)) - Fn.ln(Fn.abs(den))).simplify();
     }
   }
   return expr.mapChildren(_expandLnForEndpointLimit);
@@ -1457,11 +1459,16 @@ Expr? _tryHalfPeriodAntiSymmetry(
   }
   var hasUnsafeTan = false;
   function.anyNode((n) {
-    if (n case Tan(:final expr) when expr.dependsOn(variable)) {
+    if (n case Call(id: FunctionId.tan, args: [final expr])
+        when expr.dependsOn(variable)) {
       final isBoundedTrig = switch (expr) {
-        Sin() || Cos() => true,
+        Call(id: FunctionId.sin || FunctionId.cos) => true,
         Mul(:final factors) when factors.length == 2 =>
-          factors.any((f) => f is Sin || f is Cos) &&
+          factors.any(
+                (f) =>
+                    f is Call &&
+                    (f.id == FunctionId.sin || f.id == FunctionId.cos),
+              ) &&
               factors.whereType<Number>().every(
                 (c) => c.toDouble().abs() < 1.5,
               ),
@@ -1505,7 +1512,7 @@ Expr? _tryReciprocalSymmetry(
   final subst = function
       .substitute(variable, IntegerNumber.one / xVar)
       .simplify(assumptions: assumptions);
-  var jac = (subst / Pow(xVar, IntegerNumber.two)).simplify(
+  var jac = (subst / Pow.of(xVar, IntegerNumber.two)).simplify(
     assumptions: assumptions,
   );
   {
@@ -1526,7 +1533,7 @@ Expr? _tryReciprocalSymmetry(
     scanNeg(jnExp);
     scanNeg(jdExp);
     if (minExp < 0) {
-      final scalePow = Pow(xVar, IntegerNumber.of(-minExp));
+      final scalePow = Pow.of(xVar, IntegerNumber.of(-minExp));
       final jnPos = (jnExp * scalePow).expand().simplify(
         assumptions: assumptions,
       );
@@ -1555,7 +1562,7 @@ Expr? _tryReciprocalSymmetry(
       final min1 = minXDeg(d1);
       final shift = min0 - min1;
       if (shift != 0) {
-        final sPow = Pow(xVar, IntegerNumber.of(shift.abs()));
+        final sPow = Pow.of(xVar, IntegerNumber.of(shift.abs()));
         final effD0 = shift < 0
             ? (d0 * sPow).expand().simplify(assumptions: assumptions)
             : d0;
@@ -1653,12 +1660,12 @@ Expr? _tryReciprocalSymmetry(
           ? IntegerNumber.one
           : (keptNum.length == 1
                 ? keptNum.first
-                : Mul(keptNum).simplify(assumptions: assumptions));
+                : Mul.of(keptNum).simplify(assumptions: assumptions));
       final dNew = keptDen.isEmpty
           ? IntegerNumber.one
           : (keptDen.length == 1
                 ? keptDen.first
-                : Mul(keptDen).simplify(assumptions: assumptions));
+                : Mul.of(keptDen).simplify(assumptions: assumptions));
       avg = (nNew / dNew).simplify(assumptions: assumptions);
     } else if (aNum.anyNode((n) => n is Pow && n.exponent is IntegerNumber)) {
       // Sparse polynomial divisibility check via explicit term division
@@ -1681,9 +1688,8 @@ Expr? _tryReciprocalSymmetry(
               assumptions: assumptions,
             );
             if (div.remainder == IntegerNumber.zero) {
-              avg = (div.quotient / Pow(xVar, IntegerNumber.of(minD))).simplify(
-                assumptions: assumptions,
-              );
+              avg = (div.quotient / Pow.of(xVar, IntegerNumber.of(minD)))
+                  .simplify(assumptions: assumptions);
             }
           }
         }
@@ -1776,9 +1782,10 @@ Expr? _tryFloorCeilDefinite(
   final xVar = Variable(variable);
   var allSimpleVar = true;
   function.anyNode((n) {
-    if ((n is Floor || n is Ceil) && n.dependsOn(variable)) {
-      final arg = n is Floor ? n.expr : (n as Ceil).expr;
-      if (arg != xVar) allSimpleVar = false;
+    if (n is Call &&
+        (n.id == FunctionId.floor || n.id == FunctionId.ceil) &&
+        n.dependsOn(variable)) {
+      if (n.args[0] != xVar) allSimpleVar = false;
     }
     return false;
   });
@@ -1791,8 +1798,12 @@ Expr? _tryFloorCeilDefinite(
         final parts = <Expr>[];
         for (var k = m; k < n; k++) {
           Expr substStep(Expr e) {
-            if (e is Floor && e.expr == xVar) return IntegerNumber.of(k);
-            if (e is Ceil && e.expr == xVar) return IntegerNumber.of(k + 1);
+            if (e is Call && e.id == FunctionId.floor && e.args[0] == xVar) {
+              return IntegerNumber.of(k);
+            }
+            if (e is Call && e.id == FunctionId.ceil && e.args[0] == xVar) {
+              return IntegerNumber.of(k + 1);
+            }
             return e.mapChildren(substStep);
           }
 
@@ -1809,15 +1820,19 @@ Expr? _tryFloorCeilDefinite(
           if (hasUnevaluatedIntegral(pieceVal, variable)) return null;
           parts.add(pieceVal);
         }
-        return Add(parts).simplify(assumptions: assumptions);
+        return Add.of(parts).simplify(assumptions: assumptions);
       } else {
         const kName = '_fk';
         const tName = '_ft';
         const kVar = Variable(kName);
         const tVar = Variable(tName);
         Expr substShift(Expr e) {
-          if (e is Floor && e.expr == xVar) return kVar;
-          if (e is Ceil && e.expr == xVar) return kVar + IntegerNumber.one;
+          if (e is Call && e.id == FunctionId.floor && e.args[0] == xVar) {
+            return kVar;
+          }
+          if (e is Call && e.id == FunctionId.ceil && e.args[0] == xVar) {
+            return kVar + IntegerNumber.one;
+          }
           if (e == xVar) return kVar + tVar;
           return e.mapChildren(substShift);
         }
@@ -1846,29 +1861,25 @@ Expr? _tryFloorCeilDefinite(
     }
   }
 
-  // Case 2: General monotone innermost Floor(g) or Ceil(g) splitting
+  // Case 2: General monotone innermost floor(g) or ceil(g) splitting
   Expr? innermostNode;
   Expr? innermostArg;
   var isFloorNode = true;
   void findInnermost(Expr e) {
     if (innermostNode != null) return;
-    if (e is Floor && e.expr.dependsOn(variable)) {
-      if (!e.expr.anyNode(
-        (c) => (c is Floor || c is Ceil) && c.dependsOn(variable),
+    if (e is Call &&
+        (e.id == FunctionId.floor || e.id == FunctionId.ceil) &&
+        e.args[0].dependsOn(variable)) {
+      final arg = e.args[0];
+      if (!arg.anyNode(
+        (c) =>
+            c is Call &&
+            (c.id == FunctionId.floor || c.id == FunctionId.ceil) &&
+            c.dependsOn(variable),
       )) {
         innermostNode = e;
-        innermostArg = e.expr;
-        isFloorNode = true;
-        return;
-      }
-    }
-    if (e is Ceil && e.expr.dependsOn(variable)) {
-      if (!e.expr.anyNode(
-        (c) => (c is Floor || c is Ceil) && c.dependsOn(variable),
-      )) {
-        innermostNode = e;
-        innermostArg = e.expr;
-        isFloorNode = false;
+        innermostArg = arg;
+        isFloorNode = e.id == FunctionId.floor;
         return;
       }
     }
@@ -1881,7 +1892,15 @@ Expr? _tryFloorCeilDefinite(
   findInnermost(function);
   if (innermostNode == null || innermostArg == null) return null;
   if (innermostArg!.anyNode(
-    (n) => n is Sin || n is Cos || n is Tan || n is Sinh || n is Cosh,
+    (n) =>
+        n is Call &&
+        const {
+          FunctionId.sin,
+          FunctionId.cos,
+          FunctionId.tan,
+          FunctionId.sinh,
+          FunctionId.cosh,
+        }.contains(n.id),
   )) {
     return null;
   }
@@ -1952,7 +1971,10 @@ Expr? _tryFloorCeilDefinite(
       final pieceFn = replaceNode(function).simplify(assumptions: assumptions);
       final pieceVal =
           pieceFn.anyNode(
-            (n) => (n is Floor || n is Ceil) && n.dependsOn(variable),
+            (n) =>
+                n is Call &&
+                (n.id == FunctionId.floor || n.id == FunctionId.ceil) &&
+                n.dependsOn(variable),
           )
           ? _tryFloorCeilDefinite(
               pieceFn,
@@ -1976,7 +1998,7 @@ Expr? _tryFloorCeilDefinite(
       }
       parts.add(pieceVal);
     }
-    return Add(parts).simplify(assumptions: assumptions);
+    return Add.of(parts).simplify(assumptions: assumptions);
   } on ArgumentError {
     return null;
   } on UnsupportedError {
@@ -2028,34 +2050,35 @@ Expr? _tryPiecewiseAbsMinMax(
 
   // Fast exact antiderivative for standalone c * |sin(a*x + b)| or c * |cos(a*x + b)|
   {
+    bool isAbsCall(Expr f) => f is Call && f.id == FunctionId.abs;
     final (constPart, absNode) = switch (function) {
-      Abs() => (IntegerNumber.one as Expr, function),
+      Call(id: FunctionId.abs) => (IntegerNumber.one as Expr, function),
       Mul(:final factors)
           when factors.where((f) => f.dependsOn(variable)).length == 1 &&
-              factors.firstWhere((f) => f.dependsOn(variable)) is Abs =>
+              isAbsCall(factors.firstWhere((f) => f.dependsOn(variable))) =>
         (
-          Mul([
+          Mul.of([
             for (final f in factors)
-              if (f is! Abs) f,
+              if (!isAbsCall(f)) f,
           ]).simplify(assumptions: assumptions),
-          factors.firstWhere((f) => f.dependsOn(variable)) as Abs,
+          factors.firstWhere((f) => f.dependsOn(variable)) as Call,
         ),
       _ => (null, null),
     };
     if (constPart != null && absNode != null) {
-      final arg = absNode.expr;
+      final arg = absNode.args[0];
       Expr? linArg;
       var shift = IntegerNumber.zero as Expr;
-      if (arg case Sin(:final expr)) {
+      if (arg case Call(id: FunctionId.sin, args: [final expr])) {
         linArg = expr;
-      } else if (arg case Cos(:final expr)) {
+      } else if (arg case Call(id: FunctionId.cos, args: [final expr])) {
         linArg = expr;
         shift = (Constant.pi / IntegerNumber.two).simplify();
       }
       if (linArg != null) {
         if (linArg.matchLinear(variable) case (:final a, :final b)
             when isProvenReal(a, assumptions)) {
-          final absA = Abs(a).simplify(assumptions: assumptions);
+          final absA = Fn.abs(a).simplify(assumptions: assumptions);
           final uFrom = (a * fromExpr + b + shift).simplify(
             assumptions: assumptions,
           );
@@ -2077,7 +2100,7 @@ Expr? _tryPiecewiseAbsMinMax(
               final sign = m.isEven
                   ? IntegerNumber.one
                   : IntegerNumber.negativeOne;
-              return (IntegerNumber.of(2 * m) - sign * Cos(uExpr)).simplify(
+              return (IntegerNumber.of(2 * m) - sign * Fn.cos(uExpr)).simplify(
                 assumptions: assumptions,
               );
             }
@@ -2093,19 +2116,14 @@ Expr? _tryPiecewiseAbsMinMax(
     }
   }
 
-  // General region splitting for Abs(g), Min(args), Max(args)
+  // General region splitting for abs(g), min(args), max(args)
   final zeroTargets = <Expr>[];
   void collectTargets(Expr e) {
-    if (e case Abs(:final expr) when expr.dependsOn(variable)) {
+    if (e case Call(id: FunctionId.abs, args: [final expr])
+        when expr.dependsOn(variable)) {
       zeroTargets.add(expr);
-    } else if (e case Min(:final args) when e.dependsOn(variable)) {
-      for (var i = 0; i < args.length; i++) {
-        for (var j = i + 1; j < args.length; j++) {
-          final diff = (args[i] - args[j]).simplify(assumptions: assumptions);
-          if (diff.dependsOn(variable)) zeroTargets.add(diff);
-        }
-      }
-    } else if (e case Max(:final args) when e.dependsOn(variable)) {
+    } else if (e case Call(id: FunctionId.min || FunctionId.max, :final args)
+        when e.dependsOn(variable)) {
       for (var i = 0; i < args.length; i++) {
         for (var j = i + 1; j < args.length; j++) {
           final diff = (args[i] - args[j]).simplify(assumptions: assumptions);
@@ -2177,11 +2195,14 @@ Expr? _tryPiecewiseAbsMinMax(
       ];
       if (cTerms.length == 1 && vTerms.length == 1) {
         final (cVar, fn) = switch (vTerms.first) {
-          Sin() || Cos() => (IntegerNumber.one as Expr, vTerms.first),
+          Call(id: FunctionId.sin || FunctionId.cos) => (
+            IntegerNumber.one as Expr,
+            vTerms.first,
+          ),
           Mul(:final factors)
               when factors.where((f) => f.dependsOn(variable)).length == 1 =>
             (
-              Mul([
+              Mul.of([
                 for (final f in factors)
                   if (!f.dependsOn(variable)) f,
               ]).simplify(assumptions: assumptions),
@@ -2189,46 +2210,50 @@ Expr? _tryPiecewiseAbsMinMax(
             ),
           _ => (null, null),
         };
-        if (cVar != null && fn is Sin) {
+        if (cVar != null && fn is Call && fn.id == FunctionId.sin) {
           final rhs = (-cTerms.first / cVar).simplify(assumptions: assumptions);
-          final theta = Asin(rhs).simplify(assumptions: assumptions);
-          if (!theta.anyNode((n) => n is Asin)) {
+          final theta = Fn.asin(rhs).simplify(assumptions: assumptions);
+          if (!theta.anyNode((n) => n is Call && n.id == FunctionId.asin)) {
             addTrigZeroFamilies(
-              fn.expr,
+              fn.args[0],
               theta,
               IntegerNumber.two * Constant.pi,
             );
             addTrigZeroFamilies(
-              fn.expr,
+              fn.args[0],
               (Constant.pi - theta).simplify(assumptions: assumptions),
               IntegerNumber.two * Constant.pi,
             );
             handledTrig = true;
           }
-        } else if (cVar != null && fn is Cos) {
+        } else if (cVar != null && fn is Call && fn.id == FunctionId.cos) {
           final rhs = (-cTerms.first / cVar).simplify(assumptions: assumptions);
-          final theta = Acos(rhs).simplify(assumptions: assumptions);
-          if (!theta.anyNode((n) => n is Acos)) {
+          final theta = Fn.acos(rhs).simplify(assumptions: assumptions);
+          if (!theta.anyNode((n) => n is Call && n.id == FunctionId.acos)) {
             addTrigZeroFamilies(
-              fn.expr,
+              fn.args[0],
               theta,
               IntegerNumber.two * Constant.pi,
             );
             addTrigZeroFamilies(
-              fn.expr,
+              fn.args[0],
               (-theta).simplify(assumptions: assumptions),
               IntegerNumber.two * Constant.pi,
             );
             handledTrig = true;
           }
         }
-      } else if (vTerms.length == 2 && vTerms[0] is Sin) {
+      } else if (vTerms.length == 2 &&
+          vTerms[0] is Call &&
+          (vTerms[0] as Call).id == FunctionId.sin) {
         if (vTerms[1] case Mul(:final factors)
             when factors.length == 2 &&
                 factors.contains(IntegerNumber.negativeOne) &&
-                factors.any((f) => f is Sin)) {
-          final u = (vTerms[0] as Sin).expr;
-          final v = (factors.firstWhere((f) => f is Sin) as Sin).expr;
+                factors.any((f) => f is Call && f.id == FunctionId.sin)) {
+          final u = (vTerms[0] as Call).args[0];
+          final v = (factors.firstWhere(
+            (f) => f is Call && f.id == FunctionId.sin,
+          ) as Call).args[0];
           addTrigZeroFamilies(
             ((u - v) / IntegerNumber.two).simplify(assumptions: assumptions),
             IntegerNumber.zero,
@@ -2241,13 +2266,17 @@ Expr? _tryPiecewiseAbsMinMax(
           );
           handledTrig = true;
         }
-      } else if (vTerms.length == 2 && vTerms[1] is Sin) {
+      } else if (vTerms.length == 2 &&
+          vTerms[1] is Call &&
+          (vTerms[1] as Call).id == FunctionId.sin) {
         if (vTerms[0] case Mul(:final factors)
             when factors.length == 2 &&
                 factors.contains(IntegerNumber.negativeOne) &&
-                factors.any((f) => f is Sin)) {
-          final u = (vTerms[1] as Sin).expr;
-          final v = (factors.firstWhere((f) => f is Sin) as Sin).expr;
+                factors.any((f) => f is Call && f.id == FunctionId.sin)) {
+          final u = (vTerms[1] as Call).args[0];
+          final v = (factors.firstWhere(
+            (f) => f is Call && f.id == FunctionId.sin,
+          ) as Call).args[0];
           addTrigZeroFamilies(
             ((u - v) / IntegerNumber.two).simplify(assumptions: assumptions),
             IntegerNumber.zero,
@@ -2296,12 +2325,14 @@ Expr? _tryPiecewiseAbsMinMax(
 
     Expr resolvePiecewise(Expr e) {
       final mChild = e.mapChildren(resolvePiecewise);
-      if (mChild case Abs(:final expr) when expr.dependsOn(variable)) {
+      if (mChild case Call(id: FunctionId.abs, args: [final expr])
+          when expr.dependsOn(variable)) {
         final mv = expr.evaluate({variable: mid});
         if (!mv.isFinite) return mChild;
         return mv >= 0 ? expr : (-expr).simplify(assumptions: assumptions);
       }
-      if (mChild case Min(:final args) when mChild.dependsOn(variable)) {
+      if (mChild case Call(id: FunctionId.min, :final args)
+          when mChild.dependsOn(variable)) {
         var best = args.first;
         var bestVal = best.evaluate({variable: mid});
         for (var j = 1; j < args.length; j++) {
@@ -2313,7 +2344,8 @@ Expr? _tryPiecewiseAbsMinMax(
         }
         return best;
       }
-      if (mChild case Max(:final args) when mChild.dependsOn(variable)) {
+      if (mChild case Call(id: FunctionId.max, :final args)
+          when mChild.dependsOn(variable)) {
         var best = args.first;
         var bestVal = best.evaluate({variable: mid});
         for (var j = 1; j < args.length; j++) {
@@ -2332,7 +2364,12 @@ Expr? _tryPiecewiseAbsMinMax(
       final pieceFn = resolvePiecewise(function)
           .simplify(assumptions: assumptions);
       if (pieceFn.anyNode(
-        (n) => (n is Abs || n is Min || n is Max) && n.dependsOn(variable),
+        (n) =>
+            n is Call &&
+            (n.id == FunctionId.abs ||
+                n.id == FunctionId.min ||
+                n.id == FunctionId.max) &&
+            n.dependsOn(variable),
       )) {
         return null;
       }
@@ -2354,5 +2391,5 @@ Expr? _tryPiecewiseAbsMinMax(
       return null;
     }
   }
-  return Add(parts).simplify(assumptions: assumptions);
+  return Add.of(parts).simplify(assumptions: assumptions);
 }

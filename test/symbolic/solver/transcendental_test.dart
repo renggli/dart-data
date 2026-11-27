@@ -25,43 +25,43 @@ void main() {
 
     test('solves Sinh, Cosh, Tanh, Asinh, Acosh, Atanh, Abs, and Erf', () {
       const x = Variable('x');
-      check(Sinh(x).solve('x')).deepEquals([IntegerNumber.zero]);
-      check((Sinh(x) - IntegerNumber.two).solve('x'))
-          .deepEquals([Asinh(IntegerNumber.two)]);
+      check(Fn.sinh(x).solve('x')).deepEquals([IntegerNumber.zero]);
+      check((Fn.sinh(x) - IntegerNumber.two).solve('x'))
+          .deepEquals([Fn.asinh(IntegerNumber.two)]);
 
-      check((Cosh(x) - FractionNumber.half).solve('x')).isEmpty;
-      check((Cosh(x) - IntegerNumber.one).solve('x'))
+      check((Fn.cosh(x) - FractionNumber.half).solve('x')).isEmpty;
+      check((Fn.cosh(x) - IntegerNumber.one).solve('x'))
           .deepEquals([IntegerNumber.zero]);
-      check((Cosh(x) - IntegerNumber.two).solve('x')).unorderedEquals([
-        Acosh(IntegerNumber.two),
-        (-Acosh(IntegerNumber.two)).simplify(),
+      check((Fn.cosh(x) - IntegerNumber.two).solve('x')).unorderedEquals([
+        Fn.acosh(IntegerNumber.two),
+        (-Fn.acosh(IntegerNumber.two)).simplify(),
       ]);
 
-      check((Tanh(x) - IntegerNumber.one).solve('x')).isEmpty;
-      check((Tanh(x) + IntegerNumber.two).solve('x')).isEmpty;
-      check((Tanh(x) - FractionNumber.half).solve('x'))
-          .deepEquals([Atanh(FractionNumber.half)]);
+      check((Fn.tanh(x) - IntegerNumber.one).solve('x')).isEmpty;
+      check((Fn.tanh(x) + IntegerNumber.two).solve('x')).isEmpty;
+      check((Fn.tanh(x) - FractionNumber.half).solve('x'))
+          .deepEquals([Fn.atanh(FractionNumber.half)]);
 
-      check((Asinh(x) - IntegerNumber.one).solve('x'))
-          .deepEquals([Sinh(IntegerNumber.one)]);
+      check((Fn.asinh(x) - IntegerNumber.one).solve('x'))
+          .deepEquals([Fn.sinh(IntegerNumber.one)]);
 
-      check((Acosh(x) + IntegerNumber.one).solve('x')).isEmpty;
-      check((Acosh(x) - IntegerNumber.one).solve('x'))
-          .deepEquals([Cosh(IntegerNumber.one)]);
+      check((Fn.acosh(x) + IntegerNumber.one).solve('x')).isEmpty;
+      check((Fn.acosh(x) - IntegerNumber.one).solve('x'))
+          .deepEquals([Fn.cosh(IntegerNumber.one)]);
 
-      check((Atanh(x) - IntegerNumber.one).solve('x'))
-          .deepEquals([Tanh(IntegerNumber.one)]);
+      check((Fn.atanh(x) - IntegerNumber.one).solve('x'))
+          .deepEquals([Fn.tanh(IntegerNumber.one)]);
 
-      check((Abs(x) + IntegerNumber.one).solve('x')).isEmpty;
-      check(Abs(x - IntegerNumber.of(3)).solve('x'))
+      check((Fn.abs(x) + IntegerNumber.one).solve('x')).isEmpty;
+      check(Fn.abs(x - IntegerNumber.of(3)).solve('x'))
           .deepEquals([IntegerNumber.of(3)]);
-      check((Abs(x - IntegerNumber.one) - IntegerNumber.two).solve('x'))
+      check((Fn.abs(x - IntegerNumber.one) - IntegerNumber.two).solve('x'))
           .unorderedEquals([IntegerNumber.negativeOne, IntegerNumber.of(3)]);
 
-      check(Erf(x - IntegerNumber.two).solve('x'))
+      check(Fn.erf(x - IntegerNumber.two).solve('x'))
           .deepEquals([IntegerNumber.two]);
-      check((Erf(x) - IntegerNumber.two).solve('x')).isEmpty;
-      check((Erf(x) - FractionNumber.half).solve('x')).isEmpty;
+      check((Fn.erf(x) - IntegerNumber.two).solve('x')).isEmpty;
+      check((Fn.erf(x) - FractionNumber.half).solve('x')).isEmpty;
     });
   });
 
@@ -79,7 +79,7 @@ void main() {
       // Symbolic base
       final symPow = Expr.parse('a^x - b').solve('x');
       check(symPow).deepEquals([
-        (Ln(const Variable('b')) / Ln(const Variable('a'))).simplify(),
+        (Fn.ln(const Variable('b')) / Fn.ln(const Variable('a'))).simplify(),
       ]);
     });
 
@@ -88,7 +88,7 @@ void main() {
       // Negative power equal to 0 has no solution
       check(
         invertEquation(
-          Pow(x + IntegerNumber.one, IntegerNumber.of(-2)),
+          Pow.of(x + IntegerNumber.one, IntegerNumber.of(-2)),
           IntegerNumber.zero,
           'x',
           assumptions: Assumptions.none,
@@ -98,7 +98,7 @@ void main() {
       // Even integer power
       check(
         invertEquation(
-          Pow(x + IntegerNumber.one, IntegerNumber.two),
+          Pow.of(x + IntegerNumber.one, IntegerNumber.two),
           IntegerNumber.of(-4),
           'x',
           assumptions: Assumptions.none,
@@ -106,7 +106,7 @@ void main() {
       ).isNotNull().isEmpty;
       check(
         invertEquation(
-          Pow(x + IntegerNumber.one, IntegerNumber.two),
+          Pow.of(x + IntegerNumber.one, IntegerNumber.two),
           const RealNumber(-4.0),
           'x',
           assumptions: Assumptions.none,
@@ -114,7 +114,7 @@ void main() {
       ).isNotNull().isEmpty;
       check(
             invertEquation(
-              Pow(x - IntegerNumber.one, IntegerNumber.two),
+              Pow.of(x - IntegerNumber.one, IntegerNumber.two),
               IntegerNumber.of(9),
               'x',
               assumptions: Assumptions.none,
@@ -126,7 +126,7 @@ void main() {
       // Odd integer power
       check(
         invertEquation(
-          Pow(x - IntegerNumber.one, IntegerNumber.of(3)),
+          Pow.of(x - IntegerNumber.one, IntegerNumber.of(3)),
           IntegerNumber.of(-8),
           'x',
           assumptions: Assumptions.none,
@@ -136,7 +136,7 @@ void main() {
       // Fractional power with even denominator and negative RHS
       check(
         invertEquation(
-          Pow(x, FractionNumber.half),
+          Pow.of(x, FractionNumber.half),
           IntegerNumber.negativeOne,
           'x',
           assumptions: Assumptions.none,
@@ -144,7 +144,7 @@ void main() {
       ).isNotNull().isEmpty;
       check(
         invertEquation(
-          Pow(x, FractionNumber.half),
+          Pow.of(x, FractionNumber.half),
           const RealNumber(-1.0),
           'x',
           assumptions: Assumptions.none,
@@ -154,7 +154,7 @@ void main() {
       // Fractional power with positive RHS
       check(
         invertEquation(
-          Pow(x + IntegerNumber.one, FractionNumber.half),
+          Pow.of(x + IntegerNumber.one, FractionNumber.half),
           IntegerNumber.of(3),
           'x',
           assumptions: Assumptions.none,
@@ -162,7 +162,7 @@ void main() {
       ).isNotNull().deepEquals([IntegerNumber.of(8)]);
       check(
         invertEquation(
-          Pow(x, RationalNumber(3, 2)),
+          Pow.of(x, RationalNumber(3, 2)),
           IntegerNumber.of(8),
           'x',
           assumptions: Assumptions.none,
@@ -172,7 +172,7 @@ void main() {
       // Negative even integer power: x^(-2) = 4 -> x = ±1/2
       check(
             invertEquation(
-              Pow(x, IntegerNumber.of(-2)),
+              Pow.of(x, IntegerNumber.of(-2)),
               IntegerNumber.of(4),
               'x',
               assumptions: Assumptions.none,
@@ -184,7 +184,7 @@ void main() {
       // Rational power with even numerator: x^(2/3) = 4 -> x = ±8
       check(
             invertEquation(
-              Pow(x, RationalNumber(2, 3)),
+              Pow.of(x, RationalNumber(2, 3)),
               IntegerNumber.of(4),
               'x',
               assumptions: Assumptions.none,
@@ -196,7 +196,7 @@ void main() {
       // Even power equal to negative symbolic constant (-pi) has no real root
       check(
         invertEquation(
-          Pow(x, IntegerNumber.two),
+          Pow.of(x, IntegerNumber.two),
           -Constant.pi,
           'x',
           assumptions: Assumptions.none,
@@ -211,20 +211,25 @@ void main() {
       () {
         const x = Variable('x');
         // Direct LambertW inversion
-        check((LambertW(x, branch: 0) + IntegerNumber.two).solve('x')).isEmpty;
-        check((LambertW(x, branch: -1) - IntegerNumber.zero).solve('x'))
-            .isEmpty;
-        check((LambertW(x, branch: 0) - IntegerNumber.one).solve('x'))
+        check((Fn.lambertW(x) + IntegerNumber.two).solve('x')).isEmpty;
+        check(
+          (Fn.lambertW(x, IntegerNumber.negativeOne) - IntegerNumber.zero)
+              .solve('x'),
+        ).isEmpty;
+        check((Fn.lambertW(x) - IntegerNumber.one).solve('x'))
             .deepEquals([Constant.e]);
 
         // x * e^x = c in all regions: c < -1/e, c == -1/e, -1/e < c < 0, c >= 0, symbolic
         check(Expr.parse('x * exp(x) + 1').solve('x')).isEmpty;
         check(
-          (x * Pow(Constant.e, x) + Pow(Constant.e, IntegerNumber.negativeOne))
+          (x * Pow.of(Constant.e, x) +
+                  Pow.of(Constant.e, IntegerNumber.negativeOne))
               .solve('x'),
         ).deepEquals([IntegerNumber.negativeOne]);
         check(
-          (x * Pow(Constant.e, x) + const RealNumber(1.0 / math.e)).solve('x'),
+          (x * Pow.of(Constant.e, x) + const RealNumber(1.0 / math.e)).solve(
+            'x',
+          ),
         ).deepEquals([const RealNumber(-1.0)]);
         final twoBranch = Expr.parse('x * exp(x) + 1/4').solve('x');
         check(twoBranch.length).equals(2);
@@ -233,7 +238,7 @@ void main() {
 
         // e^(2*x) * x = c (expFactor on left)
         final leftExp = invertEquation(
-          Mul([Pow(Constant.e, IntegerNumber.two * x), x]),
+          Mul.of([Pow.of(Constant.e, IntegerNumber.two * x), x]),
           IntegerNumber.one,
           'x',
           assumptions: Assumptions.none,
@@ -247,7 +252,7 @@ void main() {
         check(rLn * math.log(rLn)).isCloseTo(2.0, 1e-12);
 
         final lnXX = invertEquation(
-          Mul([Ln(x), x]),
+          Mul.of([Fn.ln(x), x]),
           IntegerNumber.two,
           'x',
           assumptions: Assumptions.none,
@@ -267,7 +272,7 @@ void main() {
         check(math.log(rAdd) + rAdd).isCloseTo(1.0 + math.pi, 1e-12);
 
         final addLn2 = invertEquation(
-          Add([x, Ln(x)]),
+          Add.of([x, Fn.ln(x)]),
           IntegerNumber.one,
           'x',
           assumptions: Assumptions.none,
@@ -275,21 +280,21 @@ void main() {
         check(addLn2).isNotNull().deepEquals([IntegerNumber.one]);
 
         // Non-unit Lambert W ratios in product and sum:
-        final nonUnitMul = (x * Ln(IntegerNumber.two * x) - IntegerNumber.two)
-            .solve('x');
+        final nonUnitMul =
+            (x * Fn.ln(IntegerNumber.two * x) - IntegerNumber.two).solve('x');
         check(nonUnitMul.length).equals(1);
         final rNonUnitMul = nonUnitMul.first.evaluate();
         check(rNonUnitMul * math.log(2.0 * rNonUnitMul)).isCloseTo(2.0, 1e-12);
 
         final nonUnitAdd1 =
-            (Ln(IntegerNumber.two * x) + x - IntegerNumber.of(3)).solve('x');
+            (Fn.ln(IntegerNumber.two * x) + x - IntegerNumber.of(3)).solve('x');
         check(nonUnitAdd1.length).equals(1);
         final rNonUnitAdd1 = nonUnitAdd1.first.evaluate();
         check(math.log(2.0 * rNonUnitAdd1) + rNonUnitAdd1)
             .isCloseTo(3.0, 1e-12);
 
         final nonUnitAdd2 =
-            (Ln(x) + IntegerNumber.two * x - IntegerNumber.of(3)).solve('x');
+            (Fn.ln(x) + IntegerNumber.two * x - IntegerNumber.of(3)).solve('x');
         check(nonUnitAdd2.length).equals(1);
         final rNonUnitAdd2 = nonUnitAdd2.first.evaluate();
         check(math.log(rNonUnitAdd2) + 2.0 * rNonUnitAdd2)
@@ -328,12 +333,12 @@ void main() {
         check(scaledExp.length).equals(2);
 
         // Non-matching additive expressions return empty
-        check((Pow(Constant.e, x * x) + x + IntegerNumber.one).solve('x'))
+        check((Pow.of(Constant.e, x * x) + x + IntegerNumber.one).solve('x'))
             .isEmpty;
 
         // Exponential form e^exponent = c forwards assumptions
         check(
-          (Pow(Constant.e, x * x) - Constant.e).solve(
+          (Pow.of(Constant.e, x * x) - Constant.e).solve(
             'x',
             assumptions: Assumptions.positive,
           ),
@@ -350,7 +355,7 @@ void main() {
 
         // N(x) / const = c
         final r1 = invertEquation(
-          Sin(x) / a,
+          Fn.sin(x) / a,
           IntegerNumber.zero,
           'x',
           assumptions: Assumptions.none,
@@ -362,14 +367,14 @@ void main() {
         // const / D(x) = c
         check(
           invertEquation(
-            a / Sin(x),
+            a / Fn.sin(x),
             IntegerNumber.zero,
             'x',
             assumptions: Assumptions.none,
           ),
         ).isNotNull().isEmpty;
         final r2 = invertEquation(
-          a / Sin(x),
+          a / Fn.sin(x),
           IntegerNumber.two,
           'x',
           assumptions: Assumptions.none,
@@ -387,7 +392,7 @@ void main() {
 
         // Mul with multiple constant and variable factors
         final r4 = invertEquation(
-          Mul([a, b, x, Pow(Constant.e, x)]),
+          Mul.of([a, b, x, Pow.of(Constant.e, x)]),
           IntegerNumber.zero,
           'x',
           assumptions: Assumptions.none,
@@ -396,7 +401,7 @@ void main() {
 
         // Product transcendental: ln(x)/x = 1/(2*e) -> exp(-W_k(-1/(2*e)))
         final r5 = invertEquation(
-          Mul([Pow(x, IntegerNumber.negativeOne), Ln(x)]),
+          Mul.of([Pow.of(x, IntegerNumber.negativeOne), Fn.ln(x)]),
           (IntegerNumber.one / (IntegerNumber.two * Constant.e)).simplify(),
           'x',
           assumptions: Assumptions.none,
@@ -404,7 +409,7 @@ void main() {
         check(r5).isNotNull().length.equals(2);
         for (final root in r5!) {
           check(
-            (Ln(root) / root -
+            (Fn.ln(root) / root -
                     IntegerNumber.one / (IntegerNumber.two * Constant.e))
                 .evaluate(),
           ).isCloseTo(0.0, 1e-12);
@@ -413,19 +418,15 @@ void main() {
     );
 
     test('solves polynomial equations in exponential substitutions', () {
-      check(Expr.parse('exp(2*x) - 3*exp(x) + 2').solve('x')).unorderedEquals([
-        IntegerNumber.zero,
-        Ln(IntegerNumber.two, isSimplified: true),
-      ]);
+      check(Expr.parse('exp(2*x) - 3*exp(x) + 2').solve('x'))
+          .unorderedEquals([IntegerNumber.zero, Fn.ln(IntegerNumber.two)]);
       check(Expr.parse('exp(2*x) - 1').solve('x'))
           .deepEquals([IntegerNumber.zero]);
     });
 
     test('solves polynomial equations in elementary functions', () {
-      check(Expr.parse('ln(x)^2 - 3*ln(x) + 2').solve('x')).unorderedEquals([
-        Constant.e,
-        Pow(Constant.e, IntegerNumber.two, isSimplified: true),
-      ]);
+      check(Expr.parse('ln(x)^2 - 3*ln(x) + 2').solve('x'))
+          .unorderedEquals([Constant.e, Pow.of(Constant.e, IntegerNumber.two)]);
       check(Expr.parse('2*sin(x)^2 - 3*sin(x) + 1').solve('x')).unorderedEquals(
         [
           (Constant.pi / IntegerNumber.of(6)).simplify(),
@@ -488,13 +489,13 @@ void main() {
     test('handles negativeRealNumber odd rational powers on real domain', () {
       const realX = Assumptions(domains: {'x': VariableDomain.real});
       final invCube =
-          (Pow(const Variable('x'), IntegerNumber.of(-3)) +
+          (Pow.of(const Variable('x'), IntegerNumber.of(-3)) +
                   const RealNumber(0.125))
               .solve('x', assumptions: realX);
       check(invCube).deepEquals([const RealNumber(-2.0)]);
 
       final invFifth =
-          (Pow(const Variable('x'), IntegerNumber.of(-5)) +
+          (Pow.of(const Variable('x'), IntegerNumber.of(-5)) +
                   const RealNumber(0.03125))
               .solve('x', assumptions: realX);
       check(invFifth).deepEquals([const RealNumber(-2.0)]);
@@ -502,7 +503,8 @@ void main() {
 
     test('guards harmonic addition against complex or degenerate r == 0 coefficients', () {
       const x = Variable('x');
-      final degenerate = Sin(x) + ComplexNumber.i * Cos(x) - IntegerNumber.one;
+      final degenerate =
+          Fn.sin(x) + ComplexNumber.i * Fn.cos(x) - IntegerNumber.one;
       check(degenerate.solve('x')).isEmpty;
       final negA = Expr.parse('-3 * sin(x) - 4 * cos(x) + 5').solve('x');
       check(negA.length).equals(1);
@@ -515,8 +517,9 @@ void main() {
         const posA = Assumptions(domains: {'a': VariableDomain.positive});
         check(Expr.parse('1^x + x - 2').solve('x'))
             .deepEquals([IntegerNumber.one]);
-        final comb = (Ln(const Variable('x') - a) + Ln(const Variable('x') + a))
-            .solve('x', assumptions: posA);
+        final comb =
+            (Fn.ln(const Variable('x') - a) + Fn.ln(const Variable('x') + a))
+                .solve('x', assumptions: posA);
         // Roots x^2 - a^2 = 1 -> only +sqrt(a^2 + 1) satisfies x - a > 0 under a > 0.
         check(comb.length).equals(1);
       },
@@ -526,18 +529,18 @@ void main() {
       'solves Ln(x)/x Lambert W branch and scaled/negative radical equations',
       () {
         const x = Variable('x');
-        final logDivX = (Ln(x) / x - RationalNumber(1, 10)).solve('x');
+        final logDivX = (Fn.ln(x) / x - RationalNumber(1, 10)).solve('x');
         check(logDivX.length).equals(2);
 
         final scaledRad =
             (IntegerNumber.two *
-                        Pow(x + IntegerNumber.one, FractionNumber.half) -
+                        Pow.of(x + IntegerNumber.one, FractionNumber.half) -
                     IntegerNumber.of(6))
                 .solve('x');
         check(scaledRad).deepEquals([IntegerNumber.of(8)]);
 
         final negRad =
-            (IntegerNumber.of(3) * Pow(x, RationalNumber(-1, 2)) -
+            (IntegerNumber.of(3) * Pow.of(x, RationalNumber(-1, 2)) -
                     IntegerNumber.one)
                 .solve('x');
         check(negRad).deepEquals([IntegerNumber.of(9)]);

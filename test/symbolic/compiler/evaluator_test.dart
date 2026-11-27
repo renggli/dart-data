@@ -14,38 +14,38 @@ void main() {
 
       final unaryCases = <(Expr, double, Complex)>[
         (-x, 2.0, const Complex(2.0, -1.0)),
-        (Pow(Constant.e, x), 0.5, const Complex(0.5, 0.3)),
-        (Pow(x, FractionNumber.half), 4.0, const Complex(3.0, 4.0)),
-        (Pow(x, const RealNumber(0.5)), 9.0, const Complex(4.0, 0.0)),
-        (Pow(x, IntegerNumber.negativeOne), 2.0, const Complex(1.0, 1.0)),
-        (Pow(x, const RealNumber(2.5)), 2.0, const Complex(2.0, 1.0)),
-        (Sin(x), 0.6, const Complex(0.6, 0.2)),
-        (Cos(x), 0.6, const Complex(0.6, 0.2)),
-        (Tan(x), 0.6, const Complex(0.6, 0.2)),
-        (Asin(x), 0.5, const Complex(0.5, 0.2)),
-        (Acos(x), 0.5, const Complex(0.5, 0.2)),
-        (Atan(x), 0.5, const Complex(0.5, 0.2)),
-        (Sinh(x), 1e-7, const Complex(0.4, 0.2)),
-        (Sinh(x), 0.8, const Complex(0.8, 0.2)),
-        (Cosh(x), 0.8, const Complex(0.8, 0.2)),
-        (Tanh(x), 0.8, const Complex(0.8, 0.2)),
-        (Tanh(x), 25.0, const Complex(5.0, 0.0)),
-        (Tanh(x), -25.0, const Complex(-5.0, 0.0)),
-        (Asinh(x), 0.8, const Complex(0.8, 0.2)),
-        (Acosh(x), 2.0, const Complex(2.0, 0.5)),
-        (Atanh(x), 0.5, const Complex(0.5, 0.2)),
-        (Abs(x), -3.5, const Complex(3.0, 4.0)),
-        (Ln(x), 2.5, const Complex(2.5, 1.0)),
-        (LambertW(x), 1.0, const Complex(1.0)),
-        (LambertW(x, branch: -1), -0.2, const Complex(-0.2)),
-        (Erf(x), 0.5, const Complex(0.5)),
-        (Erfc(x), 0.5, const Complex(0.5)),
-        (Gamma(x), 3.5, const Complex(3.5)),
-        (Zeta(x), 2.5, const Complex(2.5)),
-        (Digamma(x), 2.5, const Complex(2.5)),
-        (EllipticK(x), 0.5, const Complex(0.5)),
-        (EllipticE(x), 0.5, const Complex(0.5)),
-        (const OrderTerm('x', 3), 2.0, const Complex(2.0, 1.0)),
+        (Pow.of(Constant.e, x), 0.5, const Complex(0.5, 0.3)),
+        (Pow.of(x, FractionNumber.half), 4.0, const Complex(3.0, 4.0)),
+        (Pow.of(x, const RealNumber(0.5)), 9.0, const Complex(4.0, 0.0)),
+        (Pow.of(x, IntegerNumber.negativeOne), 2.0, const Complex(1.0, 1.0)),
+        (Pow.of(x, const RealNumber(2.5)), 2.0, const Complex(2.0, 1.0)),
+        (Fn.sin(x), 0.6, const Complex(0.6, 0.2)),
+        (Fn.cos(x), 0.6, const Complex(0.6, 0.2)),
+        (Fn.tan(x), 0.6, const Complex(0.6, 0.2)),
+        (Fn.asin(x), 0.5, const Complex(0.5, 0.2)),
+        (Fn.acos(x), 0.5, const Complex(0.5, 0.2)),
+        (Fn.atan(x), 0.5, const Complex(0.5, 0.2)),
+        (Fn.sinh(x), 1e-7, const Complex(0.4, 0.2)),
+        (Fn.sinh(x), 0.8, const Complex(0.8, 0.2)),
+        (Fn.cosh(x), 0.8, const Complex(0.8, 0.2)),
+        (Fn.tanh(x), 0.8, const Complex(0.8, 0.2)),
+        (Fn.tanh(x), 25.0, const Complex(5.0, 0.0)),
+        (Fn.tanh(x), -25.0, const Complex(-5.0, 0.0)),
+        (Fn.asinh(x), 0.8, const Complex(0.8, 0.2)),
+        (Fn.acosh(x), 2.0, const Complex(2.0, 0.5)),
+        (Fn.atanh(x), 0.5, const Complex(0.5, 0.2)),
+        (Fn.abs(x), -3.5, const Complex(3.0, 4.0)),
+        (Fn.ln(x), 2.5, const Complex(2.5, 1.0)),
+        (Fn.lambertW(x), 1.0, const Complex(1.0)),
+        (Fn.lambertW(x, IntegerNumber.negativeOne), -0.2, const Complex(-0.2)),
+        (Fn.erf(x), 0.5, const Complex(0.5)),
+        (Fn.erfc(x), 0.5, const Complex(0.5)),
+        (Fn.gamma(x), 3.5, const Complex(3.5)),
+        (Fn.zeta(x), 2.5, const Complex(2.5)),
+        (Fn.digamma(x), 2.5, const Complex(2.5)),
+        (Fn.ellipticK(x), 0.5, const Complex(0.5)),
+        (Fn.ellipticE(x), 0.5, const Complex(0.5)),
+        (OrderTerm('x', 3), 2.0, const Complex(2.0, 1.0)),
       ];
 
       for (final (node, realIn, complexIn) in unaryCases) {
@@ -59,7 +59,7 @@ void main() {
         check(complexActual.b).isCloseTo(complexExpected.b, 1e-12);
       }
 
-      final betaNode = Beta(x, y);
+      final betaNode = Fn.beta(x, y);
       final betaEval = compileToBytecode(betaNode, ['x', 'y']);
       check(betaEval.evaluateList([2.0, 3.0])).isCloseTo(1.0 / 12.0, 1e-12);
       check(
@@ -69,27 +69,27 @@ void main() {
         ]).a,
       ).isCloseTo(1.0 / 12.0, 1e-12);
 
-      final polygammaNode = Polygamma(x, y);
+      final polygammaNode = Fn.polygamma(x, y);
       final polygammaEval = compileToBytecode(polygammaNode, ['x', 'y']);
       check(polygammaEval.evaluateList([1.0, 1.0]))
           .isCloseTo(1.6449340668482264, 1e-12);
 
-      final besselJNode = BesselJ(x, y);
+      final besselJNode = Fn.besselJ(x, y);
       final besselJEval = compileToBytecode(besselJNode, ['x', 'y']);
       check(besselJEval.evaluateList([0.0, 1.0]))
           .isCloseTo(0.7651976865579666, 1e-7);
 
-      final besselYNode = BesselY(x, y);
+      final besselYNode = Fn.besselY(x, y);
       final besselYEval = compileToBytecode(besselYNode, ['x', 'y']);
       check(besselYEval.evaluateList([0.0, 1.0]))
           .isCloseTo(0.08825696421567697, 1e-7);
 
-      final besselINode = BesselI(x, y);
+      final besselINode = Fn.besselI(x, y);
       final besselIEval = compileToBytecode(besselINode, ['x', 'y']);
       check(besselIEval.evaluateList([0.0, 1.0]))
           .isCloseTo(1.2660658777520084, 1e-7);
 
-      final besselKNode = BesselK(x, y);
+      final besselKNode = Fn.besselK(x, y);
       final besselKEval = compileToBytecode(besselKNode, ['x', 'y']);
       check(besselKEval.evaluateList([0.0, 1.0]))
           .isCloseTo(0.42102443824070834, 1e-7);
@@ -101,68 +101,71 @@ void main() {
       const x = Variable('x');
       const y = Variable('y');
 
-      final gammaEval = compileToBytecode(Gamma(x), ['x']);
+      final gammaEval = compileToBytecode(Fn.gamma(x), ['x']);
       check(gammaEval.evaluate1D(0.0)).isNaN;
       check(gammaEval.evaluate1D(-2.0)).isNaN;
       check(gammaEval.evaluateComplex1D(const Complex(1, 1)).isFinite).isTrue;
 
-      final acoshEval = compileToBytecode(Acosh(x), ['x']);
+      final acoshEval = compileToBytecode(Fn.acosh(x), ['x']);
       check(acoshEval.evaluate1D(0.5).isNaN).isTrue;
 
-      final atanhEval = compileToBytecode(Atanh(x), ['x']);
+      final atanhEval = compileToBytecode(Fn.atanh(x), ['x']);
       check(atanhEval.evaluate1D(1.5).isNaN).isTrue;
       check(atanhEval.evaluate1D(-1.5).isNaN).isTrue;
       check(atanhEval.evaluate1D(1.0)).equals(double.infinity);
       check(atanhEval.evaluate1D(-1.0)).equals(double.negativeInfinity);
 
       check(
-        compileToBytecode(LambertW(x), [
+        compileToBytecode(Fn.lambertW(x), [
           'x',
         ]).evaluateComplex1D(const Complex(1, 1)).isFinite,
       ).isTrue;
       check(
-        compileToBytecode(LambertW(x, branch: -1), [
+        compileToBytecode(Fn.lambertW(x, IntegerNumber.negativeOne), [
           'x',
         ]).evaluateComplex1D(const Complex(-0.2, 1)).isFinite,
       ).isTrue;
       check(
-        compileToBytecode(Erf(x), [
+        compileToBytecode(Fn.erf(x), [
           'x',
         ]).evaluateComplex1D(const Complex(1, 1)).isFinite,
       ).isTrue;
       check(
-        compileToBytecode(Erfc(x), [
+        compileToBytecode(Fn.erfc(x), [
           'x',
         ]).evaluateComplex1D(const Complex(1, 1)).isFinite,
       ).isTrue;
       check(
-        compileToBytecode(Beta(x, y), ['x', 'y']).evaluateComplexList([
+        compileToBytecode(Fn.beta(x, y), ['x', 'y']).evaluateComplexList([
           const Complex(1, 1),
           const Complex(2, 0),
         ]).isFinite,
       ).isTrue;
       check(
-        compileToBytecode(Zeta(x), [
+        compileToBytecode(Fn.zeta(x), [
           'x',
         ]).evaluateComplex1D(const Complex(1, 1)).isFinite,
       ).isTrue;
       check(
-        compileToBytecode(Digamma(x), [
+        compileToBytecode(Fn.digamma(x), [
           'x',
         ]).evaluateComplex1D(const Complex(1, 1)).isFinite,
       ).isTrue;
       check(
-        compileToBytecode(BesselJ(IntegerNumber.zero, x), [
+        compileToBytecode(Fn.besselJ(IntegerNumber.zero, x), [
           'x',
         ]).evaluateComplex1D(const Complex(1, 1)).isFinite,
       ).isTrue;
       check(
-        compileToBytecode(EllipticK(x), [
+        compileToBytecode(Fn.ellipticK(x), [
           'x',
         ]).evaluateComplex1D(const Complex(1, 1)).isFinite,
       ).isTrue;
 
-      final powEval = compileToBytecode(Pow(x, y), ['x', 'y'], optimize: false);
+      final powEval = compileToBytecode(Pow.of(x, y), [
+        'x',
+        'y',
+      ], optimize: false);
       check(powEval.evaluateComplexList([const Complex(2, 3), Complex.zero]))
           .equals(Complex.one);
       check(powEval.evaluateComplexList([Complex.zero, const Complex(2, 0)]))
@@ -192,7 +195,7 @@ void main() {
           const Complex(-3, 0),
         ]),
       ).equals(const Complex(0, 1));
-      final binomEval = compileToBytecode(Binomial(x, y), ['x', 'y']);
+      final binomEval = compileToBytecode(Fn.binomial(x, y), ['x', 'y']);
       check(binomEval.evaluateList([5.0, 2.0])).isCloseTo(10.0, 1e-12);
       check(binomEval.evaluateList([double.nan, 2.0])).isNaN;
       check(binomEval.evaluateList([5.0, -1.0])).equals(0.0);
@@ -210,7 +213,7 @@ void main() {
         ]).a,
       ).isCloseTo(-0.5, 1e-12);
 
-      final modEval = compileToBytecode(Mod(x, y), ['x', 'y']);
+      final modEval = compileToBytecode(Fn.mod(x, y), ['x', 'y']);
       check(modEval.evaluateList([17.0, 5.0])).equals(2.0);
       check(modEval.evaluateList([17.0, 0.0])).isNaN;
       check(
@@ -223,14 +226,14 @@ void main() {
         ]),
       ).throws<UnsupportedError>();
 
-      final factEval = compileToBytecode(Factorial(x), ['x']);
+      final factEval = compileToBytecode(Fn.factorial(x), ['x']);
       check(factEval.evaluate1D(3.5))
-          .isCloseTo(Factorial(x).evaluate({'x': 3.5}), 1e-12);
+          .isCloseTo(Fn.factorial(x).evaluate({'x': 3.5}), 1e-12);
       check(factEval.evaluateComplex1D(const Complex(3.5)).a)
-          .isCloseTo(Factorial(x).evaluate({'x': 3.5}), 1e-12);
+          .isCloseTo(Fn.factorial(x).evaluate({'x': 3.5}), 1e-12);
       check(factEval.evaluateComplex1D(const Complex(1, 1)).isFinite).isTrue;
 
-      for (final node in <Expr>[Floor(x), Ceil(x), Round(x)]) {
+      for (final node in <Expr>[Fn.floor(x), Fn.ceil(x), Fn.round(x)]) {
         final eval = compileToBytecode(node, ['x']);
         check(eval.evaluate1D(3.5)).isCloseTo(node.evaluate({'x': 3.5}), 1e-12);
         check(eval.evaluateComplex1D(const Complex(3.5)).a)
@@ -239,7 +242,7 @@ void main() {
             .throws<UnsupportedError>();
       }
 
-      final signEval = compileToBytecode(Sign(x), ['x']);
+      final signEval = compileToBytecode(Fn.sign(x), ['x']);
       check(signEval.evaluate1D(0.0)).equals(0.0);
       check(signEval.evaluate1D(-2.0)).equals(-1.0);
       check(signEval.evaluate1D(2.0)).equals(1.0);
@@ -249,10 +252,10 @@ void main() {
       check(signEval.evaluateComplex1D(const Complex(3.0, 4.0)))
           .equals(const Complex(0.6, 0.8));
 
-      final reEval = compileToBytecode(Re(x), ['x'], optimize: false);
-      final imEval = compileToBytecode(Im(x), ['x'], optimize: false);
-      final argEval = compileToBytecode(Arg(x), ['x'], optimize: false);
-      final conjEval = compileToBytecode(Conjugate(x), ['x'], optimize: false);
+      final reEval = compileToBytecode(Fn.re(x), ['x'], optimize: false);
+      final imEval = compileToBytecode(Fn.im(x), ['x'], optimize: false);
+      final argEval = compileToBytecode(Fn.arg(x), ['x'], optimize: false);
+      final conjEval = compileToBytecode(Fn.conj(x), ['x'], optimize: false);
       check(reEval.evaluate1D(3.0)).equals(3.0);
       check(imEval.evaluate1D(3.0)).equals(0.0);
       check(argEval.evaluate1D(3.0)).equals(0.0);
@@ -269,12 +272,12 @@ void main() {
     test('relational, Piecewise, Integral, and direct Op.sub instructions', () {
       const x = Variable('x');
       final relations = <Expr>[
-        LessThan(x, IntegerNumber.zero),
-        LessEqual(x, IntegerNumber.zero),
-        GreaterThan(x, IntegerNumber.zero),
-        GreaterEqual(x, IntegerNumber.zero),
-        Equal(x, IntegerNumber.zero),
-        NotEqual(x, IntegerNumber.zero),
+        Relational.lessThan(x, IntegerNumber.zero),
+        Relational.lessEqual(x, IntegerNumber.zero),
+        Relational.greaterThan(x, IntegerNumber.zero),
+        Relational.greaterEqual(x, IntegerNumber.zero),
+        Relational.equal(x, IntegerNumber.zero),
+        Relational.notEqual(x, IntegerNumber.zero),
       ];
 
       for (final rel in relations) {
@@ -287,7 +290,9 @@ void main() {
       }
 
       final pwNoOtherwise = compileToBytecode(
-        Piecewise([(relation: LessThan(x, IntegerNumber.zero), expr: -x)]),
+        Piecewise([
+          (relation: Relational.lessThan(x, IntegerNumber.zero), expr: -x),
+        ]),
         ['x'],
       );
       check(pwNoOtherwise.evaluate1D(-2.0)).equals(2.0);
@@ -333,7 +338,7 @@ void main() {
       'complex relational comparisons return NaN for non-real or NaN operands',
       () {
         const x = Variable('x');
-        final ltExpr = LessThan(x, IntegerNumber.one);
+        final ltExpr = Relational.lessThan(x, IntegerNumber.one);
         check(ltExpr.evaluateComplex({'x': const Complex(0, 1)}).isNaN).isTrue;
         check(ltExpr.evaluateComplex({'x': const Complex(double.nan, 0)}).isNaN)
             .isTrue;
@@ -354,65 +359,80 @@ void main() {
       ).equals(const Complex(3, 3));
 
       check(
-        Pow(x, IntegerNumber.zero).evaluateComplex({'x': const Complex(2, 3)}),
+        Pow.of(
+          x,
+          IntegerNumber.zero,
+        ).evaluateComplex({'x': const Complex(2, 3)}),
       ).equals(Complex.one);
-      check(Pow(IntegerNumber.zero, IntegerNumber.two).evaluateComplex())
+      check(Pow.of(IntegerNumber.zero, IntegerNumber.two).evaluateComplex())
           .equals(Complex.zero);
       check(
-        Pow(IntegerNumber.zero, IntegerNumber.negativeOne).evaluateComplex().a,
+        Pow.of(
+          IntegerNumber.zero,
+          IntegerNumber.negativeOne,
+        ).evaluateComplex().a,
       ).equals(double.infinity);
-      check(Pow(IntegerNumber.zero, ComplexNumber.i).evaluateComplex().isNaN)
+      check(Pow.of(IntegerNumber.zero, ComplexNumber.i).evaluateComplex().isNaN)
           .isTrue;
       check(
-        Pow(x, IntegerNumber.one).evaluateComplex({'x': const Complex(2, 3)}),
+        Pow.of(
+          x,
+          IntegerNumber.one,
+        ).evaluateComplex({'x': const Complex(2, 3)}),
       ).equals(const Complex(2, 3));
       check(
-        Pow(x, IntegerNumber.two).evaluateComplex({'x': const Complex(1, 1)}),
+        Pow.of(
+          x,
+          IntegerNumber.two,
+        ).evaluateComplex({'x': const Complex(1, 1)}),
       ).equals(const Complex(0, 2));
       check(
-        Pow(
+        Pow.of(
           x,
           IntegerNumber.negativeOne,
         ).evaluateComplex({'x': const Complex(0, 1)}),
       ).equals(const Complex(0, -1));
       check(
-        Pow(x, IntegerNumber.of(3)).evaluateComplex({'x': const Complex(0, 1)}),
+        Pow.of(
+          x,
+          IntegerNumber.of(3),
+        ).evaluateComplex({'x': const Complex(0, 1)}),
       ).equals(const Complex(0, -1));
       check(
-        Pow(
+        Pow.of(
           x,
           IntegerNumber.of(-3),
         ).evaluateComplex({'x': const Complex(0, 1)}),
       ).equals(const Complex(0, 1));
-      check(Pow(x, ComplexNumber.i).evaluateComplex({'x': Complex.one}))
+      check(Pow.of(x, ComplexNumber.i).evaluateComplex({'x': Complex.one}))
           .equals(Complex.one);
 
       const z = Complex(0.4, 0.3);
-      check(Sin(x).evaluateComplex({'x': z})).equals(z.sin());
-      check(Cos(x).evaluateComplex({'x': z})).equals(z.cos());
-      check(Tan(x).evaluateComplex({'x': z})).equals(z.tan());
-      check(Asin(x).evaluateComplex({'x': z})).equals(z.asin());
-      check(Acos(x).evaluateComplex({'x': z})).equals(z.acos());
-      check(Atan(x).evaluateComplex({'x': z})).equals(z.atan());
-      check(Sinh(x).evaluateComplex({'x': z})).equals(z.sinh());
-      check(Cosh(x).evaluateComplex({'x': z})).equals(z.cosh());
-      check(Tanh(x).evaluateComplex({'x': z})).equals(z.tanh());
-      check(Ln(x).evaluateComplex({'x': z})).equals(z.log());
-      check(Abs(x).evaluateComplex({'x': const Complex(3, 4)}))
+      check(Fn.sin(x).evaluateComplex({'x': z})).equals(z.sin());
+      check(Fn.cos(x).evaluateComplex({'x': z})).equals(z.cos());
+      check(Fn.tan(x).evaluateComplex({'x': z})).equals(z.tan());
+      check(Fn.asin(x).evaluateComplex({'x': z})).equals(z.asin());
+      check(Fn.acos(x).evaluateComplex({'x': z})).equals(z.acos());
+      check(Fn.atan(x).evaluateComplex({'x': z})).equals(z.atan());
+      check(Fn.sinh(x).evaluateComplex({'x': z})).equals(z.sinh());
+      check(Fn.cosh(x).evaluateComplex({'x': z})).equals(z.cosh());
+      check(Fn.tanh(x).evaluateComplex({'x': z})).equals(z.tanh());
+      check(Fn.ln(x).evaluateComplex({'x': z})).equals(z.log());
+      check(Fn.abs(x).evaluateComplex({'x': const Complex(3, 4)}))
           .equals(const Complex(5));
 
-      final asinhZ = Asinh(x).evaluateComplex({'x': z});
-      check(Sinh(x).evaluateComplex({'x': asinhZ}).a).isCloseTo(z.a, 1e-12);
-      check(Sinh(x).evaluateComplex({'x': asinhZ}).b).isCloseTo(z.b, 1e-12);
+      final asinhZ = Fn.asinh(x).evaluateComplex({'x': z});
+      check(Fn.sinh(x).evaluateComplex({'x': asinhZ}).a).isCloseTo(z.a, 1e-12);
+      check(Fn.sinh(x).evaluateComplex({'x': asinhZ}).b).isCloseTo(z.b, 1e-12);
 
       const z2 = Complex(1.5, 0.5);
-      final acoshZ = Acosh(x).evaluateComplex({'x': z2});
-      check(Cosh(x).evaluateComplex({'x': acoshZ}).a).isCloseTo(z2.a, 1e-12);
-      check(Cosh(x).evaluateComplex({'x': acoshZ}).b).isCloseTo(z2.b, 1e-12);
+      final acoshZ = Fn.acosh(x).evaluateComplex({'x': z2});
+      check(Fn.cosh(x).evaluateComplex({'x': acoshZ}).a).isCloseTo(z2.a, 1e-12);
+      check(Fn.cosh(x).evaluateComplex({'x': acoshZ}).b).isCloseTo(z2.b, 1e-12);
 
-      final atanhZ = Atanh(x).evaluateComplex({'x': z});
-      check(Tanh(x).evaluateComplex({'x': atanhZ}).a).isCloseTo(z.a, 1e-12);
-      check(Tanh(x).evaluateComplex({'x': atanhZ}).b).isCloseTo(z.b, 1e-12);
+      final atanhZ = Fn.atanh(x).evaluateComplex({'x': z});
+      check(Fn.tanh(x).evaluateComplex({'x': atanhZ}).a).isCloseTo(z.a, 1e-12);
+      check(Fn.tanh(x).evaluateComplex({'x': atanhZ}).b).isCloseTo(z.b, 1e-12);
     });
 
     test(
@@ -423,31 +443,32 @@ void main() {
         const realZ = Complex(0.5);
         const nonRealZ = Complex(0.5, 1.0);
 
-        check(Erf(x).evaluateComplex({'x': realZ}).a)
-            .isCloseTo(Erf(x).evaluate({'x': 0.5}), 1e-14);
-        check(Erf(x).evaluateComplex({'x': nonRealZ}).isFinite).isTrue;
+        check(Fn.erf(x).evaluateComplex({'x': realZ}).a)
+            .isCloseTo(Fn.erf(x).evaluate({'x': 0.5}), 1e-14);
+        check(Fn.erf(x).evaluateComplex({'x': nonRealZ}).isFinite).isTrue;
 
-        check(Erfc(x).evaluateComplex({'x': realZ}).a)
-            .isCloseTo(Erfc(x).evaluate({'x': 0.5}), 1e-14);
-        check(Erfc(x).evaluateComplex({'x': nonRealZ}).isFinite).isTrue;
+        check(Fn.erfc(x).evaluateComplex({'x': realZ}).a)
+            .isCloseTo(Fn.erfc(x).evaluate({'x': 0.5}), 1e-14);
+        check(Fn.erfc(x).evaluateComplex({'x': nonRealZ}).isFinite).isTrue;
 
-        check(Gamma(x).evaluateComplex({'x': const Complex(4.0)}).a)
+        check(Fn.gamma(x).evaluateComplex({'x': const Complex(4.0)}).a)
             .isCloseTo(6.0, 1e-12);
-        check(Gamma(x).evaluateComplex({'x': nonRealZ}).isFinite).isTrue;
+        check(Fn.gamma(x).evaluateComplex({'x': nonRealZ}).isFinite).isTrue;
 
         check(
-          Beta(x, y).evaluateComplex({
+          Fn.beta(x, y).evaluateComplex({
             'x': const Complex(2.0),
             'y': const Complex(3.0),
           }).a,
         ).isCloseTo(1.0 / 12.0, 1e-12);
-        check(Beta(x, y).evaluateComplex({'x': nonRealZ, 'y': realZ}).isFinite)
-            .isTrue;
+        check(
+          Fn.beta(x, y).evaluateComplex({'x': nonRealZ, 'y': realZ}).isFinite,
+        ).isTrue;
 
-        check(LambertW(x).evaluateComplex({'x': nonRealZ}).isFinite).isTrue;
+        check(Fn.lambertW(x).evaluateComplex({'x': nonRealZ}).isFinite).isTrue;
 
         final pw = Piecewise([
-          (relation: LessThan(x, IntegerNumber.zero), expr: -x),
+          (relation: Relational.lessThan(x, IntegerNumber.zero), expr: -x),
         ], otherwise: x);
         check(pw.evaluateComplex({'x': const Complex(-2)}))
             .equals(const Complex(2));
@@ -465,13 +486,13 @@ void main() {
 
         // Node evaluation in real mode for calculus and iterated nodes:
         final derivNode = Derivative(
-          Pow(x, IntegerNumber.two),
+          Pow.of(x, IntegerNumber.two),
           'x',
           point: IntegerNumber.of(3),
         );
         check(derivNode.evaluate()).isCloseTo(6.0, 1e-12);
 
-        final limitNode = Limit(Sin(x) / x, 'x', IntegerNumber.zero);
+        final limitNode = Limit(Fn.sin(x) / x, 'x', IntegerNumber.zero);
         check(limitNode.evaluate()).isCloseTo(1.0, 1e-12);
 
         final sumNode = Sum(
@@ -498,7 +519,7 @@ void main() {
         check(() => (x + ComplexNumber.i).evaluate({'x': 1.0}))
             .throws<UnsupportedError>();
 
-        check(const OrderTerm('x', 3).evaluateComplex()).equals(Complex.zero);
+        check(OrderTerm('x', 3).evaluateComplex()).equals(Complex.zero);
       },
     );
 
@@ -507,41 +528,42 @@ void main() {
       final n = IntegerNumber.of(2);
       const k = RealNumber(0.5);
 
-      check(Erf(z).evaluateComplex()).isNotNull();
-      check(Erf(z).evaluateComplex().abs())
-          .isCloseTo(Erf(z).evaluateComplex().abs(), 1e-12);
-      check((Erf(z) + Erfc(z)).evaluateComplex().real).isCloseTo(1.0, 1e-12);
-      check((Erf(z) + Erfc(z)).evaluateComplex().imaginary)
+      check(Fn.erf(z).evaluateComplex()).isNotNull();
+      check(Fn.erf(z).evaluateComplex().abs())
+          .isCloseTo(Fn.erf(z).evaluateComplex().abs(), 1e-12);
+      check((Fn.erf(z) + Fn.erfc(z)).evaluateComplex().real)
+          .isCloseTo(1.0, 1e-12);
+      check((Fn.erf(z) + Fn.erfc(z)).evaluateComplex().imaginary)
           .isCloseTo(0.0, 1e-12);
 
       // Gamma(z + 1) == z * Gamma(z)
-      final gz = Gamma(z).evaluateComplex();
-      final gz1 = Gamma(z + IntegerNumber.one).evaluateComplex();
+      final gz = Fn.gamma(z).evaluateComplex();
+      final gz1 = Fn.gamma(z + IntegerNumber.one).evaluateComplex();
       check(gz1.real).isCloseTo((const Complex(0.5, 0.25) * gz).real, 1e-12);
       check(gz1.imaginary)
           .isCloseTo((const Complex(0.5, 0.25) * gz).imaginary, 1e-12);
 
-      check(Digamma(z).evaluateComplex().isFinite).isTrue;
-      check(Polygamma(n, z).evaluateComplex().isFinite).isTrue;
-      check(BesselJ(n, z).evaluateComplex().isFinite).isTrue;
-      check(EllipticF(z, k).evaluateComplex().isFinite).isTrue;
-      check(EllipticE(k, amplitude: z).evaluateComplex().isFinite).isTrue;
-      check(UpperGamma(n, z).evaluateComplex().isFinite).isTrue;
-      check(Beta(z, n).evaluateComplex().isFinite).isTrue;
-      check(Binomial(z, n).evaluateComplex().isFinite).isTrue;
-      check(LambertW(z).evaluateComplex().isFinite).isTrue;
+      check(Fn.digamma(z).evaluateComplex().isFinite).isTrue;
+      check(Fn.polygamma(n, z).evaluateComplex().isFinite).isTrue;
+      check(Fn.besselJ(n, z).evaluateComplex().isFinite).isTrue;
+      check(Fn.ellipticF(z, k).evaluateComplex().isFinite).isTrue;
+      check(Fn.ellipticE(z, k).evaluateComplex().isFinite).isTrue;
+      check(Fn.upperGamma(n, z).evaluateComplex().isFinite).isTrue;
+      check(Fn.beta(z, n).evaluateComplex().isFinite).isTrue;
+      check(Fn.binomial(z, n).evaluateComplex().isFinite).isTrue;
+      check(Fn.lambertW(z).evaluateComplex().isFinite).isTrue;
 
-      final piExpr = EllipticPi(n, z, k);
+      final piExpr = Fn.ellipticPi(n, z, k);
       check(piExpr.evaluateComplex().isFinite).isTrue;
       check(
-        EllipticPi(
+        Fn.ellipticPi(
           const RealNumber(0.3),
           const RealNumber(0.8),
           const RealNumber(0.5),
         ).evaluate(),
       ).isFinite;
 
-      final a2 = Atan2(const Variable('y'), const Variable('x'));
+      final a2 = Fn.atan2(const Variable('y'), const Variable('x'));
       check(a2.evaluate({'y': 1.0, 'x': -1.0}))
           .isCloseTo(3.0 * 3.141592653589793 / 4.0, 1e-12);
       check(
@@ -591,18 +613,18 @@ void main() {
     test('evaluates special functions on complex inputs via bytecode and toBytecode', () {
       const z = Variable('z');
       for (final expr in <Expr>[
-        Gamma(z),
-        Digamma(z),
-        Zeta(z),
-        BesselJ(IntegerNumber.zero, z),
-        Hypergeometric(
-          [IntegerNumber.one, IntegerNumber.two],
-          [IntegerNumber.of(3)],
+        Fn.gamma(z),
+        Fn.digamma(z),
+        Fn.zeta(z),
+        Fn.besselJ(IntegerNumber.zero, z),
+        Fn.hypergeometric(
+          Fn.tuple([IntegerNumber.one, IntegerNumber.two]),
+          Fn.tuple([IntegerNumber.of(3)]),
           z,
         ),
-        EllipticK(z),
-        EllipticE(z),
-        LambertW(z),
+        Fn.ellipticK(z),
+        Fn.ellipticE(z),
+        Fn.lambertW(z),
       ]) {
         final bc = expr.toBytecode(variables: const ['z']);
         final direct = expr.evaluateComplex({'z': const Complex(0.4, 0.2)});
@@ -622,35 +644,35 @@ void main() {
       const x = Variable('x');
       const y = Variable('y');
       final realExprs = <Expr>[
-        BesselY(IntegerNumber.zero, x),
-        BesselI(IntegerNumber.zero, x),
-        BesselK(IntegerNumber.one, x),
-        UpperGamma(IntegerNumber.two, x),
-        LowerGamma(IntegerNumber.two, x),
-        Polygamma(IntegerNumber.one, x),
-        EllipticF(x, y),
-        EllipticPi(y, x, y),
-        ExpIntegral(x),
-        ExpIntegralE(IntegerNumber.two, x),
-        LogIntegral(x + IntegerNumber.two),
-        SinIntegral(x),
-        CosIntegral(x),
-        SinhIntegral(x),
-        CoshIntegral(x),
-        FresnelS(x),
-        FresnelC(x),
-        Polylog(IntegerNumber.two, y),
-        Erfi(x),
-        Atan2(x, y),
-        Min([x, y]),
-        Max([x, y]),
-        Gcd([IntegerNumber.of(12), IntegerNumber.of(18)]),
-        Lcm([IntegerNumber.of(4), IntegerNumber.of(6)]),
-        Mod(IntegerNumber.of(7), IntegerNumber.of(3)),
-        Floor(x),
-        Ceil(x),
-        Round(x),
-        Sign(x),
+        Fn.besselY(IntegerNumber.zero, x),
+        Fn.besselI(IntegerNumber.zero, x),
+        Fn.besselK(IntegerNumber.one, x),
+        Fn.upperGamma(IntegerNumber.two, x),
+        Fn.lowerGamma(IntegerNumber.two, x),
+        Fn.polygamma(IntegerNumber.one, x),
+        Fn.ellipticF(x, y),
+        Fn.ellipticPi(y, x, y),
+        Fn.ei(x),
+        Fn.expIntegralE(IntegerNumber.two, x),
+        Fn.li(x + IntegerNumber.two),
+        Fn.si(x),
+        Fn.ci(x),
+        Fn.shi(x),
+        Fn.chi(x),
+        Fn.fresnelS(x),
+        Fn.fresnelC(x),
+        Fn.polylog(IntegerNumber.two, y),
+        Fn.erfi(x),
+        Fn.atan2(x, y),
+        Fn.min([x, y]),
+        Fn.max([x, y]),
+        Fn.gcd([IntegerNumber.of(12), IntegerNumber.of(18)]),
+        Fn.lcm([IntegerNumber.of(4), IntegerNumber.of(6)]),
+        Fn.mod(IntegerNumber.of(7), IntegerNumber.of(3)),
+        Fn.floor(x),
+        Fn.ceil(x),
+        Fn.round(x),
+        Fn.sign(x),
       ];
       const env = {'x': 0.8, 'y': 0.4};
       for (final expr in realExprs) {
@@ -662,25 +684,25 @@ void main() {
 
     test('normalizes signed zero for principal complex branch cuts', () {
       const x = Variable('x');
-      final recipSqrt = Pow(IntegerNumber.one / x, FractionNumber.half);
-      final sqrtRecip = Pow(x, FractionNumber.negativeHalf);
+      final recipSqrt = Pow.of(IntegerNumber.one / x, FractionNumber.half);
+      final sqrtRecip = Pow.of(x, FractionNumber.negativeHalf);
       final v1 = recipSqrt.evaluateComplex(const {'x': Complex(-1.0)});
       final v2 = sqrtRecip.evaluateComplex(const {'x': Complex(-1.0)});
       check(v1.a).isCloseTo(0.0, 1e-12);
       check(v1.b).isCloseTo(1.0, 1e-12);
       check((v1 + v2).abs()).isCloseTo(0.0, 1e-12);
 
-      final lnNeg = Ln(IntegerNumber.one / x);
+      final lnNeg = Fn.ln(IntegerNumber.one / x);
       final vLn = lnNeg.evaluateComplex(const {'x': Complex(-1.0)});
       check(vLn.a).isCloseTo(0.0, 1e-12);
       check(vLn.b).isCloseTo(math.pi, 1e-12);
 
-      final bc = Ln(-x).toBytecode(variables: const ['x']);
+      final bc = Fn.ln(-x).toBytecode(variables: const ['x']);
       final vNegLn = bc.evaluateComplex1D(const Complex(1.0));
       check(vNegLn.a).isCloseTo(0.0, 1e-12);
       check(vNegLn.b).isCloseTo(math.pi, 1e-12);
 
-      final vSqrt = Pow(IntegerNumber.one / x, FractionNumber.half)
+      final vSqrt = Pow.of(IntegerNumber.one / x, FractionNumber.half)
           .toBytecode(variables: const ['x'])
           .evaluateComplex1D(const Complex(-4.0));
       check(vSqrt.a).isCloseTo(0.0, 1e-12);

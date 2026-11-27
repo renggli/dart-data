@@ -117,7 +117,7 @@ _PolyMonomial? _parsePolyMonomial(Expr expr) => switch (expr) {
   ]),
   Pow(base: final Variable base, exponent: final IntegerNumber exp) =>
     _PolyMonomial(IntegerNumber.one, [_PolyFactor(base, exp, expr)]),
-  Mul(:final factors, isSimplified: true) => () {
+  Mul(:final factors) => () {
     Number coeff = IntegerNumber.one;
     final polyFactors = <_PolyFactor>[];
     for (final f in factors) {
@@ -140,14 +140,10 @@ _PolyMonomial? _parsePolyMonomial(Expr expr) => switch (expr) {
 Expr _mergePolyFactors(List<_PolyFactor> a, List<_PolyFactor> b) {
   if (a.isEmpty && b.isEmpty) return IntegerNumber.one;
   if (a.isEmpty) {
-    return b.length == 1
-        ? b.first.node
-        : Mul([for (final f in b) f.node], isSimplified: true);
+    return b.length == 1 ? b.first.node : Mul.of([for (final f in b) f.node]);
   }
   if (b.isEmpty) {
-    return a.length == 1
-        ? a.first.node
-        : Mul([for (final f in a) f.node], isSimplified: true);
+    return a.length == 1 ? a.first.node : Mul.of([for (final f in a) f.node]);
   }
 
   final merged = <Expr>[];
@@ -166,11 +162,7 @@ Expr _mergePolyFactors(List<_PolyFactor> a, List<_PolyFactor> b) {
     } else {
       final sumExp = IntegerNumber(fA.exponent.value + fB.exponent.value);
       if (!sumExp.isZero) {
-        merged.add(
-          sumExp.isOne
-              ? fA.variable
-              : Pow(fA.variable, sumExp, isSimplified: true),
-        );
+        merged.add(sumExp.isOne ? fA.variable : Pow.of(fA.variable, sumExp));
       }
       i++;
       j++;
@@ -185,7 +177,7 @@ Expr _mergePolyFactors(List<_PolyFactor> a, List<_PolyFactor> b) {
   return switch (merged) {
     [] => IntegerNumber.one,
     [final single] => single,
-    _ => Mul(merged, isSimplified: true),
+    _ => Mul.of(merged),
   };
 }
 

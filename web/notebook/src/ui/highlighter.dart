@@ -9,7 +9,7 @@ final class SyntaxHighlighter {
   const new _();
 
   static final Set<String> _mathFuncNames = {
-    for (final f in ExprSyntax.standardFunctions) ...[f.name, ...f.aliases],
+    for (final f in ExprSyntax.standardFunctions) f.name,
     ...ExprSyntax.standardUnaryFunctions.keys,
     ...ExprSyntax.standardBinaryFunctions.keys,
     ...ExprSyntax.standardVariadicFunctions.keys,

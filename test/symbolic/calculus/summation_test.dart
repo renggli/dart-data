@@ -68,7 +68,7 @@ void main() {
           .equals(IntegerNumber.of(34)); // 1*2 + 2*4 + 3*8 = 34
 
       // Gosper factorial: sum_{k=1..n} k * k! = (n + 1)! - 1
-      final factSum = (k * Factorial(k)).sum('k', 1, n);
+      final factSum = (k * Fn.factorial(k)).sum('k', 1, n);
       check(factSum.substitute('n', IntegerNumber.of(4)).simplify())
           .equals(IntegerNumber.of(119)); // 5! - 1 = 119
 
@@ -85,11 +85,11 @@ void main() {
       check(infTele).equals(IntegerNumber.one);
 
       // General shift-difference telescoping: sum_{k=1..n} (ln(k + 1) - ln(k)) = ln(n + 1)
-      final logTele = (Ln(k + 1) - Ln(k)).sum('k', 1, n);
+      final logTele = (Fn.ln(k + 1) - Fn.ln(k)).sum('k', 1, n);
       check(logTele.toString()).equals('ln(1 + n)');
 
       // Unevaluated fallback when no closed form exists
-      final uneval = Sin(k * k).sum('k', 1, n);
+      final uneval = Fn.sin(k * k).sum('k', 1, n);
       check(uneval.toString()).equals('sum(sin(k ^ 2), k, 1, n)');
 
       // Integer-index assumptions and symbolic geometric convergence guard
@@ -106,10 +106,7 @@ void main() {
       check(symGeom).isA<Piecewise>();
       final pw = symGeom as Piecewise;
       check(pw.branches.single.relation).equals(
-        LessThan(
-          Abs(const Variable('x'), isSimplified: true),
-          IntegerNumber.one,
-        ),
+        Relational.lessThan(Fn.abs(const Variable('x')), IntegerNumber.one),
       );
       check(
         (pw.branches.single.expr - Expr.parse('1/(1 - x)'))
@@ -144,7 +141,7 @@ void main() {
       check(IntegerNumber.two.product('k', 1, n).toString()).equals('2 ^ n');
 
       // Factorial product: prod_{k=1..n} k = n!
-      check(k.product('k', 1, n)).equals(Factorial(n));
+      check(k.product('k', 1, n)).equals(Fn.factorial(n));
 
       // Shifted linear product: prod_{k=1..n} (k + 1) = (n + 1)!
       check((k + 1).product('k', 1, n).toString()).equals('(1 + n)!');
@@ -167,39 +164,49 @@ void main() {
 
       // Higher-degree Gosper factorial: ((k^2 + 2*k + 1) * k!).sum('k', 1, n) = (n + 2) * (n + 1)! - 2
       final deg2Fact =
-          ((k * k + IntegerNumber.two * k + IntegerNumber.one) * Factorial(k))
+          ((k * k + IntegerNumber.two * k + IntegerNumber.one) *
+                  Fn.factorial(k))
               .sum('k', 1, n);
       check(deg2Fact.substitute('n', IntegerNumber.of(3)).simplify())
           .equals(IntegerNumber.of(118));
 
       // Degree-2 factorial sum without closed-form Gosper certificate falls back to sum(...)
       final noGosperFact =
-          ((k * k + IntegerNumber.two * k + IntegerNumber.two) * Factorial(k))
+          ((k * k + IntegerNumber.two * k + IntegerNumber.two) *
+                  Fn.factorial(k))
               .sum('k', 1, n);
       check(noGosperFact.toString())
-          .equals('sum((2 + 2 * k + k ^ 2) * k!, k, 1, n)');
+          .equals('sum(k! * (2 + 2 * k + k ^ 2), k, 1, n)');
 
       // Repeated pole rational telescoping: 1/k^2 - 1/(k+1)^2
       final repTele =
-          (IntegerNumber.one / Pow(k, IntegerNumber.two) -
+          (IntegerNumber.one / Pow.of(k, IntegerNumber.two) -
                   IntegerNumber.one /
-                      Pow(k + IntegerNumber.one, IntegerNumber.two))
+                      Pow.of(k + IntegerNumber.one, IntegerNumber.two))
               .sum('k', 1, n);
       check(repTele.substitute('n', IntegerNumber.of(3)).simplify())
           .equals(RationalNumber(15, 16));
 
       // Case 2 general telescoping where shifted term appears first
-      final case2Tele = (-Sin(k + IntegerNumber.one) + Sin(k)).sum('k', 1, n);
-      check(
-        case2Tele.substitute('n', IntegerNumber.of(2)).simplify(),
-      ).equals((Sin(IntegerNumber.one) - Sin(IntegerNumber.of(3))).simplify());
+      final case2Tele = (-Fn.sin(k + IntegerNumber.one) + Fn.sin(k)).sum(
+        'k',
+        1,
+        n,
+      );
+      check(case2Tele.substitute('n', IntegerNumber.of(2)).simplify()).equals(
+        (Fn.sin(IntegerNumber.one) - Fn.sin(IntegerNumber.of(3))).simplify(),
+      );
 
       // Reverse order general telescoping: -ln(k + 1) + ln(k)
-      final revLogTele = (Ln(k) - Ln(k + IntegerNumber.two)).sum('k', 1, n);
+      final revLogTele = (Fn.ln(k) - Fn.ln(k + IntegerNumber.two)).sum(
+        'k',
+        1,
+        n,
+      );
       check(revLogTele.substitute('n', IntegerNumber.of(3)).simplify()).equals(
-        (Ln(IntegerNumber.two) -
-                Ln(IntegerNumber.of(4)) -
-                Ln(IntegerNumber.of(5)))
+        (Fn.ln(IntegerNumber.two) -
+                Fn.ln(IntegerNumber.of(4)) -
+                Fn.ln(IntegerNumber.of(5)))
             .simplify(),
       );
 
@@ -230,21 +237,23 @@ void main() {
 
       // Indefinite sum and bound types
       check(k.indefiniteSum('k').toString()).equals('-1/2 * k + 1/2 * k ^ 2');
-      check(Sin(k * k).indefiniteSum('k')).isNull;
+      check(Fn.sin(k * k).indefiniteSum('k')).isNull;
       check(k.sum('k', BigInt.one, 'n').toString())
           .equals('1/2 * n + 1/2 * n ^ 2');
       check(k.sum('k', 1.5, 3.5)).equals(const RealNumber(7.5));
       check(() => k.sum('k', Object(), 5)).throws<ArgumentError>();
 
       // Infinite unevaluated sum fallback
-      final infUneval = Sin(k * k).sum('k', 1, Constant.infinity);
+      final infUneval = Fn.sin(k * k).sum('k', 1, Constant.infinity);
       check(infUneval.toString()).equals('sum(sin(k ^ 2), k, 1, infinity)');
 
       // Simplifying parsed Sum and Product
       check(Expr.parse('sum(k, k, 1, n)').simplify().toString())
           .equals('1/2 * n + 1/2 * n ^ 2');
-      check(Expr.parse('product(k, k, 1, n)').simplify()).equals(Factorial(n));
-      check(Pow(Constant.e, Sin(k * k)).product('k', 1, n)).isA<Product>();
+      check(Expr.parse('product(k, k, 1, n)').simplify())
+          .equals(Fn.factorial(n));
+      check(Pow.of(Constant.e, Fn.sin(k * k)).product('k', 1, n))
+          .isA<Product>();
     });
 
     test(
@@ -341,15 +350,15 @@ void main() {
     test('evaluates alternating harmonic, Mercator, dilogarithm, and Gregory series', () {
       // Alternating harmonic series:
       check(Expr.parse('sum((-1)^(n - 1) / n, n, 1, infinity)').simplify())
-          .equals(Ln(IntegerNumber.two));
+          .equals(Fn.ln(IntegerNumber.two));
       check(Expr.parse('sum((-1)^n / n, n, 1, infinity)').simplify())
-          .equals(-Ln(IntegerNumber.two));
+          .equals(-Fn.ln(IntegerNumber.two));
       check(Expr.parse('sum((-1)^n / (n + 1), n, 0, infinity)').simplify())
-          .equals(Ln(IntegerNumber.two));
+          .equals(Fn.ln(IntegerNumber.two));
 
       // Mercator / polylogarithm Li_1(r) = -ln(1 - r):
       check(Expr.parse('sum(1 / (2^n * n), n, 1, infinity)').simplify())
-          .equals(Ln(IntegerNumber.two));
+          .equals(Fn.ln(IntegerNumber.two));
       check(Expr.parse('sum(1 / (3^n * n), n, 1, infinity)').simplify())
           .equals(Expr.parse('ln(3 / 2)').simplify());
       check(
@@ -386,11 +395,11 @@ void main() {
         check(Expr.parse('sum(1 / n!, n, 1, infinity)').simplify())
             .equals((Constant.e - IntegerNumber.one).simplify());
         check(Expr.parse('sum((-1)^n / n!, n, 0, infinity)').simplify())
-            .equals(Pow(Constant.e, IntegerNumber.negativeOne));
+            .equals(Pow.of(Constant.e, IntegerNumber.negativeOne));
         check(Expr.parse('sum(2^n / n!, n, 0, infinity)').simplify())
-            .equals(Pow(Constant.e, IntegerNumber.two));
+            .equals(Pow.of(Constant.e, IntegerNumber.two));
         check(Expr.parse('sum(x^n / n!, n, 0, infinity)').simplify())
-            .equals(Pow(Constant.e, const Variable('x')));
+            .equals(Pow.of(Constant.e, const Variable('x')));
 
         // Dobiński / polynomial-factorial series sum P(n) / n!:
         check(Expr.parse('sum(n / n!, n, 0, infinity)').simplify())
@@ -402,29 +411,29 @@ void main() {
 
         // Even/odd factorial series (cos, sin, cosh, sinh):
         check(Expr.parse('sum((-1)^n / (2*n)!, n, 0, infinity)').simplify())
-            .equals(Cos(IntegerNumber.one));
+            .equals(Fn.cos(IntegerNumber.one));
         check(Expr.parse('sum((-1)^n / (2*n + 1)!, n, 0, infinity)').simplify())
-            .equals(Sin(IntegerNumber.one));
+            .equals(Fn.sin(IntegerNumber.one));
         check(Expr.parse('sum(1 / (2*n)!, n, 0, infinity)').simplify())
-            .equals(Cosh(IntegerNumber.one));
+            .equals(Fn.cosh(IntegerNumber.one));
         check(Expr.parse('sum(1 / (2*n + 1)!, n, 0, infinity)').simplify())
-            .equals(Sinh(IntegerNumber.one));
+            .equals(Fn.sinh(IntegerNumber.one));
 
         // Parametric even/odd factorial series without spurious sqrt(x^2):
         check(
           Expr.parse('sum((-1)^n * x^(2*n + 1) / (2*n + 1)!, n, 0, infinity)')
               .simplify(),
-        ).equals(Sin(const Variable('x')));
+        ).equals(Fn.sin(const Variable('x')));
         check(
           Expr.parse('sum((-1)^n * x^(2*n) / (2*n)!, n, 0, infinity)')
               .simplify(),
-        ).equals(Cos(const Variable('x')));
+        ).equals(Fn.cos(const Variable('x')));
         check(
           Expr.parse('sum(x^(2*n + 1) / (2*n + 1)!, n, 0, infinity)')
               .simplify(),
-        ).equals(Sinh(const Variable('x')));
+        ).equals(Fn.sinh(const Variable('x')));
         check(Expr.parse('sum(x^(2*n) / (2*n)!, n, 0, infinity)').simplify())
-            .equals(Cosh(const Variable('x')));
+            .equals(Fn.cosh(const Variable('x')));
       },
     );
 
@@ -519,7 +528,7 @@ void main() {
       check(Expr.parse('sum((1/2)^n, n, 2, infinity)').simplify())
           .equals(FractionNumber.half);
       check(Expr.parse('sum(1 / (n * (n + 2)), n, 1, infinity)').simplify())
-          .equals(RationalNumber.of(const Integer(3), const Integer(4)));
+          .equals(RationalNumber.of(BigInt.from(3), BigInt.from(4)));
 
       // Binomial sums with shifts, cancellations, and constants
       check(Expr.parse('sum(2 * binomial(n, k), k, 0, n)').simplify())
@@ -538,11 +547,11 @@ void main() {
       check(Expr.parse('sum(a / (n * (n + 2)), n, 1, infinity)').simplify())
           .equals(Expr.parse('3 * a / 4').simplify());
       check(Expr.parse('sum((1/2)^n + (1/3)^n, n, 0, infinity)').simplify())
-          .equals(RationalNumber.of(const Integer(7), const Integer(2)));
+          .equals(RationalNumber.of(BigInt.from(7), BigInt.from(2)));
       check(Expr.parse('sum(1 / n, n, 2, infinity)').simplify())
           .equals(Constant.infinity);
       check(Expr.parse('sum((1/4)^n / (2 * n + 1), n, 0, infinity)').simplify())
-          .equals(Ln(IntegerNumber.of(3)).simplify());
+          .equals(Fn.ln(IntegerNumber.of(3)).simplify());
       check(Expr.parse('sum((2/9)^n / (2 * n + 1), n, 0, infinity)').simplify())
           .isNotNull();
       check(

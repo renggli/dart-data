@@ -10,9 +10,9 @@ import '../algebra/factor.dart';
 import '../algebra/factor/fraction.dart';
 import '../algebra/rational.dart';
 import '../algebra/simplify.dart';
-import '../algebra/structural_order.dart';
 import '../ast.dart';
 import '../compiler.dart';
+import '../functions/fn.dart';
 
 /// Canonical singleton instance of [ExprDataType].
 const ExprDataType exprDataType = ExprDataType();
@@ -154,10 +154,10 @@ final class ExprField extends ExtendedField<Expr> {
       : (a * RealNumber.fromDouble(factor.toDouble())).simplify();
 
   @override
-  Expr pow(Expr base, Expr exponent) => Pow(base, exponent).simplify();
+  Expr pow(Expr base, Expr exponent) => Pow.of(base, exponent).simplify();
 
   @override
-  Expr abs(Expr a) => Abs(a).simplify();
+  Expr abs(Expr a) => Fn.abs(a).simplify();
 
   @override
   double norm(Expr a) {
@@ -188,16 +188,16 @@ final class ExprField extends ExtendedField<Expr> {
   }
 
   @override
-  Expr sqrt(Expr a) => Pow(a, FractionNumber.half).simplify();
+  Expr sqrt(Expr a) => Pow.of(a, FractionNumber.half).simplify();
 
   @override
-  Expr exp(Expr a) => Pow(Constant.e, a).simplify();
+  Expr exp(Expr a) => Pow.of(Constant.e, a).simplify();
 
   @override
-  Expr log(Expr a) => Ln(a).simplify();
+  Expr log(Expr a) => Fn.ln(a).simplify();
 
   @override
-  Expr conjugate(Expr a) => Conjugate(a).simplify();
+  Expr conjugate(Expr a) => Fn.conj(a).simplify();
 
   @override
   Expr get infinity => Constant.infinity;
@@ -205,10 +205,7 @@ final class ExprField extends ExtendedField<Expr> {
   @override
   Expr get negativeInfinity => _negativeInfinity;
 
-  static final _negativeInfinity = Mul(const [
-    IntegerNumber.negativeOne,
-    Constant.infinity,
-  ], isSimplified: true);
+  static final _negativeInfinity = -Constant.infinity;
 
   @override
   Expr get nan => Constant.undefined;

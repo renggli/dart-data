@@ -120,7 +120,7 @@ final List<Command> algebraCommands = [
     run: (args, _) {
       var expr = args.expr('expr');
       for (final item in args.rest) {
-        if (item is Equal) {
+        if (item is Relational && item.op == RelOp.equal) {
           if (item.left case Variable(:final name)) {
             expr = expr.substitute(name, item.right);
             continue;
@@ -322,7 +322,7 @@ final List<Command> algebraCommands = [
         for (final sol in sols)
           ListValue([
             for (final entry in sol.entries)
-              ExprValue(Equal(Variable(entry.key), entry.value)),
+              ExprValue(Relational.equal(Variable(entry.key), entry.value)),
           ]),
       ]);
     },

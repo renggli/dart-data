@@ -7,7 +7,9 @@ void main() {
     test('constructs composite expressions across all AST node families', () {
       const x = Variable('x');
       final expr =
-          Sin(x) + Cos(x) * IntegerNumber.two - Pow(x, IntegerNumber.two);
+          Fn.sin(x) +
+          Fn.cos(x) * IntegerNumber.two -
+          Pow.of(x, IntegerNumber.two);
       check(expr.freeVariables).unorderedEquals(['x']);
       check(expr.dependsOn('x')).isTrue;
       check(expr.dependsOn('y')).isFalse;
@@ -31,9 +33,9 @@ void main() {
     test('substitutes variables and transforms direct children', () {
       const x = Variable('x');
       const y = Variable('y');
-      final expr = Add([
+      final expr = Add.of([
         x,
-        Mul([IntegerNumber.two, y]),
+        Mul.of([IntegerNumber.two, y]),
       ]);
       final sub = expr.substitute('x', IntegerNumber.of(5));
       check(sub.evaluate({'y': 3.0})).equals(11.0);
@@ -43,7 +45,7 @@ void main() {
       const x = Variable('x');
       check(
         Piecewise([
-          (relation: LessThan(x, IntegerNumber.zero), expr: -x),
+          (relation: Relational.lessThan(x, IntegerNumber.zero), expr: -x),
         ], otherwise: x).isReal,
       ).isTrue;
       check(
@@ -59,73 +61,76 @@ void main() {
       check(Sum(x, 'x', IntegerNumber.one, const Variable('n')).isReal).isTrue;
       check(Product(x, 'x', IntegerNumber.one, const Variable('n')).isReal)
           .isTrue;
-      check(VariableFunction('f', const [x]).isReal).isTrue;
-      check(Pow(IntegerNumber.two, ComplexNumber.i).isReal).isFalse;
-      check(Pow(IntegerNumber.two, IntegerNumber.two).isReal).isTrue;
+      check(Fn.symbolic('f', const [x]).isReal).isTrue;
+      check(Pow.of(IntegerNumber.two, ComplexNumber.i).isReal).isFalse;
+      check(Pow.of(IntegerNumber.two, IntegerNumber.two).isReal).isTrue;
     });
 
     test('supports substitute, mapChildren, getters, and isReal on special integral functions', () {
       const x = Variable('x');
       const y = Variable('y');
-      const two = IntegerNumber.two;
+      final two = IntegerNumber.two;
 
       final unaryNodes = [
-        Erfi(x),
-        FresnelS(x),
-        FresnelC(x),
-        ExpIntegral(x),
-        LogIntegral(x),
-        SinIntegral(x),
-        CosIntegral(x),
-        SinhIntegral(x),
-        CoshIntegral(x),
+        Fn.erfi(x),
+        Fn.fresnelS(x),
+        Fn.fresnelC(x),
+        Fn.ei(x),
+        Fn.li(x),
+        Fn.si(x),
+        Fn.ci(x),
+        Fn.shi(x),
+        Fn.chi(x),
       ];
       for (final node in unaryNodes) {
         check(node.substitute('x', y)).equals(node.mapChildren((_) => y));
       }
 
-      final ug = UpperGamma(x, y);
-      check(ug.order).equals(x);
-      check(ug.argument).equals(y);
-      check(ug.substitute('x', two)).equals(UpperGamma(two, y));
-      check(ug.mapChildren((c) => c == x ? two : c)).equals(UpperGamma(two, y));
+      final ug = Fn.upperGamma(x, y);
+      check(ug.args[0]).equals(x);
+      check(ug.args[1]).equals(y);
+      check(ug.substitute('x', two)).equals(Fn.upperGamma(two, y));
+      check(ug.mapChildren((c) => c == x ? two : c))
+          .equals(Fn.upperGamma(two, y));
 
-      final lg = LowerGamma(x, y);
-      check(lg.order).equals(x);
-      check(lg.argument).equals(y);
-      check(lg.substitute('x', two)).equals(LowerGamma(two, y));
-      check(lg.mapChildren((c) => c == x ? two : c)).equals(LowerGamma(two, y));
+      final lg = Fn.lowerGamma(x, y);
+      check(lg.args[0]).equals(x);
+      check(lg.args[1]).equals(y);
+      check(lg.substitute('x', two)).equals(Fn.lowerGamma(two, y));
+      check(lg.mapChildren((c) => c == x ? two : c))
+          .equals(Fn.lowerGamma(two, y));
 
-      final pl = Polylog(x, y);
-      check(pl.order).equals(x);
-      check(pl.argument).equals(y);
-      check(pl.substitute('x', two)).equals(Polylog(two, y));
-      check(pl.mapChildren((c) => c == x ? two : c)).equals(Polylog(two, y));
+      final pl = Fn.polylog(x, y);
+      check(pl.args[0]).equals(x);
+      check(pl.args[1]).equals(y);
+      check(pl.substitute('x', two)).equals(Fn.polylog(two, y));
+      check(pl.mapChildren((c) => c == x ? two : c)).equals(Fn.polylog(two, y));
 
-      final ef = EllipticF(x, y);
-      check(ef.amplitude).equals(x);
-      check(ef.modulus).equals(y);
-      check(ef.substitute('x', two)).equals(EllipticF(two, y));
-      check(ef.mapChildren((c) => c == x ? two : c)).equals(EllipticF(two, y));
+      final ef = Fn.ellipticF(x, y);
+      check(ef.args[0]).equals(x);
+      check(ef.args[1]).equals(y);
+      check(ef.substitute('x', two)).equals(Fn.ellipticF(two, y));
+      check(ef.mapChildren((c) => c == x ? two : c))
+          .equals(Fn.ellipticF(two, y));
 
-      final ee = EllipticE(y, amplitude: x);
-      check(ee.amplitude).equals(x);
-      check(ee.expr).equals(y);
-      check(ee.substitute('x', two)).equals(EllipticE(y, amplitude: two));
+      final ee = Fn.ellipticE(x, y);
+      check(ee.args[0]).equals(x);
+      check(ee.args[1]).equals(y);
+      check(ee.substitute('x', two)).equals(Fn.ellipticE(two, y));
       check(ee.mapChildren((c) => c == x ? two : c))
-          .equals(EllipticE(y, amplitude: two));
+          .equals(Fn.ellipticE(two, y));
 
       // isReal branch cuts
-      check(LogIntegral(two).isReal).isTrue;
-      check(LogIntegral(IntegerNumber.negativeOne).isReal).isFalse;
-      check(CosIntegral(two).isReal).isTrue;
-      check(CosIntegral(IntegerNumber.zero).isReal).isFalse;
-      check(CoshIntegral(two).isReal).isTrue;
-      check(CoshIntegral(IntegerNumber.negativeOne).isReal).isFalse;
-      check(Polylog(two, FractionNumber.half).isReal).isTrue;
-      check(Polylog(two, two).isReal).isFalse;
-      check(Polylog(two, Constant.pi).isReal).isFalse;
-      check(CosIntegral(ComplexNumber.i).isReal).isFalse;
+      check(Fn.li(two).isReal).isTrue;
+      check(Fn.li(IntegerNumber.negativeOne).isReal).isFalse;
+      check(Fn.ci(two).isReal).isTrue;
+      check(Fn.ci(IntegerNumber.zero).isReal).isFalse;
+      check(Fn.chi(two).isReal).isTrue;
+      check(Fn.chi(IntegerNumber.negativeOne).isReal).isFalse;
+      check(Fn.polylog(two, FractionNumber.half).isReal).isTrue;
+      check(Fn.polylog(two, two).isReal).isFalse;
+      check(Fn.polylog(two, Constant.pi).isReal).isFalse;
+      check(Fn.ci(ComplexNumber.i).isReal).isFalse;
     });
   });
 }

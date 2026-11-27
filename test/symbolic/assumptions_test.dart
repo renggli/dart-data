@@ -46,12 +46,9 @@ void main() {
       () {
         const z = Variable('z');
         const complexZ = Assumptions(domains: {'z': VariableDomain.complex});
-        check(Conjugate(z).simplify(assumptions: complexZ))
-            .equals(Conjugate(z, isSimplified: true));
-        check(Re(z).simplify(assumptions: complexZ))
-            .equals(Re(z, isSimplified: true));
-        check(Im(z).simplify(assumptions: complexZ))
-            .equals(Im(z, isSimplified: true));
+        check(Fn.conj(z).simplify(assumptions: complexZ)).equals(Fn.conj(z));
+        check(Fn.re(z).simplify(assumptions: complexZ)).equals(Fn.re(z));
+        check(Fn.im(z).simplify(assumptions: complexZ)).equals(Fn.im(z));
 
         // For complex z, sqrt(z^2) does not collapse to abs(z)
         check(
@@ -61,8 +58,8 @@ void main() {
         // Chained assumptions via copyWith overriding parent defaultDomain
         check(Assumptions.none.isEmpty).isTrue;
         check(Assumptions.complex.isEmpty).isFalse;
-        check(Conjugate(z).simplify(assumptions: Assumptions.complex))
-            .equals(Conjugate(z, isSimplified: true));
+        check(Fn.conj(z).simplify(assumptions: Assumptions.complex))
+            .equals(Fn.conj(z));
         final chained = Assumptions.complex.copyWith(
           domains: {'z': VariableDomain.real},
         );
@@ -77,7 +74,7 @@ void main() {
         check(assumed.domains['x']).equals(VariableDomain.positive);
         check(assumed.domains['y']).equals(VariableDomain.real);
         check(chained.domainOf('w')).equals(VariableDomain.complex);
-        check(Conjugate(z).simplify(assumptions: chained)).equals(z);
+        check(Fn.conj(z).simplify(assumptions: chained)).equals(z);
 
         final positiveDefault = Assumptions.none.copyWith(
           defaultDomain: VariableDomain.positive,

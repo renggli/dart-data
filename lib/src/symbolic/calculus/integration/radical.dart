@@ -7,7 +7,7 @@ import '../../algebra/simplify.dart';
 import '../../algebra/simplify/domain.dart';
 import '../../assumptions.dart';
 import '../../ast.dart';
-import '../../number/integer.dart';
+import '../../functions/fn.dart';
 import '../linear_form.dart';
 import 'definite.dart';
 import 'integration.dart';
@@ -25,7 +25,7 @@ Expr? tryFactorRadicandPower(
   final factors = expr is Mul ? expr.factors : [expr];
   final xVar = Variable(variable);
 
-  Expr rebuild(int idx, Expr replacement) => Mul([
+  Expr rebuild(int idx, Expr replacement) => Mul.of([
     for (var j = 0; j < factors.length; j++)
       if (j == idx) replacement else factors[j],
   ]).simplify(assumptions: assumptions);
@@ -49,16 +49,18 @@ Expr? tryFactorRadicandPower(
               exponent: IntegerNumber(asInt: 2),
             )) {
               final isLinearTrigOrHyp = switch (f) {
-                Sin(:final expr) ||
-                Cos(:final expr) ||
-                Tan(:final expr) ||
-                Sinh(:final expr) ||
-                Cosh(:final expr) ||
-                Tanh(:final expr) => expr.matchLinear(variable) != null,
+                Call(:final id, args: [final expr])
+                    when id == FunctionId.sin ||
+                        id == FunctionId.cos ||
+                        id == FunctionId.tan ||
+                        id == FunctionId.sinh ||
+                        id == FunctionId.cosh ||
+                        id == FunctionId.tanh =>
+                  expr.matchLinear(variable) != null,
                 _ => false,
               };
               if (isLinearTrigOrHyp) {
-                final fPowK = Pow(
+                final fPowK = Pow.of(
                   f,
                   IntegerNumber.of(k),
                 ).simplify(assumptions: assumptions);
@@ -90,9 +92,8 @@ Expr? tryFactorRadicandPower(
             assumptions: assumptions,
           );
           final replacement =
-              (Pow(xVar, pulledExp) * Pow(shiftedPoly, exponent)).simplify(
-                assumptions: assumptions,
-              );
+              (Pow.of(xVar, pulledExp) * Pow.of(shiftedPoly, exponent))
+                  .simplify(assumptions: assumptions);
           final rewritten = rebuild(i, replacement);
           final res = antiDerivative(
             rewritten,
@@ -124,12 +125,14 @@ Expr? tryFactorRadicandPower(
         final pulledExp = (IntegerNumber.of(minDeg) * exponent).simplify(
           assumptions: assumptions,
         );
-        final quotientPoly = Add([
+        final quotientPoly = Add.of([
           for (final entry in nonZero)
-            entry.value * Pow(xVar, IntegerNumber.of(entry.key - minDeg)),
+            entry.value * Pow.of(xVar, IntegerNumber.of(entry.key - minDeg)),
         ]).simplify(assumptions: assumptions);
-        final replacement = (Pow(xVar, pulledExp) * Pow(quotientPoly, exponent))
-            .simplify(assumptions: assumptions);
+        final replacement =
+            (Pow.of(xVar, pulledExp) * Pow.of(quotientPoly, exponent)).simplify(
+              assumptions: assumptions,
+            );
         final rewritten = rebuild(i, replacement);
         final res = antiDerivative(
           rewritten,
@@ -180,7 +183,8 @@ Expr? tryFactorRadicandPower(
                     ? IntegerNumber.negativeOne
                     : IntegerNumber.one;
                 final innerReal =
-                    (sqrtNegA * Pow(xVar, IntegerNumber.of(k)) + s * sqrtNegC)
+                    (sqrtNegA * Pow.of(xVar, IntegerNumber.of(k)) +
+                            s * sqrtNegC)
                         .simplify(assumptions: assumptions);
                 final halfExp = halfIntExponent(exp);
                 if (halfExp != null &&
@@ -191,7 +195,7 @@ Expr? tryFactorRadicandPower(
                       : IntegerNumber.one;
                   final rewritten = rebuild(
                     i,
-                    (paritySign * Pow(innerReal, IntegerNumber.of(halfExp)))
+                    (paritySign * Pow.of(innerReal, IntegerNumber.of(halfExp)))
                         .simplify(assumptions: assumptions),
                   );
                   final res = antiDerivative(
@@ -201,7 +205,7 @@ Expr? tryFactorRadicandPower(
                     assumptions: assumptions,
                   );
                   if (!hasUnevaluatedIntegral(res, variable)) {
-                    final unit = (Pow(base, FractionNumber.half) / innerReal)
+                    final unit = (Pow.of(base, FractionNumber.half) / innerReal)
                         .simplify(assumptions: assumptions);
                     return (unit * res).simplify(assumptions: assumptions);
                   }
@@ -216,7 +220,7 @@ Expr? tryFactorRadicandPower(
                     ? IntegerNumber.negativeOne
                     : IntegerNumber.one;
                 final inner =
-                    (sqrtA * Pow(xVar, IntegerNumber.of(k)) + s * sqrtC)
+                    (sqrtA * Pow.of(xVar, IntegerNumber.of(k)) + s * sqrtC)
                         .simplify(assumptions: assumptions);
                 final newExp = (IntegerNumber.two * exp).simplify(
                   assumptions: assumptions,
@@ -231,7 +235,7 @@ Expr? tryFactorRadicandPower(
                         isSyntacticallyNegative(a) ||
                         isSyntacticallyNegative(c));
                 if (!needsAbsInner) {
-                  final rewritten = rebuild(i, Pow(inner, newExp));
+                  final rewritten = rebuild(i, Pow.of(inner, newExp));
                   final res = antiDerivative(
                     rewritten,
                     variable,
@@ -267,10 +271,9 @@ Expr? tryFactorRadicandPower(
                       }
                       final unit =
                           assumptions.domainOf(variable) == VariableDomain.real
-                          ? Sign(inner)
-                          : (Pow(base, FractionNumber.half) / inner).simplify(
-                              assumptions: assumptions,
-                            );
+                          ? Fn.sign(inner)
+                          : (Pow.of(base, FractionNumber.half) / inner)
+                                .simplify(assumptions: assumptions);
                       return (unit * anchored).simplify(
                         assumptions: assumptions,
                       );
@@ -328,17 +331,17 @@ Expr? tryFactorRadicandPower(
     if (deg < minExp) minExp = deg;
     final c = consts.isEmpty
         ? IntegerNumber.one
-        : Mul(consts).simplify(assumptions: assumptions);
+        : Mul.of(consts).simplify(assumptions: assumptions);
     parsedTerms.add((coeff: c, power: deg));
   }
 
   final k = -minExp;
   if (k < 1 || k > 6) return null;
-  final shifted = Add([
+  final shifted = Add.of([
     for (final item in parsedTerms)
       (item.power + k == 0
               ? item.coeff
-              : item.coeff * Pow(xVar, IntegerNumber.of(item.power + k)))
+              : item.coeff * Pow.of(xVar, IntegerNumber.of(item.power + k)))
           .simplify(assumptions: assumptions),
   ]).simplify(assumptions: assumptions);
   return (k: k, shiftedPoly: shifted);
@@ -392,10 +395,10 @@ Expr? tryHalfAngleTrigRadical(
       }
       final bool isSin;
       final Expr u;
-      if (tv case Sin(:final expr)) {
+      if (tv case Call(id: FunctionId.sin, args: [final expr])) {
         isSin = true;
         u = expr;
-      } else if (tv case Cos(:final expr)) {
+      } else if (tv case Call(id: FunctionId.cos, args: [final expr])) {
         isSin = false;
         u = expr;
       } else {
@@ -404,7 +407,7 @@ Expr? tryHalfAngleTrigRadical(
       if (u.matchLinear(variable) == null) return null;
       final coeff = trigConst.isEmpty
           ? IntegerNumber.one
-          : Mul(trigConst).simplify(assumptions: assumptions);
+          : Mul.of(trigConst).simplify(assumptions: assumptions);
       final ratio = (coeff / a).simplify(assumptions: assumptions);
       final int sign;
       if (ratio == IntegerNumber.one) {
@@ -452,14 +455,17 @@ Expr? tryHalfAngleTrigRadical(
     }
     if (targetPow != null && matched != null) {
       if (consts.isNotEmpty) {
-        constScale = Mul(consts).simplify(assumptions: assumptions);
+        constScale = Mul.of(consts).simplify(assumptions: assumptions);
       }
       if (varOthers.isNotEmpty) {
         final uTarget = matched.u;
         bool onlySinCosOfU(Expr n) {
           if (!n.dependsOn(variable)) return true;
-          if ((n is Sin || n is Cos || n is Tan) &&
-              ((n as UnaryExpr).expr == uTarget)) {
+          if (n is Call &&
+              (n.id == FunctionId.sin ||
+                  n.id == FunctionId.cos ||
+                  n.id == FunctionId.tan) &&
+              n.args[0] == uTarget) {
             return true;
           }
           if (n is Add) return n.terms.every(onlySinCosOfU);
@@ -488,18 +494,17 @@ Expr? tryHalfAngleTrigRadical(
             : (uTarget / IntegerNumber.two).simplify(assumptions: assumptions);
 
         if (!isRecip) {
-          final trigHalf = sign > 0 ? Cos(v) : Sin(v);
-          final unit = (Pow(targetPow.base, FractionNumber.half) / trigHalf)
+          final trigHalf = sign > 0 ? Fn.cos(v) : Fn.sin(v);
+          final unit = (Pow.of(targetPow.base, FractionNumber.half) / trigHalf)
               .simplify(assumptions: assumptions);
           final twoCos2M1 =
-              (IntegerNumber.two * Cos(v) * Cos(v) - IntegerNumber.one)
+              (IntegerNumber.two * Fn.cos(v) * Fn.cos(v) - IntegerNumber.one)
                   .simplify(assumptions: assumptions);
           final oneMTwoSin2 =
-              (IntegerNumber.one - IntegerNumber.two * Sin(v) * Sin(v))
+              (IntegerNumber.one - IntegerNumber.two * Fn.sin(v) * Fn.sin(v))
                   .simplify(assumptions: assumptions);
-          final twoSinCos = (IntegerNumber.two * Sin(v) * Cos(v)).simplify(
-            assumptions: assumptions,
-          );
+          final twoSinCos = (IntegerNumber.two * Fn.sin(v) * Fn.cos(v))
+              .simplify(assumptions: assumptions);
           final cosURepl = !isSin
               ? (sign > 0 ? twoCos2M1 : oneMTwoSin2)
               : (-twoSinCos).simplify(assumptions: assumptions);
@@ -508,18 +513,20 @@ Expr? tryHalfAngleTrigRadical(
               : (sign > 0 ? twoCos2M1 : oneMTwoSin2);
 
           Expr replaceTrigHalf(Expr n) {
-            if (n is Sin && n.expr == uTarget) return sinURepl;
-            if (n is Cos && n.expr == uTarget) return cosURepl;
-            if (n is Tan && n.expr == uTarget) return sinURepl / cosURepl;
+            if (n is Call && n.args[0] == uTarget) {
+              if (n.id == FunctionId.sin) return sinURepl;
+              if (n.id == FunctionId.cos) return cosURepl;
+              if (n.id == FunctionId.tan) return sinURepl / cosURepl;
+            }
             return n.mapChildren(replaceTrigHalf);
           }
 
           final otherProd = varOthers.length == 1
               ? varOthers.first
-              : Mul(varOthers).simplify(assumptions: assumptions);
+              : Mul.of(varOthers).simplify(assumptions: assumptions);
           final rawRewritten =
               (constScale *
-                      Pow(trigHalf, IntegerNumber.of(k)) *
+                      Pow.of(trigHalf, IntegerNumber.of(k)) *
                       replaceTrigHalf(otherProd))
                   .simplify(assumptions: assumptions);
           if (!exceedsNodeBudget(rawRewritten, 220)) {
@@ -533,7 +540,7 @@ Expr? tryHalfAngleTrigRadical(
               assumptions: assumptions,
             );
             if (!hasUnevaluatedIntegral(res, variable)) {
-              return (Pow(unit, IntegerNumber.of(k)) * res).simplify(
+              return (Pow.of(unit, IntegerNumber.of(k)) * res).simplify(
                 assumptions: assumptions,
               );
             }
@@ -544,22 +551,22 @@ Expr? tryHalfAngleTrigRadical(
         // Case B: a +- a / cos(u) or a +- a / sin(u)
         final tName = freshIntegrationVar('_ha', expr, variable, depth);
         final tVar = Variable(tName);
-        final tanV = Tan(v);
+        final tanV = Fn.tan(v);
         final oneMT2 = (IntegerNumber.one - tVar * tVar).simplify();
         final onePT2 = (IntegerNumber.one + tVar * tVar).simplify();
         final oneMTanV2 = (IntegerNumber.one - tanV * tanV).simplify();
         final unit = sign > 0
-            ? (Pow(targetPow.base, FractionNumber.half) *
-                      Pow(oneMTanV2, FractionNumber.half))
+            ? (Pow.of(targetPow.base, FractionNumber.half) *
+                      Pow.of(oneMTanV2, FractionNumber.half))
                   .simplify(assumptions: assumptions)
-            : (Pow(targetPow.base, FractionNumber.half) *
-                      Pow(oneMTanV2, FractionNumber.half) /
+            : (Pow.of(targetPow.base, FractionNumber.half) *
+                      Pow.of(oneMTanV2, FractionNumber.half) /
                       tanV)
                   .simplify(assumptions: assumptions);
         final radInT = sign > 0
-            ? Pow(oneMT2, FractionNumber(Integer(-k), Integer.two))
-            : (Pow(tVar, IntegerNumber.of(k)) *
-                      Pow(oneMT2, FractionNumber(Integer(-k), Integer.two)))
+            ? Pow.of(oneMT2, RationalNumber(-k, 2))
+            : (Pow.of(tVar, IntegerNumber.of(k)) *
+                      Pow.of(oneMT2, RationalNumber(-k, 2)))
                   .simplify();
         final primaryExpr = oneMT2 / onePT2;
         final secondaryExpr =
@@ -570,15 +577,17 @@ Expr? tryHalfAngleTrigRadical(
         final sinExprT = isSin ? primaryExpr : secondaryExpr;
 
         Expr replaceTrigT(Expr n) {
-          if (n is Cos && n.expr == uTarget) return cosExprT;
-          if (n is Sin && n.expr == uTarget) return sinExprT;
-          if (n is Tan && n.expr == uTarget) return sinExprT / cosExprT;
+          if (n is Call && n.args[0] == uTarget) {
+            if (n.id == FunctionId.cos) return cosExprT;
+            if (n.id == FunctionId.sin) return sinExprT;
+            if (n.id == FunctionId.tan) return sinExprT / cosExprT;
+          }
           return n.mapChildren(replaceTrigT);
         }
 
         final otherProd = varOthers.length == 1
             ? varOthers.first
-            : Mul(varOthers).simplify(assumptions: assumptions);
+            : Mul.of(varOthers).simplify(assumptions: assumptions);
         final dx = IntegerNumber.two / (duFactor * onePT2);
         final transformed = (constScale * radInT * replaceTrigT(otherProd) * dx)
             .together(assumptions: assumptions)
@@ -592,7 +601,7 @@ Expr? tryHalfAngleTrigRadical(
             assumptions: assumptions,
           );
           if (!hasUnevaluatedIntegral(tRes, tName)) {
-            return (Pow(unit, IntegerNumber.of(k)) *
+            return (Pow.of(unit, IntegerNumber.of(k)) *
                     tRes.substitute(tName, tanV))
                 .simplify(assumptions: assumptions);
           }
@@ -620,22 +629,22 @@ Expr? tryHalfAngleTrigRadical(
           .simplify(assumptions: assumptions);
       final tName = freshIntegrationVar('_ha', expr, variable, depth);
       final tVar = Variable(tName);
-      final tanV = Tan(v);
+      final tanV = Fn.tan(v);
       final oneMT2 = (IntegerNumber.one - tVar * tVar).simplify();
       final onePT2 = (IntegerNumber.one + tVar * tVar).simplify();
       final oneMTanV2 = (IntegerNumber.one - tanV * tanV).simplify();
       final unit = sign > 0
-          ? (Pow(targetPow.base, FractionNumber.half) *
-                    Pow(oneMTanV2, FractionNumber.half))
+          ? (Pow.of(targetPow.base, FractionNumber.half) *
+                    Pow.of(oneMTanV2, FractionNumber.half))
                 .simplify(assumptions: assumptions)
-          : (Pow(targetPow.base, FractionNumber.half) *
-                    Pow(oneMTanV2, FractionNumber.half) /
+          : (Pow.of(targetPow.base, FractionNumber.half) *
+                    Pow.of(oneMTanV2, FractionNumber.half) /
                     tanV)
                 .simplify(assumptions: assumptions);
       final radInT = sign > 0
-          ? Pow(oneMT2, FractionNumber(Integer(-k), Integer.two))
-          : (Pow(tVar, IntegerNumber.of(k)) *
-                    Pow(oneMT2, FractionNumber(Integer(-k), Integer.two)))
+          ? Pow.of(oneMT2, RationalNumber(-k, 2))
+          : (Pow.of(tVar, IntegerNumber.of(k)) *
+                    Pow.of(oneMT2, RationalNumber(-k, 2)))
                 .simplify();
       final dx = IntegerNumber.two / (duFactor * onePT2);
       final transformed = (constScale * radInT * dx)
@@ -649,7 +658,8 @@ Expr? tryHalfAngleTrigRadical(
           assumptions: assumptions,
         );
         if (!hasUnevaluatedIntegral(tRes, tName)) {
-          return (Pow(unit, IntegerNumber.of(k)) * tRes.substitute(tName, tanV))
+          return (Pow.of(unit, IntegerNumber.of(k)) *
+                  tRes.substitute(tName, tanV))
               .simplify(assumptions: assumptions);
         }
       }
@@ -660,9 +670,9 @@ Expr? tryHalfAngleTrigRadical(
         .matchLinear(variable)!
         .a
         .simplify(assumptions: assumptions);
-    final trigDeriv = isSin ? Cos(u) : (-Sin(u)).simplify();
-    final sqrt2 = Pow(IntegerNumber.two, FractionNumber.half);
-    final sqrtA = Pow(aExpr, FractionNumber.half);
+    final trigDeriv = isSin ? Fn.cos(u) : (-Fn.sin(u)).simplify();
+    final sqrt2 = Pow.of(IntegerNumber.two, FractionNumber.half);
+    final sqrtA = Pow.of(aExpr, FractionNumber.half);
 
     Expr integrateHalfInt(int m) {
       final sExpr = targetPow!.base;
@@ -670,7 +680,7 @@ Expr? tryHalfAngleTrigRadical(
         return (-IntegerNumber.of(2 * sign) *
                 aExpr *
                 trigDeriv *
-                Pow(sExpr, const FractionNumber(Integer(-1), Integer(2))))
+                Pow.of(sExpr, FractionNumber.negativeHalf))
             .simplify(assumptions: assumptions);
       }
       if (m == -1) {
@@ -678,20 +688,19 @@ Expr? tryHalfAngleTrigRadical(
             (sqrt2 *
                     sqrtA *
                     trigDeriv /
-                    (IntegerNumber.two * Pow(sExpr, FractionNumber.half)))
+                    (IntegerNumber.two * Pow.of(sExpr, FractionNumber.half)))
                 .simplify(assumptions: assumptions);
-        return (-IntegerNumber.of(sign) * sqrt2 * Atanh(arg) / sqrtA).simplify(
-          assumptions: assumptions,
-        );
+        return (-IntegerNumber.of(sign) * sqrt2 * Fn.atanh(arg) / sqrtA)
+            .simplify(assumptions: assumptions);
       }
       if (m > 1) {
-        final q = FractionNumber(Integer(m), const Integer(2));
+        final q = RationalNumber(m, 2);
         final prev = integrateHalfInt(m - 2);
         final term1 =
             (-IntegerNumber.of(2 * sign) *
                 aExpr *
                 trigDeriv *
-                Pow(sExpr, (q - IntegerNumber.one).simplify())) /
+                Pow.of(sExpr, (q - IntegerNumber.one).simplify())) /
             IntegerNumber.of(m);
         final term2 =
             (IntegerNumber.of(2 * (m - 1)) * aExpr / IntegerNumber.of(m)) *
@@ -699,10 +708,10 @@ Expr? tryHalfAngleTrigRadical(
         return (term1 + term2).simplify(assumptions: assumptions);
       }
       // m <= -3
-      final q = FractionNumber(Integer(m), const Integer(2));
+      final q = RationalNumber(m, 2);
       final next = integrateHalfInt(m + 2);
       final term1 =
-          (IntegerNumber.of(sign) * trigDeriv * Pow(sExpr, q)) /
+          (IntegerNumber.of(sign) * trigDeriv * Pow.of(sExpr, q)) /
           IntegerNumber.of(m + 1);
       final term2 =
           (IntegerNumber.of(m + 2) / (IntegerNumber.of(2 * (m + 1)) * aExpr)) *
@@ -749,7 +758,7 @@ Expr? tryRealRadicalRewrite(
               ? (
                   i0: negIndices[0],
                   i1: negIndices[1],
-                  exp: const FractionNumber(Integer(-1), Integer(2)),
+                  exp: FractionNumber.negativeHalf,
                 )
               : null);
     if (pair != null) {
@@ -763,37 +772,35 @@ Expr? tryRealRadicalRewrite(
                 .cancel(assumptions: assumptions)
                 .simplify(assumptions: assumptions);
       if (ratio is RealNumeric && ratio.sign < 0) {
-        if (factors.length == 2 &&
-            pair.exp == const FractionNumber(Integer(-1), Integer(2))) {
+        if (factors.length == 2 && pair.exp == FractionNumber.negativeHalf) {
           final posBase = isSyntacticallyNegative(b0) ? b1 : b0;
           final negBase = isSyntacticallyNegative(b0) ? b0 : b1;
           if (posBase.matchLinear(variable) case (:final a, b: _)) {
-            return (Pow(posBase, FractionNumber.half) *
-                    Ln(posBase) /
-                    (a * Pow(negBase, FractionNumber.half)))
+            return (Pow.of(posBase, FractionNumber.half) *
+                    Fn.ln(posBase) /
+                    (a * Pow.of(negBase, FractionNumber.half)))
                 .simplify(assumptions: assumptions);
           }
         }
       } else {
-        if (factors.length == 2 &&
-            pair.exp == const FractionNumber(Integer(-1), Integer(2))) {
+        if (factors.length == 2 && pair.exp == FractionNumber.negativeHalf) {
           if ((b0.matchLinear(variable), b1.matchLinear(variable))
               case ((a: final a0, b: _), (a: final a1, b: _)) when a0 == a1) {
             return (IntegerNumber.two *
-                    Ln(
-                      (Pow(b0, FractionNumber.half) +
-                              Pow(b1, FractionNumber.half))
+                    Fn.ln(
+                      (Pow.of(b0, FractionNumber.half) +
+                              Pow.of(b1, FractionNumber.half))
                           .simplify(assumptions: assumptions),
                     ) /
                     a0)
                 .simplify(assumptions: assumptions);
           }
         }
-        final merged = Pow(
+        final merged = Pow.of(
           (b0 * b1).expand().simplify(assumptions: assumptions),
           pair.exp,
         );
-        final rebuilt = Mul([
+        final rebuilt = Mul.of([
           merged,
           for (var j = 0; j < factors.length; j++)
             if (j != pair.i0 && j != pair.i1) factors[j],
@@ -813,13 +820,15 @@ Expr? tryRealRadicalRewrite(
   final signFactors = <Expr>[];
   Expr rewriteSqrt(Expr node) {
     final mapped = node.mapChildren(rewriteSqrt);
-    if (mapped case Pow(
-      :final base,
-      exponent: FractionNumber(
-        numerator: Integer(asInt: 1),
-        denominator: Integer(asInt: 2),
-      ),
-    )) {
+    if (mapped
+        case Pow(
+          :final base,
+          exponent: FractionNumber(
+            numerator: final fnNum,
+            denominator: final fnDen,
+          ),
+        )
+        when fnNum == BigInt.one && fnDen == BigInt.two) {
       if (base case Add(terms: [final t0, final t1])) {
         Expr? tanSq;
         if (t0 == IntegerNumber.one) {
@@ -828,14 +837,14 @@ Expr? tryRealRadicalRewrite(
           tanSq = t0;
         }
         if (tanSq case Pow(
-          base: Tan(expr: final u),
+          base: Call(id: FunctionId.tan, args: [final u]),
           exponent: IntegerNumber(asInt: 2),
         )) {
-          final cosU = Cos(u);
+          final cosU = Fn.cos(u);
           if (!isPositiveExpr(cosU, assumptions: assumptions)) {
-            signFactors.add(Sign(cosU));
+            signFactors.add(Fn.sign(cosU));
           }
-          return Pow(cosU, IntegerNumber.negativeOne);
+          return Pow.of(cosU, IntegerNumber.negativeOne);
         }
       }
       if (base case Mul(:final factors)) {
@@ -847,12 +856,14 @@ Expr? tryRealRadicalRewrite(
                 base: final inner,
                 exponent: IntegerNumber(asInt: final p?),
               )
-              when p.isEven && (inner is Sin || inner is Cos)) {
+              when p.isEven &&
+                  inner is Call &&
+                  (inner.id == FunctionId.sin || inner.id == FunctionId.cos)) {
             final k = p ~/ 2;
             if (k.isOdd && !isPositiveExpr(inner, assumptions: assumptions)) {
-              signFactors.add(Sign(inner));
+              signFactors.add(Fn.sign(inner));
             }
-            pulled.add(Pow(inner, IntegerNumber.of(k)));
+            pulled.add(Pow.of(inner, IntegerNumber.of(k)));
           } else {
             remaining.add(f);
           }
@@ -860,16 +871,16 @@ Expr? tryRealRadicalRewrite(
         if (pulled.isNotEmpty) {
           final remSqrt = switch (remaining) {
             [] => IntegerNumber.one,
-            [Pow(:final base, exponent: Number(isNegativeOne: true))] => Pow(
+            [Pow(:final base, exponent: Number(isNegativeOne: true))] => Pow.of(
               base,
-              const FractionNumber(Integer(-1), Integer(2)),
+              FractionNumber.negativeHalf,
             ),
-            _ => Pow(
-              Mul(remaining).simplify(assumptions: assumptions),
+            _ => Pow.of(
+              Mul.of(remaining).simplify(assumptions: assumptions),
               FractionNumber.half,
             ),
           };
-          return (Mul(pulled) * remSqrt).simplify(assumptions: assumptions);
+          return (Mul.of(pulled) * remSqrt).simplify(assumptions: assumptions);
         }
       }
     }
@@ -887,7 +898,7 @@ Expr? tryRealRadicalRewrite(
     if (!hasUnevaluatedIntegral(res, variable)) {
       return signFactors.isEmpty
           ? res
-          : (Mul(signFactors) * res).simplify(assumptions: assumptions);
+          : (Mul.of(signFactors) * res).simplify(assumptions: assumptions);
     }
   }
   return null;
@@ -913,7 +924,7 @@ Expr? tryVariableRootSubstitution(
           exponent: FractionNumber(:final denominator),
         )
         when name == variable) {
-      final dInt = denominator.asInt;
+      final dInt = denominator.isValidInt ? denominator.toInt() : null;
       if (dInt != null && dInt >= 2) {
         denoms.add(dInt);
         return;
@@ -923,7 +934,7 @@ Expr? tryVariableRootSubstitution(
         node.exponent is FractionNumber &&
         node.dependsOn(variable)) {
       hasNonVarFracPow = true;
-    } else if (node is UnaryExpr && node.dependsOn(variable)) {
+    } else if (node is Call && node.dependsOn(variable)) {
       hasTranscendental = true;
     }
     node.mapChildren((c) {
@@ -953,14 +964,14 @@ Expr? tryVariableRootSubstitution(
           exponent: FractionNumber(:final numerator, :final denominator),
         )
         when name == variable) {
-      final numInt = numerator.asInt;
-      final denInt = denominator.asInt;
+      final numInt = numerator.isValidInt ? numerator.toInt() : null;
+      final denInt = denominator.isValidInt ? denominator.toInt() : null;
       if (numInt == null || denInt == null) return null;
       final exp = numInt * (d ~/ denInt);
-      return Pow(tVar, IntegerNumber.of(exp));
+      return Pow.of(tVar, IntegerNumber.of(exp));
     }
     if (node is Variable && node.name == variable) {
-      return Pow(tVar, IntegerNumber.of(d));
+      return Pow.of(tVar, IntegerNumber.of(d));
     }
     var ok = true;
     final mapped = node.mapChildren((c) {
@@ -979,7 +990,7 @@ Expr? tryVariableRootSubstitution(
   final substituted = replacedExpr.simplify(assumptions: assumptions);
   if (substituted.dependsOn(variable)) return null;
 
-  final dxFactor = (IntegerNumber.of(d) * Pow(tVar, IntegerNumber.of(d - 1)))
+  final dxFactor = (IntegerNumber.of(d) * Pow.of(tVar, IntegerNumber.of(d - 1)))
       .simplify(assumptions: assumptions);
   final transformed = (substituted * dxFactor).simplify(
     assumptions: assumptions,
@@ -992,10 +1003,7 @@ Expr? tryVariableRootSubstitution(
   );
   if (hasUnevaluatedIntegral(res, tName)) return null;
 
-  final xRoot = Pow(
-    Variable(variable),
-    FractionNumber(Integer.one, Integer(d)),
-  );
+  final xRoot = Pow.of(Variable(variable), RationalNumber(1, d));
   return res.substitute(tName, xRoot).simplify(assumptions: assumptions);
 }
 
@@ -1008,15 +1016,15 @@ Expr? tryRadicalQuadratic(Expr base, String variable) {
     final varTerm = !t0.dependsOn(variable) ? t1 : t0;
     if (aConst == null) return null;
 
-    final rad = Pow(base, FractionNumber.half).simplify();
+    final rad = Pow.of(base, FractionNumber.half).simplify();
     if (isPositiveConstant(aConst)) {
-      final sqrtA = Pow(aConst, FractionNumber.half).simplify();
+      final sqrtA = Pow.of(aConst, FractionNumber.half).simplify();
       // 1. sqrt(a - u^2) where u = m*x + b
       final negVar = (-varTerm).simplify();
       if (extractScaledSquareBase(negVar, variable) case final u?) {
         if (u.matchLinear(variable) case (a: final slope, b: _)) {
           return ((u * rad / IntegerNumber.two +
-                      (aConst / IntegerNumber.two) * Asin(u / sqrtA)) /
+                      (aConst / IntegerNumber.two) * Fn.asin(u / sqrtA)) /
                   slope)
               .simplify();
         }
@@ -1025,7 +1033,7 @@ Expr? tryRadicalQuadratic(Expr base, String variable) {
       if (extractScaledSquareBase(varTerm, variable) case final u?) {
         if (u.matchLinear(variable) case (a: final slope, b: _)) {
           return ((u * rad / IntegerNumber.two +
-                      (aConst / IntegerNumber.two) * Asinh(u / sqrtA)) /
+                      (aConst / IntegerNumber.two) * Fn.asinh(u / sqrtA)) /
                   slope)
               .simplify();
         }
@@ -1037,7 +1045,7 @@ Expr? tryRadicalQuadratic(Expr base, String variable) {
         if (u.matchLinear(variable) case (a: final slope, b: _)) {
           return ((u * rad / IntegerNumber.two -
                       (posA / IntegerNumber.two) *
-                          Ln(Abs((u + rad).simplify()))) /
+                          Fn.ln(Fn.abs((u + rad).simplify()))) /
                   slope)
               .simplify();
         }
@@ -1099,23 +1107,23 @@ Expr? tryQuadraticRadical(
       final denom = (IntegerNumber.of(m + halfExp + 1) * a).simplify();
       final term1 =
           (lead *
-              Pow(xVar, IntegerNumber.of(m - 1)) *
-              Pow(
-                quad,
-                FractionNumber(Integer(halfExp + 2), const Integer(2)),
-              )) /
+              Pow.of(xVar, IntegerNumber.of(m - 1)) *
+              Pow.of(quad, RationalNumber(halfExp + 2, 2))) /
           denom;
       final bTerm =
           (lead *
               IntegerNumber.of(2 * m + halfExp) *
               b /
               (IntegerNumber.two * denom)) *
-          Pow(xVar, IntegerNumber.of(m - 1));
+          Pow.of(xVar, IntegerNumber.of(m - 1));
       final cTerm =
           (lead * IntegerNumber.of(m - 1) * c / denom) *
-          (m == 2 ? IntegerNumber.one : Pow(xVar, IntegerNumber.of(m - 2)));
+          (m == 2 ? IntegerNumber.one : Pow.of(xVar, IntegerNumber.of(m - 2)));
       final lowerPoly =
-          (numExpanded - lead * Pow(xVar, IntegerNumber.of(m)) - bTerm - cTerm)
+          (numExpanded -
+                  lead * Pow.of(xVar, IntegerNumber.of(m)) -
+                  bTerm -
+                  cTerm)
               .expand()
               .simplify();
       final rem = tryQuadraticRadical(lowerPoly, quad, halfExp, variable);
@@ -1144,7 +1152,7 @@ Expr? tryQuadraticRadical(
   final twoA = (IntegerNumber.two * a).simplify();
   final leadTerm =
       (p / (a * IntegerNumber.of(halfExp + 2))) *
-      Pow(quad, FractionNumber(Integer(halfExp + 2), const Integer(2)));
+      Pow.of(quad, RationalNumber(halfExp + 2, 2));
   final qRem = (q - (p * b) / twoA).simplify();
   if (qRem == IntegerNumber.zero) return leadTerm.simplify();
 
@@ -1208,7 +1216,7 @@ Expr? tryAffineRadicalSubstitution(
     a,
     b,
   );
-  final dx = (IntegerNumber.of(n) * Pow(uVar, IntegerNumber.of(n - 1))) / a;
+  final dx = (IntegerNumber.of(n) * Pow.of(uVar, IntegerNumber.of(n - 1))) / a;
   final transformed = (replaced * dx)
       .together(assumptions: assumptions)
       .cancel(assumptions: assumptions);
@@ -1222,7 +1230,7 @@ Expr? tryAffineRadicalSubstitution(
   );
   if (hasUnevaluatedIntegral(uAntideriv, uName)) return null;
 
-  final backSub = Pow(firstBase, FractionNumber(Integer.one, Integer(n)));
+  final backSub = Pow.of(firstBase, RationalNumber(1, n));
   return uAntideriv
       .substitute(uName, backSub)
       .simplify(assumptions: assumptions);
@@ -1241,17 +1249,15 @@ Expr? _tryQuadraticRadicalConst(
 }) {
   final twoA = (IntegerNumber.two * a).simplify();
   final twoAxPlusB = (twoA * Variable(variable) + b).simplify();
-  final disc = (const IntegerNumber(Integer(4)) * a * c - b * b)
-      .expand()
-      .simplify();
+  final disc = (IntegerNumber.of(4) * a * c - b * b).expand().simplify();
 
   if (halfExp == -1) {
     if (disc == IntegerNumber.zero) return null;
     if (preferLog) {
-      final sqrtA = Pow(a, FractionNumber.half).simplify();
-      final rad = Pow(quad, FractionNumber.half).simplify();
+      final sqrtA = Pow.of(a, FractionNumber.half).simplify();
+      final rad = Pow.of(quad, FractionNumber.half).simplify();
       final logArg = (twoAxPlusB + IntegerNumber.two * sqrtA * rad).simplify();
-      return (Ln(logArg) / sqrtA).simplify();
+      return (Fn.ln(logArg) / sqrtA).simplify();
     }
     if (isSyntacticallyNegative(a) || isNegativeConstant(a)) {
       final negA = (-a).simplify();
@@ -1264,25 +1270,25 @@ Expr? _tryQuadraticRadicalConst(
         final sqrtNegA = _factorEvenPowerSqrt(negA, Assumptions.none);
         final sqrtDisc = _factorEvenPowerSqrt(b2Minus4ac, Assumptions.none);
         final arg = ((-twoAxPlusB) / sqrtDisc).simplify();
-        return (Asin(arg) / sqrtNegA).simplify();
+        return (Fn.asin(arg) / sqrtNegA).simplify();
       }
     }
-    final sqrtA = Pow(a, FractionNumber.half).simplify();
+    final sqrtA = Pow.of(a, FractionNumber.half).simplify();
     if (!isPositiveExpr(disc, assumptions: Assumptions.none) ||
         isSyntacticallyNegative(a) ||
         isNegativeConstant(a)) {
-      final rad = Pow(quad, FractionNumber.half).simplify();
+      final rad = Pow.of(quad, FractionNumber.half).simplify();
       final logArg = (twoAxPlusB + IntegerNumber.two * sqrtA * rad).simplify();
-      return (Ln(logArg) / sqrtA).simplify();
+      return (Fn.ln(logArg) / sqrtA).simplify();
     }
-    final sqrtDisc = Pow(disc, FractionNumber.half).simplify();
+    final sqrtDisc = Pow.of(disc, FractionNumber.half).simplify();
     final arg = (twoAxPlusB / sqrtDisc).simplify();
-    return (Asinh(arg) / sqrtA).simplify();
+    return (Fn.asinh(arg) / sqrtA).simplify();
   }
 
   if (halfExp == -3) {
     if (disc == IntegerNumber.zero) return null;
-    final rad = Pow(quad, FractionNumber.half).simplify();
+    final rad = Pow.of(quad, FractionNumber.half).simplify();
     return ((IntegerNumber.two * twoAxPlusB) / (disc * rad)).simplify();
   }
 
@@ -1303,9 +1309,8 @@ Expr? _tryQuadraticRadicalConst(
     final denom = (mMinus2 * disc).simplify();
     final term1 =
         (IntegerNumber.two * twoAxPlusB) /
-        (denom * Pow(quad, FractionNumber(Integer(m - 2), Integer.two)));
-    final term2 =
-        (const IntegerNumber(Integer(4)) * a * mMinus3 / denom) * prev;
+        (denom * Pow.of(quad, RationalNumber(m - 2, 2)));
+    final term2 = (IntegerNumber.of(4) * a * mMinus3 / denom) * prev;
     return (term1 + term2).simplify();
   }
 
@@ -1321,13 +1326,12 @@ Expr? _tryQuadraticRadicalConst(
     if (prev == null) return null;
     final nPlus1 = IntegerNumber.of(halfExp + 1);
     final term1 =
-        (twoAxPlusB *
-            Pow(quad, FractionNumber(Integer(halfExp), Integer.two))) /
+        (twoAxPlusB * Pow.of(quad, RationalNumber(halfExp, 2))) /
         (twoA * nPlus1);
     final term2 =
         (IntegerNumber.of(halfExp) *
             disc /
-            (const IntegerNumber(Integer(4)) * a * nPlus1)) *
+            (IntegerNumber.of(4) * a * nPlus1)) *
         prev;
     return (term1 + term2).simplify();
   }
@@ -1337,8 +1341,8 @@ Expr? _tryQuadraticRadicalConst(
 
 ({int p, int q})? fractionalExponent(Expr exponent) {
   if (exponent case FractionNumber(:final numerator, :final denominator)) {
-    final p = numerator.asInt;
-    final q = denominator.asInt;
+    final p = numerator.isValidInt ? numerator.toInt() : null;
+    final q = denominator.isValidInt ? denominator.toInt() : null;
     if (p != null && q != null && p.abs() <= 12 && q >= 2 && q <= 6) {
       return (p: p, q: q);
     }
@@ -1380,10 +1384,9 @@ Expr _replaceAffineRadical(
   if (node case Pow(:final base, :final exponent)) {
     if (baseScales[base] case final scale?) {
       if (fractionalExponent(exponent) case (:final p, :final q)) {
-        final uPow = Pow(uVar, IntegerNumber.of((p * n) ~/ q));
+        final uPow = Pow.of(uVar, IntegerNumber.of((p * n) ~/ q));
         if (scale == IntegerNumber.one) return uPow;
-        return (Pow(scale, FractionNumber(Integer(p), Integer(q))) * uPow)
-            .simplify();
+        return (Pow.of(scale, RationalNumber(p, q)) * uPow).simplify();
       }
     }
     if (exponent case IntegerNumber(:final asInt?)
@@ -1400,10 +1403,12 @@ Expr _replaceAffineRadical(
               .reduce((x, y) => x < y ? x : y);
           if (minDeg >= 1) {
             final xVar = Variable(variable);
-            final xOfU = ((Pow(uVar, IntegerNumber.of(n)) - b) / a).simplify();
-            final qPoly = Add([
+            final xOfU = ((Pow.of(uVar, IntegerNumber.of(n)) - b) / a)
+                .simplify();
+            final qPoly = Add.of([
               for (final entry in nonZero)
-                entry.value * Pow(xVar, IntegerNumber.of(entry.key - minDeg)),
+                entry.value *
+                    Pow.of(xVar, IntegerNumber.of(entry.key - minDeg)),
             ]).simplify();
             final qSub = _replaceAffineRadical(
               qPoly,
@@ -1414,8 +1419,8 @@ Expr _replaceAffineRadical(
               a,
               b,
             );
-            return (Pow(xOfU, IntegerNumber.of(asInt * minDeg)) *
-                    Pow(qSub, exponent))
+            return (Pow.of(xOfU, IntegerNumber.of(asInt * minDeg)) *
+                    Pow.of(qSub, exponent))
                 .simplify();
           }
         }
@@ -1423,7 +1428,7 @@ Expr _replaceAffineRadical(
     }
   }
   if (node is Variable && node.name == variable) {
-    return ((Pow(uVar, IntegerNumber.of(n)) - b) / a).simplify();
+    return ((Pow.of(uVar, IntegerNumber.of(n)) - b) / a).simplify();
   }
   return node.mapChildren(
     (child) =>
@@ -1433,17 +1438,17 @@ Expr _replaceAffineRadical(
 
 Expr _factorEvenPowerSqrt(Expr expr, Assumptions assumptions) => switch (expr) {
   Pow(:final base, exponent: IntegerNumber(asInt: final p?)) when p.isEven =>
-    Pow(base, IntegerNumber.of(p ~/ 2)).simplify(assumptions: assumptions),
-  Mul(:final factors) => Mul([
+    Pow.of(base, IntegerNumber.of(p ~/ 2)).simplify(assumptions: assumptions),
+  Mul(:final factors) => Mul.of([
     for (final f in factors) _factorEvenPowerSqrt(f, assumptions),
   ]).simplify(assumptions: assumptions),
-  _ => Pow(expr, FractionNumber.half).simplify(assumptions: assumptions),
+  _ => Pow.of(expr, FractionNumber.half).simplify(assumptions: assumptions),
 };
 
 bool _isPositiveConstantOrEvenSquare(Expr expr) {
   if (isPositiveConstant(expr)) return true;
   if (expr case Pow(exponent: IntegerNumber(:final value))) {
-    return value > Integer.zero && value.isEven;
+    return value > BigInt.zero && value.isEven;
   }
   if (expr case Mul(:final factors)) {
     return factors.every(_isPositiveConstantOrEvenSquare);

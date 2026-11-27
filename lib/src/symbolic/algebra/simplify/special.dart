@@ -1,3 +1,4 @@
+import 'package:more/math.dart';
 import 'package:more/number.dart' show Complex;
 
 import '../../../special/bessel.dart' as special_bessel;
@@ -13,14 +14,13 @@ import '../../assumptions.dart';
 import '../../ast.dart';
 import '../../calculus/summation.dart' show evenZetaValue;
 import '../../compiler/evaluator_helpers.dart';
-import '../../number/integer.dart';
-import '../structural_order.dart';
+import '../../functions/fn.dart';
 import 'additive.dart';
 import 'multiplicative.dart';
 import 'power.dart';
 import 'transcendental.dart';
 
-/// Simplifies a Lambert W expression `LambertW(expr, branch: branch)`.
+/// Simplifies a Lambert W expression `lambertW(expr, branch)`.
 Expr simplifyLambertW(
   Expr expr,
   int branch, {
@@ -50,13 +50,15 @@ Expr simplifyLambertW(
   // W(-1 / e) = -1
   if (expr case Mul(
     factors: [
-      IntegerNumber.negativeOne,
-      Pow(base: Constant.e, exponent: IntegerNumber.negativeOne),
+      IntegerNumber(isNegativeOne: true),
+      Pow(base: Constant.e, exponent: IntegerNumber(isNegativeOne: true)),
     ],
   )) {
     return IntegerNumber.negativeOne;
   }
-  return LambertW(expr, branch: branch, isSimplified: true);
+  return branch == 0
+      ? Fn.lambertW(expr)
+      : Fn.lambertW(expr, IntegerNumber.of(branch));
 }
 
 /// Simplifies an error function expression `erf(expr)`.
@@ -81,7 +83,7 @@ Expr simplifyErf(Expr expr, {required Assumptions assumptions}) {
   if (expr == Constant.infinity) {
     return IntegerNumber.one;
   }
-  return Erf(expr, isSimplified: true);
+  return Fn.erf(expr);
 }
 
 /// Simplifies a complementary error function expression `erfc(expr)`.
@@ -103,7 +105,7 @@ Expr simplifyErfc(Expr expr, {required Assumptions assumptions}) {
   if (isNeg && posExpr == Constant.infinity) {
     return IntegerNumber.two;
   }
-  return Erfc(expr, isSimplified: true);
+  return Fn.erfc(expr);
 }
 
 /// Simplifies an Euler gamma function expression `gamma(expr)`.
@@ -120,35 +122,36 @@ Expr simplifyGamma(Expr expr, {required Assumptions assumptions}) {
   if (expr is IntegerNumber) {
     if (expr.isZero || expr.isNegative) return Constant.undefined;
     if (expr.asInt case final n? when n <= 101) {
-      return IntegerNumber(Integer.from(n - 1).factorial());
+      return IntegerNumber(BigInt.from(n - 1).factorial());
     }
   }
   if (expr == FractionNumber.half) {
-    return Pow(Constant.pi, FractionNumber.half, isSimplified: true);
+    return Pow.of(Constant.pi, FractionNumber.half);
   }
   // Half-integer Gamma(n + 1/2)
   if (expr case FractionNumber(:final numerator, :final denominator)
-      when denominator == Integer.two) {
-    final n = ((numerator - Integer.one) ~/ Integer.two).asInt;
+      when denominator == BigInt.two) {
+    final shifted = (numerator - BigInt.one) ~/ BigInt.two;
+    final n = shifted.isValidInt ? shifted.toInt() : null;
     if (n != null && n.abs() <= 50) {
       final RationalNumber coeff;
       if (n >= 0) {
-        final numFact = Integer.from(2 * n).factorial();
-        final denFact = const Integer(4).pow(n)! * Integer.from(n).factorial();
+        final numFact = BigInt.from(2 * n).factorial();
+        final denFact = BigInt.from(4).pow(n) * BigInt.from(n).factorial();
         coeff = RationalNumber.of(numFact, denFact);
       } else {
         final m = -n;
-        final numVal = const Integer(-4).pow(m)! * Integer.from(m).factorial();
-        final denFact = Integer.from(2 * m).factorial();
+        final numVal = BigInt.from(-4).pow(m) * BigInt.from(m).factorial();
+        final denFact = BigInt.from(2 * m).factorial();
         coeff = RationalNumber.of(numVal, denFact);
       }
       return simplifyMul([
         coeff,
-        Pow(Constant.pi, FractionNumber.half, isSimplified: true),
+        Pow.of(Constant.pi, FractionNumber.half),
       ], assumptions: assumptions);
     }
   }
-  return Gamma(expr, isSimplified: true);
+  return Fn.gamma(expr);
 }
 
 /// Simplifies a Riemann or Hurwitz zeta function expression `zeta(s)` or `zeta(s, a)`.
@@ -176,7 +179,7 @@ Expr simplifyZeta(Expr expr, {Expr? shift}) {
     if (expr == IntegerNumber.one) return Constant.undefined;
     if (shift case IntegerNumber(asInt: final m?) when m > 1 && m <= 20) {
       final base = simplifyZeta(expr);
-      if (base is! Zeta) {
+      if (base is! Call || base.id != FunctionId.zeta) {
         final terms = <Expr>[base];
         for (var k = 1; k < m; k++) {
           terms.add(
@@ -193,7 +196,7 @@ Expr simplifyZeta(Expr expr, {Expr? shift}) {
         return simplifyAdd(terms, assumptions: Assumptions.none);
       }
     }
-    return Zeta(expr, shift: shift, isSimplified: true);
+    return Fn.zeta(expr, shift);
   }
   if (isFloatComplex(expr)) {
     return complexToExpr(special_zeta.zetaComplex(toComplex(expr)));
@@ -220,14 +223,14 @@ Expr simplifyZeta(Expr expr, {Expr? shift}) {
       -11 => RationalNumber(691, 32760),
       -13 => RationalNumber(-1, 12),
       -15 => RationalNumber(3617, 8160),
-      _ => Zeta(expr, isSimplified: true),
+      _ => Fn.zeta(expr),
     };
   }
   if (expr case IntegerNumber(asInt: final n?)
       when n > 0 && n.isEven && n <= 16) {
     return evenZetaValue(n);
   }
-  return Zeta(expr, isSimplified: true);
+  return Fn.zeta(expr);
 }
 
 /// Simplifies a digamma function expression `digamma(x)`.
@@ -241,10 +244,10 @@ Expr simplifyDigamma(Expr expr) {
     if (v <= 0.0 && v == v.roundToDouble()) return Constant.undefined;
     return RealNumber.fromDouble(special_digamma.digamma(v));
   }
-  return Digamma(expr, isSimplified: true);
+  return Fn.digamma(expr);
 }
 
-/// Simplifies a log-gamma function expression `loggamma(expr)`.
+/// Simplifies a log-gamma function expression `logGamma(expr)`.
 Expr simplifyLogGamma(Expr expr) {
   if (expr == Constant.undefined) return Constant.undefined;
   if (isFloatComplex(expr)) {
@@ -263,7 +266,7 @@ Expr simplifyLogGamma(Expr expr) {
     if (expr.isZero || expr.isNegative) return Constant.undefined;
     if (expr.isOne || expr == IntegerNumber.two) return IntegerNumber.zero;
   }
-  return LogGamma(expr, isSimplified: true);
+  return Fn.logGamma(expr);
 }
 
 /// Simplifies a polygamma function expression `polygamma(m, x)`.
@@ -287,7 +290,7 @@ Expr simplifyPolygamma(Expr m, Expr x) {
       (m is RealNumber || x is RealNumber)) {
     final mDouble = m.toDouble();
     if (mDouble != mDouble.roundToDouble()) {
-      return Polygamma(m, x, isSimplified: true);
+      return Fn.polygamma(m, x);
     }
     final dm = mDouble.toInt();
     final dx = x.toDouble();
@@ -296,7 +299,7 @@ Expr simplifyPolygamma(Expr m, Expr x) {
     }
     return RealNumber.fromDouble(special_digamma.polygamma(dm, dx));
   }
-  return Polygamma(m, x, isSimplified: true);
+  return Fn.polygamma(m, x);
 }
 
 /// Simplifies a Bessel function of the first kind `besselJ(nu, x)`.
@@ -328,7 +331,7 @@ Expr simplifyBesselJ(Expr nu, Expr x) {
       special_bessel.besselJ(nu.toDouble(), x.toDouble()),
     );
   }
-  return BesselJ(nu, x, isSimplified: true);
+  return Fn.besselJ(nu, x);
 }
 
 /// Simplifies a Bessel function of the second kind `besselY(nu, x)`.
@@ -348,7 +351,7 @@ Expr simplifyBesselY(Expr nu, Expr x) {
       special_bessel.besselY(nu.toDouble(), x.toDouble()),
     );
   }
-  return BesselY(nu, x, isSimplified: true);
+  return Fn.besselY(nu, x);
 }
 
 /// Simplifies a modified Bessel function of the first kind `besselI(nu, x)`.
@@ -380,7 +383,7 @@ Expr simplifyBesselI(Expr nu, Expr x) {
       special_bessel.besselI(nu.toDouble(), x.toDouble()),
     );
   }
-  return BesselI(nu, x, isSimplified: true);
+  return Fn.besselI(nu, x);
 }
 
 /// Simplifies a modified Bessel function of the second kind `besselK(nu, x)`.
@@ -400,7 +403,7 @@ Expr simplifyBesselK(Expr nu, Expr x) {
       special_bessel.besselK(nu.toDouble(), x.toDouble()),
     );
   }
-  return BesselK(nu, x, isSimplified: true);
+  return Fn.besselK(nu, x);
 }
 
 /// Simplifies a `min(...)` expression.
@@ -414,9 +417,9 @@ Expr _simplifyMinMax(List<Expr> args, {required bool isMin}) {
   final flat = <Expr>[];
   for (final a in args) {
     if (a == Constant.undefined) return Constant.undefined;
-    if (isMin && a is Min) {
+    if (isMin && a is Call && a.id == FunctionId.min) {
       flat.addAll(a.args);
-    } else if (!isMin && a is Max) {
+    } else if (!isMin && a is Call && a.id == FunctionId.max) {
       flat.addAll(a.args);
     } else {
       flat.add(a);
@@ -442,9 +445,7 @@ Expr _simplifyMinMax(List<Expr> args, {required bool isMin}) {
   }
   final merged = <Expr>[?bestNum, ...other]..sort(compareStructural);
   if (merged.length == 1) return merged.first;
-  return isMin
-      ? Min(merged, isSimplified: true)
-      : Max(merged, isSimplified: true);
+  return isMin ? Fn.min(merged) : Fn.max(merged);
 }
 
 /// Simplifies a greatest common divisor `gcd(...)` expression.
@@ -468,9 +469,9 @@ Expr _simplifyGcdLcm(
   final flat = <Expr>[];
   for (final a in args) {
     if (a == Constant.undefined) return Constant.undefined;
-    if (isGcd && a is Gcd) {
+    if (isGcd && a is Call && a.id == FunctionId.gcd) {
       flat.addAll(a.args);
-    } else if (!isGcd && a is Lcm) {
+    } else if (!isGcd && a is Call && a.id == FunctionId.lcm) {
       flat.addAll(a.args);
     } else {
       flat.add(a);
@@ -501,9 +502,7 @@ Expr _simplifyGcdLcm(
       : other;
   final merged = <Expr>[?acc, ...normalizedOther]..sort(compareStructural);
   if (merged.length == 1) return merged.first;
-  return isGcd
-      ? Gcd(merged, isSimplified: true)
-      : Lcm(merged, isSimplified: true);
+  return isGcd ? Fn.gcd(merged) : Fn.lcm(merged);
 }
 
 /// Simplifies an Euler beta function expression `beta(a, b)`.
@@ -528,16 +527,15 @@ Expr simplifyBeta(Expr a, Expr b, {required Assumptions assumptions}) {
   if (a case IntegerNumber(asInt: final m?) when m > 0) {
     if (b case IntegerNumber(asInt: final n?) when n > 0 && m <= 1000) {
       final denom =
-          Integer.from(n) *
-          Integer.from(m + n - 1).binomial(Integer.from(m - 1));
-      return RationalNumber.of(Integer.one, denom);
+          BigInt.from(n) * _binomialBigInt(BigInt.from(m + n - 1), m - 1);
+      return RationalNumber.of(BigInt.one, denom);
     }
     if (b case IntegerNumber(asInt: final n?) when n > 0 && m > 1000) {
       return simplifyMul([
-        Factorial(IntegerNumber.of(m - 1), isSimplified: true),
-        Factorial(IntegerNumber.of(n - 1), isSimplified: true),
+        Fn.factorial(IntegerNumber.of(m - 1)),
+        Fn.factorial(IntegerNumber.of(n - 1)),
         simplifyPow(
-          Factorial(IntegerNumber.of(m + n - 1), isSimplified: true),
+          Fn.factorial(IntegerNumber.of(m + n - 1)),
           IntegerNumber.negativeOne,
           assumptions: assumptions,
         ),
@@ -581,13 +579,15 @@ Expr simplifyBeta(Expr a, Expr b, {required Assumptions assumptions}) {
       !b.isNegative &&
       !b.isZero) {
     final sum = a.addRational(b);
-    if ((a.denominator == Integer.one || a.denominator == Integer.two) &&
-        (b.denominator == Integer.one || b.denominator == Integer.two) &&
-        (sum.denominator == Integer.one || sum.denominator == Integer.two)) {
+    if ((a.denominator == BigInt.one || a.denominator == BigInt.two) &&
+        (b.denominator == BigInt.one || b.denominator == BigInt.two) &&
+        (sum.denominator == BigInt.one || sum.denominator == BigInt.two)) {
       final ga = simplifyGamma(a, assumptions: assumptions);
       final gb = simplifyGamma(b, assumptions: assumptions);
       final gab = simplifyGamma(sum, assumptions: assumptions);
-      if (ga is! Gamma && gb is! Gamma && gab is! Gamma) {
+      if ((ga is! Call || ga.id != FunctionId.gamma) &&
+          (gb is! Call || gb.id != FunctionId.gamma) &&
+          (gab is! Call || gab.id != FunctionId.gamma)) {
         return simplifyMul([
           ga,
           gb,
@@ -596,7 +596,7 @@ Expr simplifyBeta(Expr a, Expr b, {required Assumptions assumptions}) {
       }
     }
   }
-  return Beta(a, b, isSimplified: true);
+  return Fn.beta(a, b);
 }
 
 /// Simplifies a factorial expression `n!`.
@@ -614,17 +614,17 @@ Expr simplifyFactorial(Expr expr, {required Assumptions assumptions}) {
   if (expr is IntegerNumber) {
     if (expr.isNegative) return Constant.undefined;
     if (expr.asInt case final n? when n <= 100) {
-      return IntegerNumber(Integer.from(n).factorial());
+      return IntegerNumber(BigInt.from(n).factorial());
     }
   }
   if (expr case FractionNumber(:final numerator, :final denominator)
-      when denominator == Integer.two && numerator.abs() <= const Integer(41)) {
+      when denominator == BigInt.two && numerator.abs() <= BigInt.from(41)) {
     return simplifyGamma(
-      FractionNumber(numerator + Integer.two, Integer.two),
+      FractionNumber(numerator + BigInt.two, BigInt.two),
       assumptions: assumptions,
     );
   }
-  return Factorial(expr, isSimplified: true);
+  return Fn.factorial(expr);
 }
 
 /// Simplifies a binomial coefficient `binomial(n, k)`.
@@ -668,19 +668,28 @@ Expr simplifyBinomial(
       if (k < 0 || k > n) return IntegerNumber.zero;
       final m = k < n - k ? k : n - k;
       if (m <= 1000) {
-        return IntegerNumber(Integer.from(n).binomial(Integer.from(k)));
+        return IntegerNumber(_binomialBigInt(BigInt.from(n), m));
       }
     }
   }
   if (nExpr case IntegerNumber(:final value) when value.isNegative) {
     if (kExpr case IntegerNumber(asInt: final k?) when k >= 0 && k <= 1000) {
-      final binom = (-value + Integer.from(k) - Integer.one).binomial(
-        Integer.from(k),
-      );
+      final top = -value + BigInt.from(k) - BigInt.one;
+      final binom = _binomialBigInt(top, k);
       return IntegerNumber(k.isEven ? binom : -binom);
     }
   }
-  return Binomial(nExpr, kExpr, isSimplified: true);
+  return Fn.binomial(nExpr, kExpr);
+}
+
+BigInt _binomialBigInt(BigInt n, int k) {
+  if (k < 0) return BigInt.zero;
+  if (k == 0) return BigInt.one;
+  var result = BigInt.one;
+  for (var i = 0; i < k; i++) {
+    result = (result * (n - BigInt.from(i))) ~/ BigInt.from(i + 1);
+  }
+  return result;
 }
 
 bool isFloatComplex(Expr expr) =>

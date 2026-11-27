@@ -42,7 +42,7 @@ List<Map<String, Expr>> solvePolynomialSystemEquations(
   final normalizedEqs = [
     for (final e in equations)
       (switch (e) {
-        Equal(:final left, :final right) => left - right,
+        Relational(op: RelOp.equal, :final left, :final right) => left - right,
         _ => e,
       }).expand(assumptions: assumptions).simplify(assumptions: assumptions),
   ];

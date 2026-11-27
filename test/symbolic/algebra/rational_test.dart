@@ -18,7 +18,7 @@ void main() {
         final multi = Expr.parse('2 * (x + 1) / (3 * (x - 1) * (x + 2)^2)');
         check(multi.numerator.toString()).equals('2 * (1 + x)');
         check(multi.denominator.toString())
-            .equals('3 * (-1 + x) * (2 + x) ^ 2');
+            .equals('3 * (2 + x) ^ 2 * (-1 + x)');
 
         final invPow = Expr.parse('1 / (x + 1)^3');
         check(invPow.numerator).equals(IntegerNumber.one);
@@ -189,7 +189,10 @@ void main() {
           .throws<ArgumentError>();
 
       // cancel with positive power of rational
-      final posPow = Pow(Expr.parse('(x + 1) / (x - 1)'), IntegerNumber.of(2));
+      final posPow = Pow.of(
+        Expr.parse('(x + 1) / (x - 1)'),
+        IntegerNumber.of(2),
+      );
       check(posPow.cancel().toString()).equals('(1 + x) ^ 2 / (-1 + x) ^ 2');
 
       // apart with degree >= 2 polynomial factor in denominator

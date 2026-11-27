@@ -11,7 +11,7 @@ void main() {
     test('deduplicates shared composite subtrees into registers', () {
       final sub = Expr.parse('sin(x^2 + 3*x + 1)');
       final pw = Piecewise([
-        (relation: LessThan(sub, IntegerNumber.zero), expr: -sub),
+        (relation: Relational.lessThan(sub, IntegerNumber.zero), expr: -sub),
       ], otherwise: sub);
       final integral = Integral(
         sub,
@@ -19,7 +19,8 @@ void main() {
         lower: IntegerNumber.zero,
         upper: IntegerNumber.one,
       );
-      final expr = sub + Pow(sub, IntegerNumber.two) + Cos(sub) + pw + integral;
+      final expr =
+          sub + Pow.of(sub, IntegerNumber.two) + Fn.cos(sub) + pw + integral;
 
       final optEval = compileToBytecode(expr.simplify(), ['x'], optimize: true);
       final unoptEval = compileToBytecode(expr.simplify(), [
@@ -55,7 +56,7 @@ void main() {
     test('dynamic variable discovery and unbound variable errors', () {
       const x = Variable('x');
       final dynEval = compileToBytecode(
-        Add([
+        Add.of([
           x,
           Integral(
             const Variable('y'),
@@ -86,30 +87,38 @@ void main() {
     test('compiles empty Add, empty Mul, and Constant leaves', () {
       check(compileToBytecode(Constant.pi, const []).evaluateList(const []))
           .isCloseTo(math.pi, 1e-15);
-      check(compileToBytecode(Add(const []), const []).evaluateList(const []))
-          .equals(0.0);
-      check(compileToBytecode(Mul(const []), const []).evaluateList(const []))
-          .equals(1.0);
+      check(
+        compileToBytecode(Add.of(const []), const []).evaluateList(const []),
+      ).equals(0.0);
+      check(
+        compileToBytecode(Mul.of(const []), const []).evaluateList(const []),
+      ).equals(1.0);
     });
 
     test('computes jump-aware maxStack for Piecewise branches', () {
       const x = Variable('x');
       final pw4 = Piecewise([
-        (relation: LessThan(x, IntegerNumber.one), expr: IntegerNumber.of(10)),
-        (relation: LessThan(x, IntegerNumber.two), expr: IntegerNumber.of(20)),
         (
-          relation: LessThan(x, IntegerNumber.of(3)),
+          relation: Relational.lessThan(x, IntegerNumber.one),
+          expr: IntegerNumber.of(10),
+        ),
+        (
+          relation: Relational.lessThan(x, IntegerNumber.two),
+          expr: IntegerNumber.of(20),
+        ),
+        (
+          relation: Relational.lessThan(x, IntegerNumber.of(3)),
           expr: IntegerNumber.of(30),
         ),
         (
-          relation: LessThan(x, IntegerNumber.of(4)),
+          relation: Relational.lessThan(x, IntegerNumber.of(4)),
           expr: IntegerNumber.of(40),
         ),
       ], otherwise: IntegerNumber.of(50));
       final pw10 = Piecewise([
         for (var i = 1; i <= 10; i++)
           (
-            relation: LessThan(x, IntegerNumber.of(i)),
+            relation: Relational.lessThan(x, IntegerNumber.of(i)),
             expr: IntegerNumber.of(i),
           ),
       ], otherwise: IntegerNumber.zero);

@@ -73,7 +73,9 @@ final List<Command> numericCommands = [
     examples: ['nsolve(cos(x) = x, x, from: 0, to: 1)'],
     run: (args, _) {
       final raw = args.expr('eq');
-      final expr = raw is Equal ? raw.left - raw.right : raw;
+      final expr = raw is Relational && raw.op == RelOp.equal
+          ? raw.left - raw.right
+          : raw;
       final v = inferVariable(expr, args.symbolOrNull('var'));
       final fn = expr.toFunction1D(v);
       final a = args.doubleOrNull('from') ?? args.doubleOrNull('guess') ?? 0.0;
@@ -185,7 +187,10 @@ final List<Command> numericCommands = [
       }
       final fns = [
         for (final raw in rawEqs)
-          (raw is Equal ? raw.left - raw.right : raw).toVectorFunction(vars),
+          (raw is Relational && raw.op == RelOp.equal
+                  ? raw.left - raw.right
+                  : raw)
+              .toVectorFunction(vars),
       ];
       final sol = solveSystem(
         fns,

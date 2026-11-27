@@ -17,9 +17,9 @@ extension SystemSolverExtension on Iterable<Expr> {
   /// Solves this system of equations `f_i(x_1, ..., x_n) = 0` for
   /// [variables].
   ///
-  /// Equations may be [Equal] nodes (`lhs == rhs`) or algebraic expressions
-  /// implicitly equated to `0`, including rational equations whose denominator
-  /// poles are automatically excluded from the solution set.
+  /// Equations may be equality [Relational] nodes (`lhs == rhs`) or algebraic
+  /// expressions implicitly equated to `0`, including rational equations whose
+  /// denominator poles are automatically excluded from the solution set.
   ///
   /// When [method] is [PolynomialSystemMethod.auto] (the default), dispatches
   /// automatically by algebraic structure:
@@ -91,7 +91,7 @@ List<Map<String, Expr>> solveEquations(
 
   for (final rawEq in equations) {
     final diff = switch (rawEq) {
-      Equal(:final left, :final right) => left - right,
+      Relational(op: RelOp.equal, :final left, :final right) => left - right,
       _ => rawEq,
     };
     _collectDenominatorBases(diff, varSet, denominators);
@@ -164,7 +164,7 @@ Map<String, Expr>? solveSystemEquations(
   final normalized = [
     for (final rawEq in equations)
       (switch (rawEq) {
-        Equal(:final left, :final right) => left - right,
+        Relational(op: RelOp.equal, :final left, :final right) => left - right,
         _ => rawEq,
       }).expand(assumptions: assumptions).simplify(assumptions: assumptions),
   ];
@@ -219,7 +219,7 @@ Map<String, Expr>? solveSystemEquations(
     }
     b[i] = (-cTerm).simplify(assumptions: assumptions);
 
-    final reconstructed = Add([
+    final reconstructed = Add.of([
       for (var j = 0; j < n; j++) a.getUnchecked(i, j) * Variable(variables[j]),
       cTerm,
     ]);

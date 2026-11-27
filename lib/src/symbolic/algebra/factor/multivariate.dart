@@ -1,8 +1,9 @@
 import 'dart:math' as math;
 
+import 'package:more/math.dart';
+
 import '../../assumptions.dart';
 import '../../ast.dart';
-import '../../number/integer.dart';
 import '../expand.dart';
 import '../factor.dart';
 import '../helpers.dart';
@@ -22,7 +23,7 @@ void collectAdditiveTerms(Expr expr, int sign, List<Expr> result) {
 /// Extracts common monomial GCD from [terms].
 Expr? extractMonomialGcd(List<Expr> terms) {
   if (terms.isEmpty) return null;
-  var lcmDen = Integer.one;
+  var lcmDen = BigInt.one;
   final termCoeffs = <RationalNumber>[];
   final factorPowers = <Map<Expr, int>>[];
 
@@ -36,12 +37,12 @@ Expr? extractMonomialGcd(List<Expr> terms) {
     factorPowers.add(powers);
   }
 
-  var content = Integer.zero;
+  var content = BigInt.zero;
   for (final c in termCoeffs) {
     final intVal = (c.numerator * (lcmDen ~/ c.denominator)).abs();
-    if (!intVal.isZero) content = content.gcd(intVal);
+    if (intVal != BigInt.zero) content = content.gcd(intVal);
   }
-  if (content.isZero) content = Integer.one;
+  if (content == BigInt.zero) content = BigInt.one;
 
   final commonFactors = <Expr, int>{};
   for (final f in factorPowers.first.keys) {
@@ -68,7 +69,7 @@ Expr? extractMonomialGcd(List<Expr> terms) {
     factors.add(scalarGcd);
   }
   for (final MapEntry(:key, :value) in commonFactors.entries) {
-    final fExpr = value == 1 ? key : Pow(key, IntegerNumber.of(value));
+    final fExpr = value == 1 ? key : Pow.of(key, IntegerNumber.of(value));
     factors.add(fExpr);
   }
   return switch (factors) {
@@ -121,7 +122,7 @@ Expr divideMonomial(Expr term, Expr gcd) {
   final factors = <Expr>[
     if (!coeff.isOne) coeff,
     for (final MapEntry(:key, :value) in remainingPowers.entries)
-      if (value == 1) key else Pow(key, IntegerNumber.of(value)),
+      if (value == 1) key else Pow.of(key, IntegerNumber.of(value)),
   ];
   return switch (factors) {
     [] => coeff,
@@ -193,8 +194,8 @@ Expr? factorByGrouping4(List<Expr> terms, {required Assumptions assumptions}) {
 
 /// Computes the square root of monomial term `coeff * base`.
 Expr? monomialSquareRoot(RationalNumber coeff, Expr base) {
-  final numSqrt = coeff.numerator.isqrt();
-  final denSqrt = coeff.denominator.isqrt();
+  final numSqrt = Number.exactIntegerRoot(coeff.numerator, 2);
+  final denSqrt = Number.exactIntegerRoot(coeff.denominator, 2);
   if (numSqrt == null || denSqrt == null) return null;
   final scalar = RationalNumber.of(numSqrt, denSqrt);
 
@@ -213,7 +214,7 @@ Expr? extractBaseSquareRoot(Expr expr) => switch (expr) {
       when exp.isEven =>
     switch (exp ~/ 2) {
       1 => base,
-      final half => Pow(base, IntegerNumber.of(half)),
+      final half => Pow.of(base, IntegerNumber.of(half)),
     },
   Mul(:final factors) => () {
     final rootFactors = <Expr>[];
@@ -287,7 +288,7 @@ Expr? extractBaseCubeRoot(Expr expr) => switch (expr) {
       when exp % 3 == 0 =>
     switch (exp ~/ 3) {
       1 => base,
-      final third => Pow(base, IntegerNumber.of(third)),
+      final third => Pow.of(base, IntegerNumber.of(third)),
     },
   Mul(:final factors) => () {
     final rootFactors = <Expr>[];
@@ -393,7 +394,7 @@ Expr? _factorLinearInVar(
       final minExp = math.min(entry.value, otherExp);
       if (minExp > 0) {
         commonFactors.add(
-          minExp == 1 ? entry.key : Pow(entry.key, IntegerNumber.of(minExp)),
+          minExp == 1 ? entry.key : Pow.of(entry.key, IntegerNumber.of(minExp)),
         );
       }
     }
@@ -406,7 +407,7 @@ Expr? _factorLinearInVar(
     IntegerNumber(value: final v0),
   )) {
     final g = v1.abs().gcd(v0.abs());
-    if (g > Integer.one) {
+    if (g > BigInt.one) {
       commonScalar = IntegerNumber(g);
     }
   }
@@ -462,8 +463,8 @@ Expr? _factorQuadraticInVar(
     );
 
     if (dScalar.sign <= 0) return null;
-    final numSqrt = dScalar.numerator.isqrt();
-    final denSqrt = dScalar.denominator.isqrt();
+    final numSqrt = Number.exactIntegerRoot(dScalar.numerator, 2);
+    final denSqrt = Number.exactIntegerRoot(dScalar.denominator, 2);
     if (numSqrt == null || denSqrt == null) return null;
     if (dFactors.values.any((e) => e.isOdd)) return null;
 
@@ -475,7 +476,7 @@ Expr? _factorQuadraticInVar(
           if (entry.value == 2)
             entry.key
           else
-            Pow(entry.key, IntegerNumber.of(entry.value ~/ 2)),
+            Pow.of(entry.key, IntegerNumber.of(entry.value ~/ 2)),
     ], assumptions: assumptions);
   }
 
@@ -566,7 +567,7 @@ Expr? _factorHomogeneousBivariate(
       if (remY > 0) {
         final yPow = remY == 1
             ? Variable(yVar)
-            : Pow(Variable(yVar), IntegerNumber.of(remY));
+            : Pow.of(Variable(yVar), IntegerNumber.of(remY));
         hTerms.add(simplifyMul([ft, yPow], assumptions: assumptions));
       } else {
         hTerms.add(ft);
@@ -574,7 +575,7 @@ Expr? _factorHomogeneousBivariate(
     }
     final hFactor = simplifyAdd(hTerms, assumptions: assumptions);
     homogenizedParts.add(
-      mult == 1 ? hFactor : Pow(hFactor, IntegerNumber.of(mult)),
+      mult == 1 ? hFactor : Pow.of(hFactor, IntegerNumber.of(mult)),
     );
   }
 

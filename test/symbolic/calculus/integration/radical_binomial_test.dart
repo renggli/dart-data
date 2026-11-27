@@ -95,7 +95,8 @@ void main() {
       final integrand = Expr.parse('(b * x)^m * (c + d * x)^n * (e + f * x)^p');
       final antideriv = integrand.integrate('x');
       check(antideriv.anyNode((n) => n is Integral)).isFalse;
-      check(antideriv.anyNode((n) => n is AppellF1)).isTrue;
+      check(antideriv.anyNode((n) => n is Call && n.id == FunctionId.appellF1))
+          .isTrue;
     });
 
     test('integrates degenerate quadratic radical product without factor fallthrough', () {
@@ -120,7 +121,8 @@ void main() {
       const s1 = 'sqrt(c + d * x) / (a + b * x)^(3/2)';
       final a1 = Expr.parse(s1).integrate('x');
       check(a1.anyNode((n) => n is Integral)).isFalse;
-      check(a1.anyNode((n) => n is Hypergeometric)).isFalse;
+      check(a1.anyNode((n) => n is Call && n.id == FunctionId.hypergeometric))
+          .isFalse;
       verifyNoIntegralAndDerivative(
         s1,
         realEnv: {'x': 0.7, 'a': 1.7, 'b': 0.83, 'c': 2.3, 'd': 1.9},
@@ -136,7 +138,8 @@ void main() {
       final s2 = Expr.parse('(a - i * a * x)^(1/4) / (a + i * a * x)^(1/4)');
       final a2 = s2.integrate('x');
       check(a2.anyNode((n) => n is Integral)).isFalse;
-      check(a2.anyNode((n) => n is Hypergeometric)).isFalse;
+      check(a2.anyNode((n) => n is Call && n.id == FunctionId.hypergeometric))
+          .isFalse;
       final cEnv = {
         'x': const Complex(0.37, 0.29),
         'a': const Complex(1.7, 0.21),

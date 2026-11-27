@@ -23,12 +23,12 @@ Expr _sliceFor1DPlot(Expr expr) {
 void main() {
   group('Expressions web app helpers', () {
     test('sliceFor1DPlot maps single free variable to x and slices multivariate expressions', () {
-      final tExpr = Sin(const Variable('t'));
+      final tExpr = Fn.sin(const Variable('t'));
       final slicedT = _sliceFor1DPlot(tExpr);
       check(slicedT.toString()).equals('sin(x)');
       check(slicedT.toFunction1D('x')(0.0)).equals(0.0);
 
-      final xExpr = Cos(const Variable('x'));
+      final xExpr = Fn.cos(const Variable('x'));
       check(_sliceFor1DPlot(xExpr).toString()).equals('cos(x)');
 
       final multiExpr =

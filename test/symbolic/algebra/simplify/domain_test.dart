@@ -35,21 +35,25 @@ void main() {
 
       test('checks composite expressions', () {
         check(
-          isProvenReal(Add([IntegerNumber.one, Constant.pi]), Assumptions.none),
+          isProvenReal(
+            Add.of([IntegerNumber.one, Constant.pi]),
+            Assumptions.none,
+          ),
         ).isTrue;
         check(
           isProvenReal(
-            Add([IntegerNumber.one, ComplexNumber.i]),
+            Add.of([IntegerNumber.one, ComplexNumber.i]),
             Assumptions.none,
           ),
         ).isFalse;
-        check(isProvenReal(Sin(x), realAssumptions)).isTrue;
-        check(isProvenReal(Cos(x), realAssumptions)).isTrue;
-        check(isProvenReal(Pow(x, IntegerNumber.two), realAssumptions)).isTrue;
-        check(isProvenReal(Abs(x), Assumptions.none)).isTrue;
-        check(isProvenReal(Re(x), Assumptions.none)).isTrue;
-        check(isProvenReal(Im(x), Assumptions.none)).isTrue;
-        check(isProvenReal(Arg(x), Assumptions.none)).isTrue;
+        check(isProvenReal(Fn.sin(x), realAssumptions)).isTrue;
+        check(isProvenReal(Fn.cos(x), realAssumptions)).isTrue;
+        check(isProvenReal(Pow.of(x, IntegerNumber.two), realAssumptions))
+            .isTrue;
+        check(isProvenReal(Fn.abs(x), Assumptions.none)).isTrue;
+        check(isProvenReal(Fn.re(x), Assumptions.none)).isTrue;
+        check(isProvenReal(Fn.im(x), Assumptions.none)).isTrue;
+        check(isProvenReal(Fn.arg(x), Assumptions.none)).isTrue;
       });
     });
 
@@ -65,8 +69,9 @@ void main() {
         ).isFalse;
         check(isPositiveExpr(x, assumptions: Assumptions.none)).isFalse;
         check(isPositiveExpr(x, assumptions: posAssumptions)).isTrue;
-        check(isPositiveExpr(Pow(Constant.e, x), assumptions: realAssumptions))
-            .isTrue;
+        check(
+          isPositiveExpr(Pow.of(Constant.e, x), assumptions: realAssumptions),
+        ).isTrue;
 
         check(
           isNonNegativeExpr(IntegerNumber.zero, assumptions: Assumptions.none),
@@ -80,7 +85,8 @@ void main() {
             assumptions: Assumptions.none,
           ),
         ).isFalse;
-        check(isNonNegativeExpr(Abs(x), assumptions: Assumptions.none)).isTrue;
+        check(isNonNegativeExpr(Fn.abs(x), assumptions: Assumptions.none))
+            .isTrue;
       });
     });
 
@@ -102,7 +108,7 @@ void main() {
         ).isFalse;
         check(
           isEvenIntegerExpr(
-            Mul([IntegerNumber.two, x]),
+            Mul.of([IntegerNumber.two, x]),
             assumptions: intAssumptions,
           ),
         ).isTrue;
@@ -138,7 +144,7 @@ void main() {
 
       test('decomposes conjugate', () {
         final conj = decomposeComplex(
-          Conjugate(ComplexNumber.of(IntegerNumber.one, IntegerNumber.two)),
+          Fn.conj(ComplexNumber.of(IntegerNumber.one, IntegerNumber.two)),
           Assumptions.none,
         );
         check(conj.re).equals(IntegerNumber.one);
@@ -147,8 +153,14 @@ void main() {
 
       test('decomposes variables', () {
         final decomp = decomposeComplex(x, Assumptions.none);
-        check(decomp.re).isA<Re>();
-        check(decomp.im).isA<Im>();
+        check(decomp.re)
+            .isA<Call>()
+            .has('id', (Call c) => c.id)
+            .equals(FunctionId.re);
+        check(decomp.im)
+            .isA<Call>()
+            .has('id', (Call c) => c.id)
+            .equals(FunctionId.im);
 
         final realDecomp = decomposeComplex(x, realAssumptions);
         check(realDecomp.re).equals(x);
@@ -157,7 +169,7 @@ void main() {
 
       test('decomposes addition and multiplication', () {
         final sumDecomp = decomposeComplex(
-          Add([
+          Add.of([
             ComplexNumber.of(IntegerNumber.one, IntegerNumber.two),
             ComplexNumber.of(IntegerNumber.of(3), IntegerNumber.of(4)),
           ]),
@@ -167,7 +179,7 @@ void main() {
         check(sumDecomp.im).equals(IntegerNumber.of(6));
 
         final prodDecomp = decomposeComplex(
-          Mul([
+          Mul.of([
             ComplexNumber.of(IntegerNumber.one, IntegerNumber.two),
             ComplexNumber.of(IntegerNumber.of(3), IntegerNumber.of(4)),
           ]),
@@ -181,7 +193,7 @@ void main() {
       test('sound domain predicates for Pow, Add, Cosh, and Elliptic', () {
         check(
           isNonNegativeExpr(
-            Pow(IntegerNumber.two, ComplexNumber.i),
+            Pow.of(IntegerNumber.two, ComplexNumber.i),
             assumptions: Assumptions.none,
           ),
         ).isFalse;
@@ -195,14 +207,14 @@ void main() {
           Expr.parse('sqrt((x^2 + 1)^2)')
               .simplify(assumptions: Assumptions.real),
         ).equals(Expr.parse('1 + x^2').simplify());
-        check(isProvenReal(EllipticK(x), Assumptions.real)).isFalse;
-        check(isProvenReal(EllipticK(FractionNumber.half), Assumptions.real))
+        check(isProvenReal(Fn.ellipticK(x), Assumptions.real)).isFalse;
+        check(isProvenReal(Fn.ellipticK(FractionNumber.half), Assumptions.real))
             .isTrue;
-        check(isProvenReal(EllipticK(IntegerNumber.one), Assumptions.none))
+        check(isProvenReal(Fn.ellipticK(IntegerNumber.one), Assumptions.none))
             .isFalse;
-        check(isProvenReal(EllipticE(IntegerNumber.one), Assumptions.none))
+        check(isProvenReal(Fn.ellipticE(IntegerNumber.one), Assumptions.none))
             .isTrue;
-        check(isPositiveExpr(Cosh(x), assumptions: Assumptions.real)).isTrue;
+        check(isPositiveExpr(Fn.cosh(x), assumptions: Assumptions.real)).isTrue;
       });
 
       test(
@@ -210,35 +222,35 @@ void main() {
         () {
           check(
             isIntegerExpr(
-              Floor(Constant.undefined),
+              Fn.floor(Constant.undefined),
               assumptions: Assumptions.none,
             ),
           ).isFalse;
           check(
             isIntegerExpr(
-              Floor(const Variable('x')),
+              Fn.floor(const Variable('x')),
               assumptions: Assumptions.real,
             ),
           ).isTrue;
           check(
             isProvenReal(
-              BesselK(IntegerNumber.zero, IntegerNumber.negativeOne),
+              Fn.besselK(IntegerNumber.zero, IntegerNumber.negativeOne),
               Assumptions.none,
             ),
           ).isFalse;
           check(
             isProvenReal(
-              BesselY(IntegerNumber.zero, IntegerNumber.negativeOne),
+              Fn.besselY(IntegerNumber.zero, IntegerNumber.negativeOne),
               Assumptions.none,
             ),
           ).isFalse;
           check(
             isProvenReal(
-              UpperGamma(IntegerNumber.one, IntegerNumber.negativeOne),
+              Fn.upperGamma(IntegerNumber.one, IntegerNumber.negativeOne),
               Assumptions.none,
             ),
           ).isFalse;
-          check(isProvenReal(Gamma(IntegerNumber.zero), Assumptions.none))
+          check(isProvenReal(Fn.gamma(IntegerNumber.zero), Assumptions.none))
               .isFalse;
           check(
             isPositiveExpr(
@@ -254,13 +266,13 @@ void main() {
           ).isTrue;
           check(
             isNonNegativeExpr(
-              Pow(IntegerNumber.zero, IntegerNumber.negativeOne),
+              Pow.of(IntegerNumber.zero, IntegerNumber.negativeOne),
               assumptions: Assumptions.none,
             ),
           ).isFalse;
           check(
             isNonNegativeExpr(
-              Abs(Constant.undefined),
+              Fn.abs(Constant.undefined),
               assumptions: Assumptions.none,
             ),
           ).isFalse;

@@ -1,6 +1,8 @@
+import 'package:more/math.dart';
+
 import '../assumptions.dart';
 import '../ast.dart';
-import '../number/integer.dart';
+import '../number/combinatorics.dart';
 import 'expand.dart';
 import 'factor/fraction.dart';
 import 'factor/multivariate.dart';
@@ -194,7 +196,7 @@ Expr _factorRational(RationalNumber expr) {
   if (expr is IntegerNumber) return _factorInteger(expr.value);
   if (expr is FractionNumber) {
     final numFactors = <Expr>[];
-    if (!expr.numerator.isOne) {
+    if (expr.numerator != BigInt.one) {
       final numFact = _factorInteger(expr.numerator);
       if (numFact case Mul(:final factors)) {
         numFactors.addAll(factors);
@@ -206,15 +208,21 @@ Expr _factorRational(RationalNumber expr) {
     final all = <Expr>[
       ...numFactors,
       for (final (:prime, :exponent) in denFact)
-        Pow(IntegerNumber(prime), IntegerNumber.of(-exponent)),
+        if (exponent == 1)
+          Pow.raw(IntegerNumber(prime), IntegerNumber.negativeOne)
+        else
+          Pow.raw(IntegerNumber(prime), IntegerNumber.of(-exponent)),
     ];
-    return all.length == 1 ? all.first : Mul(all);
+    return all.length == 1 ? all.first : Mul.raw(all);
   }
   return expr;
 }
 
-Expr _factorInteger(Integer n) {
-  if (n.isZero || n.isOne || n == Integer.negativeOne || n.bitLength > 96) {
+Expr _factorInteger(BigInt n) {
+  if (n == BigInt.zero ||
+      n == BigInt.one ||
+      n == -BigInt.one ||
+      n.bitLength > 96) {
     return IntegerNumber(n);
   }
   final factors = <Expr>[];
@@ -223,11 +231,13 @@ Expr _factorInteger(Integer n) {
   }
   for (final (:prime, :exponent) in _factorPositiveIntegerFactors(n.abs())) {
     final pExpr = IntegerNumber(prime);
-    factors.add(exponent == 1 ? pExpr : Pow(pExpr, IntegerNumber.of(exponent)));
+    factors.add(
+      exponent == 1 ? pExpr : Pow.raw(pExpr, IntegerNumber.of(exponent)),
+    );
   }
   return switch (factors) {
     [final single] => single,
-    _ => Mul(factors),
+    _ => Mul.raw(factors),
   };
 }
 
@@ -249,20 +259,20 @@ void collectFactors(Expr expr, List<Expr> target) {
   }
 }
 
-List<({Integer prime, int exponent})> _factorPositiveIntegerFactors(Integer n) {
-  final result = <({Integer prime, int exponent})>[];
+List<({BigInt prime, int exponent})> _factorPositiveIntegerFactors(BigInt n) {
+  final result = <({BigInt prime, int exponent})>[];
   var rem = n;
   var exp2 = 0;
-  while (rem.isEven && !rem.isZero) {
-    rem = rem ~/ Integer.two;
+  while (rem.isEven && rem != BigInt.zero) {
+    rem = rem ~/ BigInt.two;
     exp2++;
   }
   if (exp2 > 0) {
-    result.add((prime: Integer.two, exponent: exp2));
+    result.add((prime: BigInt.two, exponent: exp2));
   }
   var exp3 = 0;
-  const three = Integer(3);
-  while ((rem % three).isZero && !rem.isZero) {
+  final three = BigInt.from(3);
+  while (rem % three == BigInt.zero && rem != BigInt.zero) {
     rem = rem ~/ three;
     exp3++;
   }
@@ -270,14 +280,14 @@ List<({Integer prime, int exponent})> _factorPositiveIntegerFactors(Integer n) {
     result.add((prime: three, exponent: exp3));
   }
 
-  var d = const Integer(5);
-  var step = Integer.two;
-  const six = Integer(6);
-  const maxTrial = Integer(1000000);
+  var d = BigInt.from(5);
+  var step = BigInt.two;
+  final six = BigInt.from(6);
+  final maxTrial = BigInt.from(1000000);
   while (d * d <= rem && d <= maxTrial) {
-    if ((rem % d).isZero) {
+    if (rem % d == BigInt.zero) {
       var exp = 0;
-      while ((rem % d).isZero) {
+      while (rem % d == BigInt.zero) {
         rem = rem ~/ d;
         exp++;
       }
@@ -286,20 +296,20 @@ List<({Integer prime, int exponent})> _factorPositiveIntegerFactors(Integer n) {
     d = d + step;
     step = six - step;
   }
-  if (rem > Integer.one) {
-    if (rem.isPrime) {
+  if (rem > BigInt.one) {
+    if (rem.isProbablyPrime) {
       result.add((prime: rem, exponent: 1));
     } else {
-      final bigFactors = <Integer>[];
-      final queue = <Integer>[rem];
+      final bigFactors = <BigInt>[];
+      final queue = <BigInt>[rem];
       while (queue.isNotEmpty) {
         final curr = queue.removeLast();
-        if (curr <= Integer.one) continue;
-        if (curr.isPrime) {
+        if (curr <= BigInt.one) continue;
+        if (curr.isProbablyPrime) {
           bigFactors.add(curr);
         } else {
           final factor = pollardsRho(curr);
-          if (factor != null && factor > Integer.one && factor < curr) {
+          if (factor != null && factor > BigInt.one && factor < curr) {
             queue.add(factor);
             queue.add(curr ~/ factor);
           } else {

@@ -10,7 +10,10 @@ void main() {
       check(IntegerNumber.of(5).limit('x', IntegerNumber.zero))
           .equals(IntegerNumber.of(5));
       check(
-        (Pow(x, IntegerNumber.two) + Sinh(x) + Cosh(x) + Pow(Constant.e, x))
+        (Pow.of(x, IntegerNumber.two) +
+                Fn.sinh(x) +
+                Fn.cosh(x) +
+                Pow.of(Constant.e, x))
             .limit('x', IntegerNumber.zero),
       ).equals(IntegerNumber.two);
 
@@ -37,7 +40,7 @@ void main() {
       check(highNonQuot.limit('x', IntegerNumber.zero))
           .equals(IntegerNumber.zero);
 
-      final veryHigh = Pow(x, IntegerNumber.of(20)) * Tan(x);
+      final veryHigh = Pow.of(x, IntegerNumber.of(20)) * Fn.tan(x);
       check(veryHigh.limit('x', IntegerNumber.zero)).equals(IntegerNumber.zero);
     });
 
@@ -74,24 +77,24 @@ void main() {
           .throws<UnsupportedError>();
 
       check(
-        (IntegerNumber.one / Pow(x, IntegerNumber.two)).limit(
+        (IntegerNumber.one / Pow.of(x, IntegerNumber.two)).limit(
           'x',
           IntegerNumber.zero,
         ),
       ).equals(Constant.infinity);
       check(
-        (-Constant.pi / Pow(x, IntegerNumber.two)).limit(
+        (-Constant.pi / Pow.of(x, IntegerNumber.two)).limit(
           'x',
           IntegerNumber.zero,
         ),
       ).equals(-Constant.infinity);
       check(
         ((-IntegerNumber.two * Constant.pi * Constant.e) /
-                Pow(x, IntegerNumber.two))
+                Pow.of(x, IntegerNumber.two))
             .limit('x', IntegerNumber.zero),
       ).equals(-Constant.infinity);
       check(
-        (Constant.pi / Pow(x, IntegerNumber.two)).limit(
+        (Constant.pi / Pow.of(x, IntegerNumber.two)).limit(
           'x',
           IntegerNumber.zero,
         ),
@@ -102,24 +105,25 @@ void main() {
       'evaluates non-analytic finite limits via reciprocal transformation',
       () {
         check(
-          (x * Ln(x)).limit(
+          (x * Fn.ln(x)).limit(
             'x',
             IntegerNumber.zero,
             direction: LimitDirection.fromAbove,
           ),
         ).equals(IntegerNumber.zero);
         check(
-          (x * Ln(-x)).limit(
+          (x * Fn.ln(-x)).limit(
             'x',
             IntegerNumber.zero,
             direction: LimitDirection.fromBelow,
           ),
         ).equals(IntegerNumber.zero);
-        check(Abs(x).limit('x', IntegerNumber.zero)).equals(IntegerNumber.zero);
-        check(() => (Abs(x) / x).limit('x', IntegerNumber.zero))
+        check(Fn.abs(x).limit('x', IntegerNumber.zero))
+            .equals(IntegerNumber.zero);
+        check(() => (Fn.abs(x) / x).limit('x', IntegerNumber.zero))
             .throws<UnsupportedError>();
         check(
-          () => Pow(
+          () => Pow.of(
             Constant.e,
             IntegerNumber.one / x,
           ).limit('x', IntegerNumber.zero),
@@ -142,40 +146,44 @@ void main() {
                 IntegerNumber.two * const Variable('_t'))
             .simplify(),
       );
-      check(Pow(x, x).limit('x', Constant.infinity)).equals(Constant.infinity);
-      check(Pow(x, -x).limit('x', Constant.infinity))
-          .equals(IntegerNumber.zero);
-
-      check(Pow(Constant.e, x).limit('x', IntegerNumber.one))
-          .equals(Constant.e);
-      check(Pow(Constant.e, x).limit('x', Constant.infinity))
+      check(Pow.of(x, x).limit('x', Constant.infinity))
           .equals(Constant.infinity);
-      check(Pow(Constant.e, -x).limit('x', Constant.infinity))
+      check(Pow.of(x, -x).limit('x', Constant.infinity))
           .equals(IntegerNumber.zero);
 
-      check(Ln(x).limit('x', Constant.infinity)).equals(Constant.infinity);
+      check(Pow.of(Constant.e, x).limit('x', IntegerNumber.one))
+          .equals(Constant.e);
+      check(Pow.of(Constant.e, x).limit('x', Constant.infinity))
+          .equals(Constant.infinity);
+      check(Pow.of(Constant.e, -x).limit('x', Constant.infinity))
+          .equals(IntegerNumber.zero);
+
+      check(Fn.ln(x).limit('x', Constant.infinity)).equals(Constant.infinity);
       check(
-        Ln(
+        Fn.ln(
           x,
         ).limit('x', IntegerNumber.zero, direction: LimitDirection.fromAbove),
       ).equals(-Constant.infinity);
       check(
-        () => Ln(
+        () => Fn.ln(
           x,
         ).limit('x', IntegerNumber.zero, direction: LimitDirection.fromBelow),
       ).throws<UnsupportedError>();
-      check(() => Ln(x).limit('x', IntegerNumber.zero))
+      check(() => Fn.ln(x).limit('x', IntegerNumber.zero))
           .throws<UnsupportedError>();
-      check(Ln(Pow(x, IntegerNumber.two)).limit('x', IntegerNumber.zero))
+      check(Fn.ln(Pow.of(x, IntegerNumber.two)).limit('x', IntegerNumber.zero))
           .equals(-Constant.infinity);
-      check(Ln(x).limit('x', IntegerNumber.one)).equals(IntegerNumber.zero);
+      check(Fn.ln(x).limit('x', IntegerNumber.one)).equals(IntegerNumber.zero);
 
       // Unevaluated Limit fall-through in Pow / exp
-      final pwExp = Pow(
+      final pwExp = Pow.of(
         Constant.e,
         Piecewise([
           (
-            relation: LessThan(const Variable('y'), IntegerNumber.zero),
+            relation: Relational.lessThan(
+              const Variable('y'),
+              IntegerNumber.zero,
+            ),
             expr: x,
           ),
         ]),
@@ -190,36 +198,45 @@ void main() {
     });
 
     test('evaluates Sin, Cos, Atan, and Tanh limits', () {
-      check(Sin(x).limit('x', IntegerNumber.zero)).equals(IntegerNumber.zero);
-      check(Cos(x).limit('x', IntegerNumber.zero)).equals(IntegerNumber.one);
-      check(Atan(x).limit('x', IntegerNumber.zero)).equals(IntegerNumber.zero);
-      check(Tanh(x).limit('x', IntegerNumber.zero)).equals(IntegerNumber.zero);
-      check(Sin(const RealNumber(0.5) * x).limit('x', IntegerNumber.two))
-          .equals(Sin(const RealNumber(1.0)).simplify());
-      check(Sin(Constant.pi * x).limit('x', IntegerNumber.one))
-          .equals(Sin(Constant.pi).simplify());
-      check(Atan(Ln(IntegerNumber.two) * x).limit('x', IntegerNumber.one))
-          .equals(Atan(Ln(IntegerNumber.two)).simplify());
+      check(Fn.sin(x).limit('x', IntegerNumber.zero))
+          .equals(IntegerNumber.zero);
+      check(Fn.cos(x).limit('x', IntegerNumber.zero)).equals(IntegerNumber.one);
+      check(Fn.atan(x).limit('x', IntegerNumber.zero))
+          .equals(IntegerNumber.zero);
+      check(Fn.tanh(x).limit('x', IntegerNumber.zero))
+          .equals(IntegerNumber.zero);
+      check(Fn.sin(const RealNumber(0.5) * x).limit('x', IntegerNumber.two))
+          .equals(Fn.sin(const RealNumber(1.0)).simplify());
+      check(Fn.sin(Constant.pi * x).limit('x', IntegerNumber.one))
+          .equals(Fn.sin(Constant.pi).simplify());
+      check(Fn.atan(Fn.ln(IntegerNumber.two) * x).limit('x', IntegerNumber.one))
+          .equals(Fn.atan(Fn.ln(IntegerNumber.two)).simplify());
 
-      check(Atan(x).limit('x', Constant.infinity))
+      check(Fn.atan(x).limit('x', Constant.infinity))
           .equals((Constant.pi / IntegerNumber.two).simplify());
-      check(Atan(x).limit('x', -Constant.infinity))
+      check(Fn.atan(x).limit('x', -Constant.infinity))
           .equals((-(Constant.pi / IntegerNumber.two)).simplify());
-      check(Tanh(x).limit('x', Constant.infinity)).equals(IntegerNumber.one);
-      check(Tanh(x).limit('x', -Constant.infinity))
+      check(Fn.tanh(x).limit('x', Constant.infinity)).equals(IntegerNumber.one);
+      check(Fn.tanh(x).limit('x', -Constant.infinity))
           .equals(IntegerNumber.negativeOne);
-      check(Sinh(x).limit('x', Constant.infinity)).equals(Constant.infinity);
-      check(Sinh(x).limit('x', -Constant.infinity)).equals(-Constant.infinity);
-      check(Cosh(x).limit('x', Constant.infinity)).equals(Constant.infinity);
-      check(Cosh(x).limit('x', -Constant.infinity)).equals(Constant.infinity);
-      check(Asinh(x).limit('x', Constant.infinity)).equals(Constant.infinity);
-      check(Asinh(x).limit('x', -Constant.infinity)).equals(-Constant.infinity);
-      check(Acosh(x).limit('x', Constant.infinity)).equals(Constant.infinity);
-      check(Acosh(x).limit('x', -Constant.infinity)).equals(Constant.undefined);
+      check(Fn.sinh(x).limit('x', Constant.infinity)).equals(Constant.infinity);
+      check(Fn.sinh(x).limit('x', -Constant.infinity))
+          .equals(-Constant.infinity);
+      check(Fn.cosh(x).limit('x', Constant.infinity)).equals(Constant.infinity);
+      check(Fn.cosh(x).limit('x', -Constant.infinity))
+          .equals(Constant.infinity);
+      check(Fn.asinh(x).limit('x', Constant.infinity))
+          .equals(Constant.infinity);
+      check(Fn.asinh(x).limit('x', -Constant.infinity))
+          .equals(-Constant.infinity);
+      check(Fn.acosh(x).limit('x', Constant.infinity))
+          .equals(Constant.infinity);
+      check(Fn.acosh(x).limit('x', -Constant.infinity))
+          .equals(Constant.undefined);
 
-      check(() => Sin(x).limit('x', Constant.infinity))
+      check(() => Fn.sin(x).limit('x', Constant.infinity))
           .throws<UnsupportedError>();
-      check(() => Cos(x).limit('x', Constant.infinity))
+      check(() => Fn.cos(x).limit('x', Constant.infinity))
           .throws<UnsupportedError>();
     });
   });
@@ -239,10 +256,7 @@ void main() {
       check(
         (IntegerNumber.one / x).limit(
           'x',
-          Mul(const [
-            Constant.infinity,
-            IntegerNumber.negativeOne,
-          ], isSimplified: true),
+          Mul.of([Constant.infinity, IntegerNumber.negativeOne]),
         ),
       ).equals(IntegerNumber.zero);
       check(Expr.parse('(3*x^2 + 1) / (x^2 - 5)').limit('x', Constant.infinity))
@@ -250,16 +264,16 @@ void main() {
     });
 
     test('resolves Abs and Piecewise asymptotically at infinity', () {
-      check((Abs(x) / x).limit('x', Constant.infinity))
+      check((Fn.abs(x) / x).limit('x', Constant.infinity))
           .equals(IntegerNumber.one);
-      check((Abs(x) / x).limit('x', -Constant.infinity))
+      check((Fn.abs(x) / x).limit('x', -Constant.infinity))
           .equals(IntegerNumber.negativeOne);
-      check((Abs(-x) / x).limit('x', Constant.infinity))
+      check((Fn.abs(-x) / x).limit('x', Constant.infinity))
           .equals(IntegerNumber.one);
 
       final pw1 = Piecewise([
         (
-          relation: GreaterThan(x, IntegerNumber.zero),
+          relation: Relational.greaterThan(x, IntegerNumber.zero),
           expr: IntegerNumber.of(7),
         ),
       ], otherwise: IntegerNumber.of(-7));
@@ -281,18 +295,23 @@ void main() {
       check(undetAlg).isA<Limit>();
       check(Expr.parse(undetAlg.toString())).equals(undetAlg);
 
-      check((Ln(x) / x).limit('x', Constant.infinity))
+      check((Fn.ln(x) / x).limit('x', Constant.infinity))
           .equals(IntegerNumber.zero);
       check(
-        (Ln(IntegerNumber.one + Pow(Constant.e, x)) / x).limit(
+        (Fn.ln(IntegerNumber.one + Pow.of(Constant.e, x)) / x).limit(
           'x',
           Constant.infinity,
         ),
       ).equals(IntegerNumber.one);
-      check((Ln(Pow(Constant.e, x) + x) / x).limit('x', Constant.infinity))
-          .equals(IntegerNumber.one);
-      check((Ln(Pow(Constant.e, x) + Ln(x)) / x).limit('x', Constant.infinity))
-          .equals(IntegerNumber.one);
+      check(
+        (Fn.ln(Pow.of(Constant.e, x) + x) / x).limit('x', Constant.infinity),
+      ).equals(IntegerNumber.one);
+      check(
+        (Fn.ln(Pow.of(Constant.e, x) + Fn.ln(x)) / x).limit(
+          'x',
+          Constant.infinity,
+        ),
+      ).equals(IntegerNumber.one);
 
       check(Expr.parse('abs(ln(x) - 5)/ln(x)').limit('x', Constant.infinity))
           .equals(IntegerNumber.one);
@@ -308,31 +327,31 @@ void main() {
 
     test('evaluates exponential hierarchy (Gruntz MRV) and Squeeze theorem', () {
       check(
-        (Pow(x, IntegerNumber.of(5)) / Pow(Constant.e, x)).limit(
+        (Pow.of(x, IntegerNumber.of(5)) / Pow.of(Constant.e, x)).limit(
           'x',
           Constant.infinity,
         ),
       ).equals(IntegerNumber.zero);
       check(
-        (Pow(Constant.e, x) / Pow(x, IntegerNumber.of(5))).limit(
+        (Pow.of(Constant.e, x) / Pow.of(x, IntegerNumber.of(5))).limit(
           'x',
           Constant.infinity,
         ),
       ).equals(Constant.infinity);
       check(
-        (-Pow(Constant.e, x) / Pow(x, IntegerNumber.of(5))).limit(
+        (-Pow.of(Constant.e, x) / Pow.of(x, IntegerNumber.of(5))).limit(
           'x',
           Constant.infinity,
         ),
       ).equals(-Constant.infinity);
       check(
-        ((-IntegerNumber.two * Constant.pi * Pow(Constant.e, x)) /
-                Pow(x, IntegerNumber.of(5)))
+        ((-IntegerNumber.two * Constant.pi * Pow.of(Constant.e, x)) /
+                Pow.of(x, IntegerNumber.of(5)))
             .limit('x', Constant.infinity),
       ).equals(-Constant.infinity);
       check(
-        (Pow(x - IntegerNumber.of(100), FractionNumber.half) *
-                Pow(Constant.e, x))
+        (Pow.of(x - IntegerNumber.of(100), FractionNumber.half) *
+                Pow.of(Constant.e, x))
             .limit('x', Constant.infinity),
       ).equals(Constant.infinity);
 
@@ -343,9 +362,9 @@ void main() {
           .equals((IntegerNumber.of(3) * Constant.e).simplify());
 
       final mixedDegExp =
-          (Pow(Constant.e, Pow(x, IntegerNumber.two) + x) +
-              Pow(Constant.e, x)) /
-          Pow(Constant.e, Pow(x, IntegerNumber.two) + x);
+          (Pow.of(Constant.e, Pow.of(x, IntegerNumber.two) + x) +
+              Pow.of(Constant.e, x)) /
+          Pow.of(Constant.e, Pow.of(x, IntegerNumber.two) + x);
       check(mixedDegExp.limit('x', Constant.infinity))
           .equals(IntegerNumber.one);
 
@@ -362,50 +381,52 @@ void main() {
       ).equals(Constant.infinity);
 
       final realExp =
-          (Pow(Constant.e, const RealNumber(0.5) * x) + IntegerNumber.one) /
-          Pow(Constant.e, x);
+          (Pow.of(Constant.e, const RealNumber(0.5) * x) + IntegerNumber.one) /
+          Pow.of(Constant.e, x);
       check(realExp.limit('x', Constant.infinity)).equals(IntegerNumber.zero);
 
       check(
-        (Pow(IntegerNumber.two, x) / Pow(IntegerNumber.of(3), x)).limit(
+        (Pow.of(IntegerNumber.two, x) / Pow.of(IntegerNumber.of(3), x)).limit(
           'x',
           Constant.infinity,
         ),
       ).equals(IntegerNumber.zero);
       check(
-        (Pow(IntegerNumber.of(3), x) / Pow(IntegerNumber.two, x)).limit(
+        (Pow.of(IntegerNumber.of(3), x) / Pow.of(IntegerNumber.two, x)).limit(
           'x',
           Constant.infinity,
         ),
       ).equals(Constant.infinity);
       check(
-        (Pow(IntegerNumber.two, x + IntegerNumber.one) /
-                Pow(IntegerNumber.two, x))
+        (Pow.of(IntegerNumber.two, x + IntegerNumber.one) /
+                Pow.of(IntegerNumber.two, x))
             .limit('x', Constant.infinity),
       ).equals(IntegerNumber.two);
       check(
-        ((x + IntegerNumber.one) * Pow(IntegerNumber.two, -x)).limit(
+        ((x + IntegerNumber.one) * Pow.of(IntegerNumber.two, -x)).limit(
           'x',
           Constant.infinity,
         ),
       ).equals(IntegerNumber.zero);
       check(
-        ((Pow(x, IntegerNumber.two) + x) * Pow(FractionNumber.half, x)).limit(
+        ((Pow.of(x, IntegerNumber.two) + x) * Pow.of(FractionNumber.half, x))
+            .limit('x', Constant.infinity),
+      ).equals(IntegerNumber.zero);
+      check((Fn.sinh(x) / Fn.cosh(x)).limit('x', Constant.infinity))
+          .equals(IntegerNumber.one);
+      check((Fn.sinh(x) - Fn.cosh(x)).limit('x', Constant.infinity))
+          .equals(IntegerNumber.zero);
+
+      check((Fn.sin(x) / x).limit('x', Constant.infinity))
+          .equals(IntegerNumber.zero);
+      check((Fn.sin(x) / (x * Fn.ln(x))).limit('x', Constant.infinity))
+          .equals(IntegerNumber.zero);
+      check(
+        (Pow.of(Fn.cos(x), IntegerNumber.two) / x).limit(
           'x',
           Constant.infinity,
         ),
       ).equals(IntegerNumber.zero);
-      check((Sinh(x) / Cosh(x)).limit('x', Constant.infinity))
-          .equals(IntegerNumber.one);
-      check((Sinh(x) - Cosh(x)).limit('x', Constant.infinity))
-          .equals(IntegerNumber.zero);
-
-      check((Sin(x) / x).limit('x', Constant.infinity))
-          .equals(IntegerNumber.zero);
-      check((Sin(x) / (x * Ln(x))).limit('x', Constant.infinity))
-          .equals(IntegerNumber.zero);
-      check((Pow(Cos(x), IntegerNumber.two) / x).limit('x', Constant.infinity))
-          .equals(IntegerNumber.zero);
 
       // Unexpanded polynomial exponents and terms in Gruntz and rational limits
       check(
@@ -418,18 +439,21 @@ void main() {
         Expr.parse('((x + 1)^2 - x^2) / (2 * x + 5)')
             .limit('x', Constant.infinity),
       ).equals(IntegerNumber.one);
-      check(() => (x * Sin(x)).limit('x', Constant.infinity))
+      check(() => (x * Fn.sin(x)).limit('x', Constant.infinity))
           .throws<UnsupportedError>();
 
       final unsupportedMrv =
           Piecewise([
             (
-              relation: LessThan(const Variable('y'), IntegerNumber.zero),
-              expr: Pow(Constant.e, x),
+              relation: Relational.lessThan(
+                const Variable('y'),
+                IntegerNumber.zero,
+              ),
+              expr: Pow.of(Constant.e, x),
             ),
           ]) +
           Integral(
-            Pow(Constant.e, x),
+            Pow.of(Constant.e, x),
             't',
             lower: IntegerNumber.zero,
             upper: IntegerNumber.one,
@@ -460,7 +484,7 @@ void main() {
       check(Expr.parse(limBelow.toString())).equals(limBelow);
       check(limBelow.toLatex()).equals(r'\lim_{x \to 0^-} f(x)');
 
-      check((Sin(x) / x).limit('x', 0)).equals(IntegerNumber.one);
+      check((Fn.sin(x) / x).limit('x', 0)).equals(IntegerNumber.one);
       check((x + IntegerNumber.one).limit('x', BigInt.two))
           .equals(IntegerNumber.of(3));
       check((x + IntegerNumber.one).limit('x', 1.5))
@@ -469,30 +493,30 @@ void main() {
           .equals(IntegerNumber.zero);
       check((IntegerNumber.one / x).limit('x', double.negativeInfinity))
           .equals(IntegerNumber.zero);
-      check(Sin(x).limit('x', Constant.pi / IntegerNumber.two))
+      check(Fn.sin(x).limit('x', Constant.pi / IntegerNumber.two))
           .equals(IntegerNumber.one);
       check(() => x.limit('x', '??? invalid')).throws<ArgumentError>();
 
       // Exponential limits at infinity
-      check(Pow(IntegerNumber.two, x).limit('x', Constant.infinity))
+      check(Pow.of(IntegerNumber.two, x).limit('x', Constant.infinity))
           .equals(Constant.infinity);
-      check(Pow(FractionNumber.half, x).limit('x', -Constant.infinity))
+      check(Pow.of(FractionNumber.half, x).limit('x', -Constant.infinity))
           .equals(Constant.infinity);
 
       // Bounded oscillation with multiple non-oscillating factors
       final multiFactorOsc =
-          (Mul([IntegerNumber.two, x, Sin(x)])) /
-          (Pow(x, IntegerNumber.two) + IntegerNumber.one);
+          (Mul.of([IntegerNumber.two, x, Fn.sin(x)])) /
+          (Pow.of(x, IntegerNumber.two) + IntegerNumber.one);
       check(multiFactorOsc.limit('x', Constant.infinity))
           .equals(IntegerNumber.zero);
 
       // Asymptotic degree analysis scanning composite AST nodes
-      final compositeExpr = Add([
+      final compositeExpr = Add.of([
         Derivative(x, 'x'),
         Limit(x, 't', IntegerNumber.zero),
         Sum(x, 'k', IntegerNumber.one, IntegerNumber.of(5)),
         Product(x, 'k', IntegerNumber.one, IntegerNumber.of(5)),
-        VariableFunction('f', [x]),
+        Call.symbolic('f', [x]),
       ]);
       check(compositeExpr.limit('x', Constant.infinity)).isNotNull();
 
@@ -503,49 +527,51 @@ void main() {
       ).equals(IntegerNumber.one);
 
       // Erfc at +infinity and -infinity, fresh limit variable collision, and power bounded factor
-      check(Erfc(x).limit('x', Constant.infinity)).equals(IntegerNumber.zero);
-      check(Erfc(x).limit('x', -Constant.infinity)).equals(IntegerNumber.two);
+      check(Fn.erfc(x).limit('x', Constant.infinity))
+          .equals(IntegerNumber.zero);
+      check(Fn.erfc(x).limit('x', -Constant.infinity))
+          .equals(IntegerNumber.two);
       const hVar = Variable('_h');
       const h1Var = Variable('_h_1');
       check((x + hVar + h1Var).limit('x', IntegerNumber.one))
           .equals((IntegerNumber.one + hVar + h1Var).simplify());
-      final expComposite = Add([
-        Pow(Constant.e, x),
-        Limit(Pow(Constant.e, x), 't', IntegerNumber.zero),
-        Sum(Pow(Constant.e, x), 'k', IntegerNumber.one, IntegerNumber.two),
+      final expComposite = Add.of([
+        Pow.of(Constant.e, x),
+        Limit(Pow.of(Constant.e, x), 't', IntegerNumber.zero),
+        Sum(Pow.of(Constant.e, x), 'k', IntegerNumber.one, IntegerNumber.two),
       ]);
       check(expComposite.limit('x', Constant.infinity))
           .equals(Constant.infinity);
 
       // LambertW limits
       check(
-        LambertW(
+        Fn.lambertW(
           x,
-          branch: -1,
+          IntegerNumber.negativeOne,
         ).limit('x', IntegerNumber.zero, direction: LimitDirection.fromBelow),
       ).equals(-Constant.infinity);
       check(
-        () => LambertW(
+        () => Fn.lambertW(
           x,
-          branch: -1,
+          IntegerNumber.negativeOne,
         ).limit('x', IntegerNumber.zero, direction: LimitDirection.fromAbove),
       ).throws<UnsupportedError>();
-      check(LambertW(x).limit('x', Constant.infinity))
+      check(Fn.lambertW(x).limit('x', Constant.infinity))
           .equals(Constant.infinity);
     });
 
     test('limits involving special integral functions', () {
       const x = Variable('x');
       check(
-        ((SinIntegral(x) - x) / x.pow(IntegerNumber.of(3))).limit(
+        ((Fn.si(x) - x) / x.pow(IntegerNumber.of(3))).limit(
           'x',
           IntegerNumber.zero,
         ),
       ).equals(Expr.parse('-1/18').simplify());
-      check((Erfi(x) / x).limit('x', IntegerNumber.zero))
+      check((Fn.erfi(x) / x).limit('x', IntegerNumber.zero))
           .equals(Expr.parse('2/sqrt(pi)').simplify());
       check(
-        (FresnelS(x) / x.pow(IntegerNumber.of(3))).limit(
+        (Fn.fresnelS(x) / x.pow(IntegerNumber.of(3))).limit(
           'x',
           IntegerNumber.zero,
         ),
@@ -555,12 +581,13 @@ void main() {
     test('soundness for cancelling poles, unknown parameter signs, and oscillating bases', () {
       const x = Variable('x');
       const a = Variable('a');
-      check((IntegerNumber.one / x - IntegerNumber.one / Sin(x)).limit('x', 0))
-          .equals(IntegerNumber.zero);
-
-      check((a / Pow(x, IntegerNumber.two)).limit('x', 0)).isA<Limit>();
       check(
-        (a / Pow(x, IntegerNumber.two)).limit(
+        (IntegerNumber.one / x - IntegerNumber.one / Fn.sin(x)).limit('x', 0),
+      ).equals(IntegerNumber.zero);
+
+      check((a / Pow.of(x, IntegerNumber.two)).limit('x', 0)).isA<Limit>();
+      check(
+        (a / Pow.of(x, IntegerNumber.two)).limit(
           'x',
           0,
           assumptions: const Assumptions(
@@ -569,7 +596,7 @@ void main() {
         ),
       ).equals(Constant.infinity);
       check(
-        ((-a) / Pow(x, IntegerNumber.two)).limit(
+        ((-a) / Pow.of(x, IntegerNumber.two)).limit(
           'x',
           0,
           assumptions: const Assumptions(
@@ -578,7 +605,8 @@ void main() {
         ),
       ).equals(-Constant.infinity);
       check(
-        () => (Pow(IntegerNumber.of(-2), x) * x).limit('x', Constant.infinity),
+        () =>
+            (Pow.of(IntegerNumber.of(-2), x) * x).limit('x', Constant.infinity),
       ).throws<UnsupportedError>();
     });
 
@@ -654,22 +682,23 @@ void main() {
     test('guards negative base powers, 0^(-infinity), and complex bounded trig limits', () {
       const x = Variable('x');
       check(
-        () => Pow(IntegerNumber.negativeOne, x).limit('x', Constant.infinity),
+        () =>
+            Pow.of(IntegerNumber.negativeOne, x).limit('x', Constant.infinity),
       ).throws<UnsupportedError>();
-      check(() => Pow(IntegerNumber.zero, x).limit('x', -Constant.infinity))
+      check(() => Pow.of(IntegerNumber.zero, x).limit('x', -Constant.infinity))
           .throws<UnsupportedError>();
       check(
-        () => Pow(
+        () => Pow.of(
           x,
           FractionNumber.half,
         ).limit('x', 0, direction: LimitDirection.fromBelow),
       ).throws<UnsupportedError>();
-      check((Sin(x * ComplexNumber.i) / x).limit('x', Constant.infinity))
+      check((Fn.sin(x * ComplexNumber.i) / x).limit('x', Constant.infinity))
           .isA<Limit>();
       check(
         Piecewise([
           (
-            relation: GreaterEqual(x, IntegerNumber.of(5)),
+            relation: Relational.greaterEqual(x, IntegerNumber.of(5)),
             expr: IntegerNumber.of(9),
           ),
         ], otherwise: IntegerNumber.zero).limit('x', Constant.infinity),
@@ -678,46 +707,61 @@ void main() {
 
     test('handles oscillating, LambertW, unknown-sign, Factorial/Gamma, bounded product, and Piecewise limits', () {
       const x = Variable('x');
-      check(() => Pow(IntegerNumber.of(-2), x).limit('x', Constant.infinity))
+      check(() => Pow.of(IntegerNumber.of(-2), x).limit('x', Constant.infinity))
           .throws<UnsupportedError>();
-      check(() => Sin(x).limit('x', Constant.infinity))
+      check(() => Fn.sin(x).limit('x', Constant.infinity))
           .throws<UnsupportedError>();
-      check(LambertW(x).limit('x', IntegerNumber.zero))
+      check(Fn.lambertW(x).limit('x', IntegerNumber.zero))
           .equals(IntegerNumber.zero);
       check(
-        LambertW(x, branch: -1).limit('x', RationalNumber(-1, 4)).evaluate(),
+        Fn.lambertW(
+          x,
+          IntegerNumber.negativeOne,
+        ).limit('x', RationalNumber(-1, 4)).evaluate(),
       ).isCloseTo(
-        LambertW(RationalNumber(-1, 4), branch: -1).evaluate(),
+        Fn.lambertW(
+          RationalNumber(-1, 4),
+          IntegerNumber.negativeOne,
+        ).evaluate(),
         1e-12,
       );
 
       check((const Variable('a') * x).limit('x', Constant.infinity))
           .isA<Limit>();
       check(
-        (Factorial(x + IntegerNumber.one) / Factorial(x)).limit(
+        (Fn.factorial(x + IntegerNumber.one) / Fn.factorial(x)).limit(
           'x',
           Constant.infinity,
         ),
       ).equals(Constant.infinity);
       check(
-        (Gamma(x + IntegerNumber.one) / (x * Gamma(x))).limit(
+        (Fn.gamma(x + IntegerNumber.one) / (x * Fn.gamma(x))).limit(
           'x',
           Constant.infinity,
         ),
       ).equals(IntegerNumber.one);
 
-      check((Sin(x) * Pow(Constant.e, -x)).limit('x', Constant.infinity))
+      check((Fn.sin(x) * Pow.of(Constant.e, -x)).limit('x', Constant.infinity))
           .equals(IntegerNumber.zero);
-      check((Cos(x) / x).limit('x', Constant.infinity))
+      check((Fn.cos(x) / x).limit('x', Constant.infinity))
           .equals(IntegerNumber.zero);
 
       check(
         Piecewise([
-          (relation: LessThan(x, IntegerNumber.zero), expr: IntegerNumber.one),
-          (relation: LessEqual(x, IntegerNumber.two), expr: IntegerNumber.two),
-          (relation: Equal(x, IntegerNumber.of(3)), expr: IntegerNumber.of(3)),
           (
-            relation: GreaterThan(x * x, IntegerNumber.of(10)),
+            relation: Relational.lessThan(x, IntegerNumber.zero),
+            expr: IntegerNumber.one,
+          ),
+          (
+            relation: Relational.lessEqual(x, IntegerNumber.two),
+            expr: IntegerNumber.two,
+          ),
+          (
+            relation: Relational.equal(x, IntegerNumber.of(3)),
+            expr: IntegerNumber.of(3),
+          ),
+          (
+            relation: Relational.greaterThan(x * x, IntegerNumber.of(10)),
             expr: IntegerNumber.of(7),
           ),
         ], otherwise: IntegerNumber.zero).limit('x', Constant.infinity),
@@ -725,7 +769,7 @@ void main() {
       check(
         Piecewise([
           (
-            relation: NotEqual(x, IntegerNumber.zero),
+            relation: Relational.notEqual(x, IntegerNumber.zero),
             expr: IntegerNumber.of(4),
           ),
         ], otherwise: IntegerNumber.zero).limit('x', Constant.infinity),
@@ -734,21 +778,21 @@ void main() {
       const a = Variable('a');
       final symFinite =
           (a +
-              Sin(a) +
-              Cos(a) +
-              Sinh(a) +
-              Cosh(a) +
-              Atan(a) +
-              Tanh(a) +
-              Asinh(a) +
-              Erf(a) +
-              Erfc(a) +
-              Abs(a) +
-              Pow(Constant.e, a) +
-              Pow(a, IntegerNumber.two)) /
+              Fn.sin(a) +
+              Fn.cos(a) +
+              Fn.sinh(a) +
+              Fn.cosh(a) +
+              Fn.atan(a) +
+              Fn.tanh(a) +
+              Fn.asinh(a) +
+              Fn.erf(a) +
+              Fn.erfc(a) +
+              Fn.abs(a) +
+              Pow.of(Constant.e, a) +
+              Pow.of(a, IntegerNumber.two)) /
           x;
       check(symFinite.limit('x', Constant.infinity)).equals(IntegerNumber.zero);
-      check((Tan(a) / x).limit('x', Constant.infinity))
+      check((Fn.tan(a) / x).limit('x', Constant.infinity))
           .equals(IntegerNumber.zero);
     });
   });

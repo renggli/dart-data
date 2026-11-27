@@ -133,10 +133,10 @@ enum Op {
   /// Imaginary error function (`erfi(a)`).
   erfi,
 
-  /// Fresnel sine integral (`fresnels(a)`).
+  /// Fresnel sine integral (`fresnelS(a)`).
   fresnelS,
 
-  /// Fresnel cosine integral (`fresnelc(a)`).
+  /// Fresnel cosine integral (`fresnelC(a)`).
   fresnelC,
 
   /// Exponential integral (`Ei(a)`).
@@ -157,35 +157,34 @@ enum Op {
   /// Hyperbolic cosine integral (`Chi(a)`).
   coshIntegralChi,
 
-  /// Upper incomplete gamma function (`uppergamma(s, a)`).
+  /// Upper incomplete gamma function (`upperGamma(s, a)`).
   upperGamma,
 
-  /// Lower incomplete gamma function (`lowergamma(s, a)`).
+  /// Lower incomplete gamma function (`lowerGamma(s, a)`).
   lowerGamma,
 
   /// Polylogarithm (`polylog(s, z)`).
   polylog,
 
-  /// Incomplete elliptic integral of the first kind (`elliptic_f(phi, k)`).
+  /// Incomplete elliptic integral of the first kind (`ellipticF(phi, k)`).
   ellipticF,
 
-  /// Incomplete elliptic integral of the second kind (`elliptic_e(phi, k)`).
-  /// Incomplete elliptic integral of the second kind (`elliptic_e(phi, k)`).
+  /// Incomplete elliptic integral of the second kind (`ellipticE(phi, k)`).
   ellipticEIncomplete,
 
-  /// Incomplete elliptic integral of the third kind (`elliptic_pi(n, phi, k)`).
+  /// Incomplete elliptic integral of the third kind (`ellipticPi(n, phi, k)`).
   ellipticPi,
 
   /// Hurwitz zeta function (`zeta(s, a)`).
   hurwitzZeta,
 
-  /// Generalized exponential integral (`expint(n, z)`).
+  /// Generalized exponential integral (`expIntegralE(n, z)`).
   expIntegralE,
 
-  /// Generalized hypergeometric function (`hyper(upper, lower, z)`).
+  /// Generalized hypergeometric function (`hypergeometric(upper, lower, z)`).
   hypergeometric,
 
-  /// Log-gamma function (`loggamma(a)`).
+  /// Log-gamma function (`logGamma(a)`).
   logGamma,
 
   /// Appell hypergeometric function (`appellF1(a, b1, b2, c, x, y)`).
@@ -452,297 +451,297 @@ BytecodeEvaluator compileToBytecode(
         emit(base);
         emit(exponent);
         instructions.add(const Instruction.pow());
-      case Sin(:final expr):
-        emit(expr);
-        instructions.add(const Instruction.op(Op.sin));
-      case Cos(:final expr):
-        emit(expr);
-        instructions.add(const Instruction.op(Op.cos));
-      case Ln(:final expr):
-        emit(expr);
-        instructions.add(const Instruction.op(Op.ln));
-      case Tan(:final expr):
-        emit(expr);
-        instructions.add(const Instruction.op(Op.tan));
-      case Asin(:final expr):
-        emit(expr);
-        instructions.add(const Instruction.op(Op.asin));
-      case Acos(:final expr):
-        emit(expr);
-        instructions.add(const Instruction.op(Op.acos));
-      case Atan(:final expr):
-        emit(expr);
-        instructions.add(const Instruction.op(Op.atan));
-      case Atan2(:final left, :final right):
+      case Call(:final id, :final args):
+        switch (id) {
+          case FunctionId.sin:
+            emit(args[0]);
+            instructions.add(const Instruction.op(Op.sin));
+          case FunctionId.cos:
+            emit(args[0]);
+            instructions.add(const Instruction.op(Op.cos));
+          case FunctionId.ln:
+            emit(args[0]);
+            instructions.add(const Instruction.op(Op.ln));
+          case FunctionId.tan:
+            emit(args[0]);
+            instructions.add(const Instruction.op(Op.tan));
+          case FunctionId.asin:
+            emit(args[0]);
+            instructions.add(const Instruction.op(Op.asin));
+          case FunctionId.acos:
+            emit(args[0]);
+            instructions.add(const Instruction.op(Op.acos));
+          case FunctionId.atan:
+            emit(args[0]);
+            instructions.add(const Instruction.op(Op.atan));
+          case FunctionId.atan2:
+            emit(args[0]);
+            emit(args[1]);
+            instructions.add(const Instruction.op(Op.atan2));
+          case FunctionId.sinh:
+            emit(args[0]);
+            instructions.add(const Instruction.op(Op.sinh));
+          case FunctionId.cosh:
+            emit(args[0]);
+            instructions.add(const Instruction.op(Op.cosh));
+          case FunctionId.tanh:
+            emit(args[0]);
+            instructions.add(const Instruction.op(Op.tanh));
+          case FunctionId.abs:
+            emit(args[0]);
+            instructions.add(const Instruction.op(Op.abs));
+          case FunctionId.re:
+            emit(args[0]);
+            instructions.add(const Instruction.op(Op.re));
+          case FunctionId.im:
+            emit(args[0]);
+            instructions.add(const Instruction.op(Op.im));
+          case FunctionId.arg:
+            emit(args[0]);
+            instructions.add(const Instruction.op(Op.arg));
+          case FunctionId.conj:
+            emit(args[0]);
+            instructions.add(const Instruction.op(Op.conj));
+          case FunctionId.lambertW:
+            emit(args[0]);
+            final branch = args.length > 1 && args[1] is IntegerNumber
+                ? (args[1] as IntegerNumber).toInt()
+                : 0;
+            instructions.add(
+              Instruction.op(branch == 0 ? Op.lambertW0 : Op.lambertW1),
+            );
+          case FunctionId.erf:
+            emit(args[0]);
+            instructions.add(const Instruction.op(Op.erf));
+          case FunctionId.erfc:
+            emit(args[0]);
+            instructions.add(const Instruction.op(Op.erfc));
+          case FunctionId.gamma:
+            emit(args[0]);
+            instructions.add(const Instruction.op(Op.gamma));
+          case FunctionId.zeta:
+            emit(args[0]);
+            if (args.length < 2) {
+              instructions.add(const Instruction.op(Op.zeta));
+            } else {
+              emit(args[1]);
+              instructions.add(const Instruction.op(Op.hurwitzZeta));
+            }
+          case FunctionId.digamma:
+            emit(args[0]);
+            instructions.add(const Instruction.op(Op.digamma));
+          case FunctionId.logGamma:
+            emit(args[0]);
+            instructions.add(const Instruction.op(Op.logGamma));
+          case FunctionId.polygamma:
+            emit(args[0]);
+            emit(args[1]);
+            instructions.add(const Instruction.op(Op.polygamma));
+          case FunctionId.besselJ:
+            emit(args[0]);
+            emit(args[1]);
+            instructions.add(const Instruction.op(Op.besselJ));
+          case FunctionId.besselY:
+            emit(args[0]);
+            emit(args[1]);
+            instructions.add(const Instruction.op(Op.besselY));
+          case FunctionId.besselI:
+            emit(args[0]);
+            emit(args[1]);
+            instructions.add(const Instruction.op(Op.besselI));
+          case FunctionId.besselK:
+            emit(args[0]);
+            emit(args[1]);
+            instructions.add(const Instruction.op(Op.besselK));
+          case FunctionId.ellipticK:
+            emit(args[0]);
+            instructions.add(const Instruction.op(Op.ellipticK));
+          case FunctionId.ellipticE:
+            if (args.length < 2) {
+              emit(args[0]);
+              instructions.add(const Instruction.op(Op.ellipticE));
+            } else {
+              emit(args[0]);
+              emit(args[1]);
+              instructions.add(const Instruction.op(Op.ellipticEIncomplete));
+            }
+          case FunctionId.erfi:
+            emit(args[0]);
+            instructions.add(const Instruction.op(Op.erfi));
+          case FunctionId.fresnelS:
+            emit(args[0]);
+            instructions.add(const Instruction.op(Op.fresnelS));
+          case FunctionId.fresnelC:
+            emit(args[0]);
+            instructions.add(const Instruction.op(Op.fresnelC));
+          case FunctionId.ei:
+            emit(args[0]);
+            instructions.add(const Instruction.op(Op.expIntegralEi));
+          case FunctionId.li:
+            emit(args[0]);
+            instructions.add(const Instruction.op(Op.logIntegralLi));
+          case FunctionId.si:
+            emit(args[0]);
+            instructions.add(const Instruction.op(Op.sinIntegralSi));
+          case FunctionId.ci:
+            emit(args[0]);
+            instructions.add(const Instruction.op(Op.cosIntegralCi));
+          case FunctionId.shi:
+            emit(args[0]);
+            instructions.add(const Instruction.op(Op.sinhIntegralShi));
+          case FunctionId.chi:
+            emit(args[0]);
+            instructions.add(const Instruction.op(Op.coshIntegralChi));
+          case FunctionId.upperGamma:
+            emit(args[0]);
+            emit(args[1]);
+            instructions.add(const Instruction.op(Op.upperGamma));
+          case FunctionId.lowerGamma:
+            emit(args[0]);
+            emit(args[1]);
+            instructions.add(const Instruction.op(Op.lowerGamma));
+          case FunctionId.polylog:
+            emit(args[0]);
+            emit(args[1]);
+            instructions.add(const Instruction.op(Op.polylog));
+          case FunctionId.ellipticF:
+            emit(args[0]);
+            emit(args[1]);
+            instructions.add(const Instruction.op(Op.ellipticF));
+          case FunctionId.ellipticPi:
+            emit(args[0]);
+            emit(args[1]);
+            emit(args[2]);
+            instructions.add(const Instruction.op(Op.ellipticPi));
+          case FunctionId.expIntegralE:
+            emit(args[0]);
+            emit(args[1]);
+            instructions.add(const Instruction.op(Op.expIntegralE));
+          case FunctionId.hypergeometric:
+            final upper =
+                args[0] is Call && (args[0] as Call).id == FunctionId.tuple
+                ? (args[0] as Call).args
+                : [args[0]];
+            final lower =
+                args[1] is Call && (args[1] as Call).id == FunctionId.tuple
+                ? (args[1] as Call).args
+                : [args[1]];
+            for (final u in upper) {
+              emit(u);
+            }
+            for (final l in lower) {
+              emit(l);
+            }
+            emit(args[2]);
+            instructions.add(
+              Instruction.hypergeometric(upper.length, lower.length),
+            );
+          case FunctionId.appellF1:
+            emit(args[0]);
+            emit(args[1]);
+            emit(args[2]);
+            emit(args[3]);
+            emit(args[4]);
+            emit(args[5]);
+            instructions.add(const Instruction.op(Op.appellF1));
+          case FunctionId.min:
+            if (args.isEmpty) {
+              instructions.add(Instruction.pushReal(double.nan));
+            } else {
+              emit(args.first);
+              for (var i = 1; i < args.length; i++) {
+                emit(args[i]);
+                instructions.add(const Instruction.op(Op.min));
+              }
+            }
+          case FunctionId.max:
+            if (args.isEmpty) {
+              instructions.add(Instruction.pushReal(double.nan));
+            } else {
+              emit(args.first);
+              for (var i = 1; i < args.length; i++) {
+                emit(args[i]);
+                instructions.add(const Instruction.op(Op.max));
+              }
+            }
+          case FunctionId.gcd:
+            if (args.isEmpty) {
+              instructions.add(Instruction.pushReal(double.nan));
+            } else {
+              emit(args.first);
+              for (var i = 1; i < args.length; i++) {
+                emit(args[i]);
+                instructions.add(const Instruction.op(Op.gcd));
+              }
+            }
+          case FunctionId.lcm:
+            if (args.isEmpty) {
+              instructions.add(Instruction.pushReal(double.nan));
+            } else {
+              emit(args.first);
+              for (var i = 1; i < args.length; i++) {
+                emit(args[i]);
+                instructions.add(const Instruction.op(Op.lcm));
+              }
+            }
+          case FunctionId.tuple:
+            throw UnsupportedError(
+              'Cannot compile symbolic Tuple to scalar bytecode',
+            );
+          case FunctionId.beta:
+            emit(args[0]);
+            emit(args[1]);
+            instructions.add(const Instruction.op(Op.beta));
+          case FunctionId.factorial:
+            emit(args[0]);
+            instructions.add(const Instruction.op(Op.factorial));
+          case FunctionId.binomial:
+            emit(args[0]);
+            emit(args[1]);
+            instructions.add(const Instruction.op(Op.binomial));
+          case FunctionId.floor:
+            emit(args[0]);
+            instructions.add(const Instruction.op(Op.floor));
+          case FunctionId.ceil:
+            emit(args[0]);
+            instructions.add(const Instruction.op(Op.ceil));
+          case FunctionId.round:
+            emit(args[0]);
+            instructions.add(const Instruction.op(Op.round));
+          case FunctionId.sign:
+            emit(args[0]);
+            instructions.add(const Instruction.op(Op.sign));
+          case FunctionId.mod:
+            emit(args[0]);
+            emit(args[1]);
+            instructions.add(const Instruction.op(Op.mod));
+          case FunctionId.asinh:
+            emit(args[0]);
+            instructions.add(const Instruction.op(Op.asinh));
+          case FunctionId.acosh:
+            emit(args[0]);
+            instructions.add(const Instruction.op(Op.acosh));
+          case FunctionId.atanh:
+            emit(args[0]);
+            instructions.add(const Instruction.op(Op.atanh));
+          case FunctionId.symbolic:
+            throw UnsupportedError(
+              'Cannot compile unbound function "${expr.name}" to numeric bytecode',
+            );
+        }
+      case Relational(:final op, :final left, :final right):
         emit(left);
         emit(right);
-        instructions.add(const Instruction.op(Op.atan2));
-      case Sinh(:final expr):
-        emit(expr);
-        instructions.add(const Instruction.op(Op.sinh));
-      case Cosh(:final expr):
-        emit(expr);
-        instructions.add(const Instruction.op(Op.cosh));
-      case Tanh(:final expr):
-        emit(expr);
-        instructions.add(const Instruction.op(Op.tanh));
-      case Abs(:final expr):
-        emit(expr);
-        instructions.add(const Instruction.op(Op.abs));
-      case Re(:final expr):
-        emit(expr);
-        instructions.add(const Instruction.op(Op.re));
-      case Im(:final expr):
-        emit(expr);
-        instructions.add(const Instruction.op(Op.im));
-      case Arg(:final expr):
-        emit(expr);
-        instructions.add(const Instruction.op(Op.arg));
-      case Conjugate(:final expr):
-        emit(expr);
-        instructions.add(const Instruction.op(Op.conj));
-      case LambertW(:final expr, :final branch):
-        emit(expr);
         instructions.add(
-          Instruction.op(branch == 0 ? Op.lambertW0 : Op.lambertW1),
+          Instruction.op(switch (op) {
+            RelOp.lessThan => Op.lt,
+            RelOp.lessEqual => Op.le,
+            RelOp.greaterThan => Op.gt,
+            RelOp.greaterEqual => Op.ge,
+            RelOp.equal => Op.eq,
+            RelOp.notEqual => Op.ne,
+          }),
         );
-      case Erf(:final expr):
-        emit(expr);
-        instructions.add(const Instruction.op(Op.erf));
-      case Erfc(:final expr):
-        emit(expr);
-        instructions.add(const Instruction.op(Op.erfc));
-      case Gamma(:final expr):
-        emit(expr);
-        instructions.add(const Instruction.op(Op.gamma));
-      case Zeta(:final expr, :final shift):
-        emit(expr);
-        if (shift == null) {
-          instructions.add(const Instruction.op(Op.zeta));
-        } else {
-          emit(shift);
-          instructions.add(const Instruction.op(Op.hurwitzZeta));
-        }
-      case Digamma(:final expr):
-        emit(expr);
-        instructions.add(const Instruction.op(Op.digamma));
-      case LogGamma(:final expr):
-        emit(expr);
-        instructions.add(const Instruction.op(Op.logGamma));
-      case Polygamma(:final left, :final right):
-        emit(left);
-        emit(right);
-        instructions.add(const Instruction.op(Op.polygamma));
-      case BesselJ(:final left, :final right):
-        emit(left);
-        emit(right);
-        instructions.add(const Instruction.op(Op.besselJ));
-      case BesselY(:final left, :final right):
-        emit(left);
-        emit(right);
-        instructions.add(const Instruction.op(Op.besselY));
-      case BesselI(:final left, :final right):
-        emit(left);
-        emit(right);
-        instructions.add(const Instruction.op(Op.besselI));
-      case BesselK(:final left, :final right):
-        emit(left);
-        emit(right);
-        instructions.add(const Instruction.op(Op.besselK));
-      case EllipticK(:final expr):
-        emit(expr);
-        instructions.add(const Instruction.op(Op.ellipticK));
-      case EllipticE(:final expr, :final amplitude):
-        if (amplitude == null) {
-          emit(expr);
-          instructions.add(const Instruction.op(Op.ellipticE));
-        } else {
-          emit(amplitude);
-          emit(expr);
-          instructions.add(const Instruction.op(Op.ellipticEIncomplete));
-        }
-      case Erfi(:final expr):
-        emit(expr);
-        instructions.add(const Instruction.op(Op.erfi));
-      case FresnelS(:final expr):
-        emit(expr);
-        instructions.add(const Instruction.op(Op.fresnelS));
-      case FresnelC(:final expr):
-        emit(expr);
-        instructions.add(const Instruction.op(Op.fresnelC));
-      case ExpIntegral(:final expr):
-        emit(expr);
-        instructions.add(const Instruction.op(Op.expIntegralEi));
-      case LogIntegral(:final expr):
-        emit(expr);
-        instructions.add(const Instruction.op(Op.logIntegralLi));
-      case SinIntegral(:final expr):
-        emit(expr);
-        instructions.add(const Instruction.op(Op.sinIntegralSi));
-      case CosIntegral(:final expr):
-        emit(expr);
-        instructions.add(const Instruction.op(Op.cosIntegralCi));
-      case SinhIntegral(:final expr):
-        emit(expr);
-        instructions.add(const Instruction.op(Op.sinhIntegralShi));
-      case CoshIntegral(:final expr):
-        emit(expr);
-        instructions.add(const Instruction.op(Op.coshIntegralChi));
-      case UpperGamma(:final left, :final right):
-        emit(left);
-        emit(right);
-        instructions.add(const Instruction.op(Op.upperGamma));
-      case LowerGamma(:final left, :final right):
-        emit(left);
-        emit(right);
-        instructions.add(const Instruction.op(Op.lowerGamma));
-      case Polylog(:final left, :final right):
-        emit(left);
-        emit(right);
-        instructions.add(const Instruction.op(Op.polylog));
-      case EllipticF(:final left, :final right):
-        emit(left);
-        emit(right);
-        instructions.add(const Instruction.op(Op.ellipticF));
-      case EllipticPi(:final characteristic, :final amplitude, :final modulus):
-        emit(characteristic);
-        emit(amplitude);
-        emit(modulus);
-        instructions.add(const Instruction.op(Op.ellipticPi));
-      case ExpIntegralE(:final left, :final right):
-        emit(left);
-        emit(right);
-        instructions.add(const Instruction.op(Op.expIntegralE));
-      case Hypergeometric(:final upper, :final lower, :final argument):
-        for (final u in upper) {
-          emit(u);
-        }
-        for (final l in lower) {
-          emit(l);
-        }
-        emit(argument);
-        instructions.add(
-          Instruction.hypergeometric(upper.length, lower.length),
-        );
-      case AppellF1(
-        :final a,
-        :final b1,
-        :final b2,
-        :final c,
-        :final x,
-        :final y,
-      ):
-        emit(a);
-        emit(b1);
-        emit(b2);
-        emit(c);
-        emit(x);
-        emit(y);
-        instructions.add(const Instruction.op(Op.appellF1));
-      case Min(:final args):
-        if (args.isEmpty) {
-          instructions.add(Instruction.pushReal(double.nan));
-        } else {
-          emit(args.first);
-          for (var i = 1; i < args.length; i++) {
-            emit(args[i]);
-            instructions.add(const Instruction.op(Op.min));
-          }
-        }
-      case Max(:final args):
-        if (args.isEmpty) {
-          instructions.add(Instruction.pushReal(double.nan));
-        } else {
-          emit(args.first);
-          for (var i = 1; i < args.length; i++) {
-            emit(args[i]);
-            instructions.add(const Instruction.op(Op.max));
-          }
-        }
-      case Gcd(:final args):
-        if (args.isEmpty) {
-          instructions.add(Instruction.pushReal(double.nan));
-        } else {
-          emit(args.first);
-          for (var i = 1; i < args.length; i++) {
-            emit(args[i]);
-            instructions.add(const Instruction.op(Op.gcd));
-          }
-        }
-      case Lcm(:final args):
-        if (args.isEmpty) {
-          instructions.add(Instruction.pushReal(double.nan));
-        } else {
-          emit(args.first);
-          for (var i = 1; i < args.length; i++) {
-            emit(args[i]);
-            instructions.add(const Instruction.op(Op.lcm));
-          }
-        }
-      case Tuple():
-        throw UnsupportedError(
-          'Cannot compile symbolic Tuple to scalar bytecode',
-        );
-      case Beta(:final left, :final right):
-        emit(left);
-        emit(right);
-        instructions.add(const Instruction.op(Op.beta));
-      case Factorial(:final expr):
-        emit(expr);
-        instructions.add(const Instruction.op(Op.factorial));
-      case Binomial(:final left, :final right):
-        emit(left);
-        emit(right);
-        instructions.add(const Instruction.op(Op.binomial));
-      case Floor(:final expr):
-        emit(expr);
-        instructions.add(const Instruction.op(Op.floor));
-      case Ceil(:final expr):
-        emit(expr);
-        instructions.add(const Instruction.op(Op.ceil));
-      case Round(:final expr):
-        emit(expr);
-        instructions.add(const Instruction.op(Op.round));
-      case Sign(:final expr):
-        emit(expr);
-        instructions.add(const Instruction.op(Op.sign));
-      case Mod(:final left, :final right):
-        emit(left);
-        emit(right);
-        instructions.add(const Instruction.op(Op.mod));
-      case Asinh(:final expr):
-        emit(expr);
-        instructions.add(const Instruction.op(Op.asinh));
-      case Acosh(:final expr):
-        emit(expr);
-        instructions.add(const Instruction.op(Op.acosh));
-      case Atanh(:final expr):
-        emit(expr);
-        instructions.add(const Instruction.op(Op.atanh));
-      case LessThan(:final left, :final right):
-        emit(left);
-        emit(right);
-        instructions.add(const Instruction.op(Op.lt));
-      case LessEqual(:final left, :final right):
-        emit(left);
-        emit(right);
-        instructions.add(const Instruction.op(Op.le));
-      case GreaterThan(:final left, :final right):
-        emit(left);
-        emit(right);
-        instructions.add(const Instruction.op(Op.gt));
-      case GreaterEqual(:final left, :final right):
-        emit(left);
-        emit(right);
-        instructions.add(const Instruction.op(Op.ge));
-      case Equal(:final left, :final right):
-        emit(left);
-        emit(right);
-        instructions.add(const Instruction.op(Op.eq));
-      case NotEqual(:final left, :final right):
-        emit(left);
-        emit(right);
-        instructions.add(const Instruction.op(Op.ne));
       case Piecewise(:final branches, :final otherwise):
         final endJumps = <int>[];
         final initialRegs = Set<int>.of(emittedRegs);
@@ -808,10 +807,6 @@ BytecodeEvaluator compileToBytecode(
         instructions.add(Instruction.evalNode(expr));
       case OrderTerm():
         instructions.add(Instruction.pushReal(0.0));
-      case VariableFunction(:final name):
-        throw UnsupportedError(
-          'Cannot compile unbound function "$name" to numeric bytecode',
-        );
     }
 
     if (regIdx != null) {
@@ -852,54 +847,22 @@ void _forEachChild(Expr node, void Function(Expr) visit) {
       for (final f in factors) {
         visit(f);
       }
-    case BinaryExpr(:final left, :final right):
+    case Pow(:final base, :final exponent):
+      visit(base);
+      visit(exponent);
+    case Call(:final args):
+      for (final a in args) {
+        visit(a);
+      }
+    case Relational(:final left, :final right):
       visit(left);
       visit(right);
-    case UnaryExpr(:final expr):
-      visit(expr);
     case Piecewise(:final branches, :final otherwise):
       for (final (:relation, :expr) in branches) {
         visit(relation);
         visit(expr);
       }
       if (otherwise != null) visit(otherwise);
-    case VariableFunction(:final arguments):
-      for (final argument in arguments) {
-        visit(argument);
-      }
-    case EllipticPi(:final characteristic, :final amplitude, :final modulus):
-      visit(characteristic);
-      visit(amplitude);
-      visit(modulus);
-    case Zeta(:final expr, :final shift):
-      visit(expr);
-      if (shift != null) visit(shift);
-    case EllipticE(:final expr, :final amplitude):
-      visit(expr);
-      if (amplitude != null) visit(amplitude);
-    case Hypergeometric(:final upper, :final lower, :final argument):
-      for (final u in upper) {
-        visit(u);
-      }
-      for (final l in lower) {
-        visit(l);
-      }
-      visit(argument);
-    case AppellF1(:final a, :final b1, :final b2, :final c, :final x, :final y):
-      visit(a);
-      visit(b1);
-      visit(b2);
-      visit(c);
-      visit(x);
-      visit(y);
-    case Min(:final args) ||
-        Max(:final args) ||
-        Gcd(:final args) ||
-        Lcm(:final args) ||
-        Tuple(:final args):
-      for (final a in args) {
-        visit(a);
-      }
     case Integral() ||
         Derivative() ||
         Limit() ||

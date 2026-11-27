@@ -13,12 +13,12 @@ void main() {
       check(stripLeadingNegative(ComplexNumber.negativeI))
           .equals(ComplexNumber.i);
       check(stripLeadingNegative(-x)).equals(x);
-      check(stripLeadingNegative(Mul([IntegerNumber.negativeOne, x, y])))
-          .equals(Mul([x, y]));
-      check(stripLeadingNegative(Mul([IntegerNumber.of(-2), x])))
-          .equals(Mul([IntegerNumber.two, x]));
-      check(stripLeadingNegative(Mul([ComplexNumber.negativeI, x])))
-          .equals(Mul([ComplexNumber.i, x]));
+      check(stripLeadingNegative(Mul.of([IntegerNumber.negativeOne, x, y])))
+          .equals(Mul.of([x, y]));
+      check(stripLeadingNegative(Mul.of([IntegerNumber.of(-2), x])))
+          .equals(Mul.of([IntegerNumber.two, x]));
+      check(stripLeadingNegative(Mul.of([ComplexNumber.negativeI, x])))
+          .equals(Mul.of([ComplexNumber.i, x]));
       check(stripLeadingNegative(x)).isNull;
     });
 
@@ -28,12 +28,12 @@ void main() {
       final part = partitionMulFraction([
         RationalNumber(-3, 4),
         x,
-        Pow(y, IntegerNumber.of(-2)),
+        Pow.of(y, IntegerNumber.of(-2)),
       ]);
       check(part.isNegative).isTrue;
       check(part.numerator).deepEquals([IntegerNumber.of(3), x]);
       check(part.denominator)
-          .deepEquals([IntegerNumber.of(4), Pow(y, IntegerNumber.two)]);
+          .deepEquals([IntegerNumber.of(4), Pow.of(y, IntegerNumber.two)]);
     });
   });
 
@@ -41,15 +41,15 @@ void main() {
     test('matchFunctionPower and canOmitMulDot rules', () {
       const x = Variable('x');
       const y = Variable('y');
-      check(matchFunctionPower(Sin(x), IntegerNumber.two)).isNotNull();
-      check(matchFunctionPower(Sin(x), IntegerNumber.one)).isNull;
-      check(matchFunctionPower(Asin(x), IntegerNumber.two)).isNull;
+      check(matchFunctionPower(Fn.sin(x), IntegerNumber.two)).isNotNull();
+      check(matchFunctionPower(Fn.sin(x), IntegerNumber.one)).isNull;
+      check(matchFunctionPower(Fn.asin(x), IntegerNumber.two)).isNull;
 
       check(canOmitMulDot(IntegerNumber.two, x)).isTrue;
       check(canOmitMulDot(x, y)).isTrue;
       check(canOmitMulDot(IntegerNumber.two, IntegerNumber.of(3))).isFalse;
       check(canOmitMulDot(x, IntegerNumber.of(-2))).isFalse;
-      check(canOmitMulDot(x, Pow(y, IntegerNumber.negativeOne))).isFalse;
+      check(canOmitMulDot(x, Pow.of(y, IntegerNumber.negativeOne))).isFalse;
     });
 
     test('parenthesization predicates for sub, mul, pow, and neg', () {
@@ -76,7 +76,7 @@ void main() {
       check(needsPowBaseParens(FractionNumber.half)).isTrue;
       check(needsPowBaseParens(IntegerNumber.of(-2))).isTrue;
       check(needsPowBaseParens(comp)).isTrue;
-      check(needsPowBaseParens(Pow(x, IntegerNumber.negativeOne))).isTrue;
+      check(needsPowBaseParens(Pow.of(x, IntegerNumber.negativeOne))).isTrue;
       check(needsPowBaseParens(x)).isFalse;
 
       check(needsNegOperandParens(x + y)).isTrue;

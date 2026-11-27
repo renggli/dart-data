@@ -9,8 +9,14 @@ sealed class Number extends Expr {
   /// Creates an atomic numeric expression.
   const new();
 
+  /// Default maximum bit length allowed for exact integer powers.
+  static const int defaultMaxBitLength = 65536;
+
   @override
-  bool get isSimplified => true;
+  int get nodeCount => 1;
+
+  @override
+  int get structuralTag => 0;
 
   /// Whether this number is identically zero (`0`).
   bool get isZero;
@@ -56,7 +62,6 @@ sealed class Number extends Expr {
     }
     final (ar, ai) = _components(this);
     final (br, bi) = _components(other);
-    // (ar + ai*i) * (br + bi*i) = (ar*br - ai*bi) + (ar*bi + ai*br)*i
     final realPart = _subReal(_mulReal(ar, br), _mulReal(ai, bi));
     final imagPart = _addReal(_mulReal(ar, bi), _mulReal(ai, br));
     return ComplexNumber.of(realPart, imagPart);
@@ -78,7 +83,6 @@ sealed class Number extends Expr {
         ai is RationalNumber &&
         br is RationalNumber &&
         bi is RationalNumber) {
-      // (ar + ai*i) / (br + bi*i) = ((ar*br + ai*bi) + (ai*br - ar*bi)*i) / (br^2 + bi^2)
       final denom = br.mulRational(br).addRational(bi.mulRational(bi));
       if (denom.isZero) {
         throw UnsupportedError('Division by zero: $this / $other');
@@ -170,8 +174,10 @@ sealed class Number extends Expr {
     }
     if (baseRat.isOne) return IntegerNumber.one;
     if (baseRat.isNegative && exponent.denominator.isEven) return null;
-    if ((exponent.denominator.asInt, exponent.numerator.asInt)
-        case (final q?, final p?) when q <= 1024 && p.abs() <= 1024) {
+    if (exponent.denominator <= _maxRootOrder &&
+        exponent.numerator.abs() <= _maxRootOrder) {
+      final q = exponent.denominator.toInt();
+      final p = exponent.numerator.toInt();
       if (exactIntegerRoot(baseRat.numerator.abs(), q) case final rootNum?) {
         if (exactIntegerRoot(baseRat.denominator, q) case final rootDen?) {
           final signedNum = baseRat.isNegative ? -rootNum : rootNum;
@@ -182,13 +188,15 @@ sealed class Number extends Expr {
     return null;
   }
 
+  static final _maxRootOrder = BigInt.from(1024);
+
   static Number? _powComplex(ComplexNumber c, Number exponent) {
     final intExp = switch (exponent) {
       IntegerNumber(:final value) => value,
       RealNumber(:final value)
           when value == value.roundToDouble() &&
               value.abs() < 9007199254740992.0 =>
-        Integer.from(value.round()),
+        BigInt.from(value.round()),
       _ => null,
     };
     if (intExp == null) return null;
@@ -196,13 +204,12 @@ sealed class Number extends Expr {
         exponent is RealNumber ||
         c.real is RealNumber ||
         c.imaginary is RealNumber;
-    if (intExp.isZero) {
-      return isFloat ? const RealNumber(1.0) : IntegerNumber.one;
+    if (intExp == BigInt.zero) {
+      return isFloat ? RealNumber.one : IntegerNumber.one;
     }
     Number? result;
     if (c.isPureImaginary) {
-      // (b * i)^n = b^n * i^n
-      final mod = (intExp % const Integer(4)).toInt();
+      final mod = (intExp % _four).toInt();
       final iPow = switch (mod) {
         0 => IntegerNumber.one,
         1 => ComplexNumber.i,
@@ -219,8 +226,8 @@ sealed class Number extends Expr {
       } else {
         result = c.imaginary.powNumber(IntegerNumber(intExp))?.mul(iPow);
       }
-    } else if (intExp.asInt case final expAsInt? when expAsInt.abs() <= 1024) {
-      result = _complexIntPow(c, expAsInt);
+    } else if (intExp.abs() <= _maxRootOrder) {
+      result = _complexIntPow(c, intExp.toInt());
     }
     if (result == null) return null;
     if (isFloat) {
@@ -239,29 +246,23 @@ sealed class Number extends Expr {
     return result;
   }
 
+  static final _four = BigInt.from(4);
+
   static Number? _powReal(RealNumeric baseReal, RealNumeric exponent) {
     if (baseReal.isZero) {
-      if (exponent.isZero) {
-        return const RealNumber(1.0);
-      }
+      if (exponent.isZero) return RealNumber.one;
       if (exponent.isNegative) {
         throw UnsupportedError('Division by zero in power: 0 ^ $exponent');
       }
-      return const RealNumber(0.0);
+      return RealNumber.zero;
     }
-    if (baseReal.isOne) {
-      return const RealNumber(1.0);
-    }
+    if (baseReal.isOne) return RealNumber.one;
     final bVal = baseReal.toDouble();
     if (bVal == -1.0 && exponent is IntegerNumber) {
-      return exponent.value.isEven
-          ? const RealNumber(1.0)
-          : const RealNumber(-1.0);
+      return exponent.value.isEven ? RealNumber.one : RealNumber.negativeOne;
     }
     final eVal = exponent.toDouble();
-    if (bVal < 0 && eVal != eVal.roundToDouble()) {
-      return null;
-    }
+    if (bVal < 0 && eVal != eVal.roundToDouble()) return null;
     final res = math.pow(bVal, eVal).toDouble();
     return res.isFinite ? RealNumber(res) : null;
   }
@@ -290,14 +291,10 @@ sealed class Number extends Expr {
 
   static RealNumeric _mulReal(RealNumeric a, RealNumeric b) {
     if (a is RationalNumber && b is RationalNumber) {
-      if (a.isZero || b.isZero) {
-        return IntegerNumber.zero;
-      }
+      if (a.isZero || b.isZero) return IntegerNumber.zero;
       return a.mulRational(b);
     }
-    if (a.isZero || b.isZero) {
-      return RealNumber.zero;
-    }
+    if (a.isZero || b.isZero) return RealNumber.zero;
     final prod = a.toDouble() * b.toDouble();
     if (!prod.isFinite) {
       throw UnsupportedError(
@@ -312,12 +309,8 @@ sealed class Number extends Expr {
       if (a.isZero) return IntegerNumber.zero;
       return a.divRational(b);
     }
-    if (b.isZero) {
-      throw UnsupportedError('Division by zero: $a / $b');
-    }
-    if (a.isZero) {
-      return RealNumber.zero;
-    }
+    if (b.isZero) throw UnsupportedError('Division by zero: $a / $b');
+    if (a.isZero) return RealNumber.zero;
     final quot = a.toDouble() / b.toDouble();
     if (!quot.isFinite) {
       throw UnsupportedError('Floating-point overflow in division: $a / $b');
@@ -330,72 +323,66 @@ sealed class Number extends Expr {
     Number result = IntegerNumber.one;
     Number current = base;
     while (exp > 0) {
-      if (exp.isOdd) {
-        result = result.mul(current);
-      }
+      if (exp.isOdd) result = result.mul(current);
       exp >>= 1;
-      if (exp > 0) {
-        current = current.mul(current);
-      }
+      if (exp > 0) current = current.mul(current);
     }
     return exponent < 0 ? IntegerNumber.one.div(result) : result;
   }
 
-  /// If [n] can be written as `b^k` for integer `b >=2` and maximal integer `k >=2`,
+  /// Computes `base^exponent`, returning `null` if the result exceeds
+  /// [maxBitLength] bits.
+  static BigInt? bigIntPow(
+    BigInt base,
+    int exponent, {
+    int maxBitLength = defaultMaxBitLength,
+  }) {
+    if (exponent < 0) {
+      throw ArgumentError.value(exponent, 'exponent', 'Must be non-negative');
+    }
+    if (exponent == 0) return BigInt.one;
+    if (base == BigInt.zero || base == BigInt.one || exponent == 1) return base;
+    if (base == -BigInt.one) return exponent.isEven ? BigInt.one : base;
+    final bits = base.abs().bitLength;
+    if (exponent > maxBitLength ||
+        (bits > 1 && exponent > (maxBitLength - 1) ~/ (bits - 1))) {
+      return null;
+    }
+    final result = base.pow(exponent);
+    return result.abs().bitLength > maxBitLength ? null : result;
+  }
+
+  /// If [n] can be written as `b^k` for integer `b >= 2` and maximal `k >= 2`,
   /// returns `(b, k)`; otherwise returns `null`.
-  static (Integer, int)? integerPower(Integer n) {
-    if (n.isNegative || n.isZero || n.isOne) return null;
-    final maxK = switch (n.asInt) {
-      final int nInt when nInt <= 3 => 1,
-      final int nInt => (math.log(nInt) / math.ln2 + 1e-12).floor(),
-      _ => n.toBigInt().bitLength - 1,
-    };
+  static (BigInt, int)? integerPower(BigInt n) {
+    if (n <= BigInt.one) return null;
+    final maxK = n.bitLength - 1;
     for (var k = maxK; k >= 2; k--) {
       final root = exactIntegerRoot(n, k);
-      if (root != null && root > Integer.one) {
-        return (root, k);
-      }
+      if (root != null && root > BigInt.one) return (root, k);
     }
     return null;
   }
 
-  /// Returns the exact non-negative [q]-th integer root of [n] if [n] is a
-  /// perfect [q]-th power, or `null` otherwise.
-  static Integer? exactIntegerRoot(Integer n, int q) {
+  /// Returns the exact non-negative [q]-th integer root of [n], or `null` if
+  /// [n] is not a perfect [q]-th power.
+  static BigInt? exactIntegerRoot(BigInt n, int q) {
     if (n.isNegative || q <= 0) return null;
-    if (n.isZero) return Integer.zero;
-    if (n.isOne || q == 1) return n;
+    if (n == BigInt.zero) return BigInt.zero;
+    if (n == BigInt.one || q == 1) return n;
     if (q >= n.bitLength) return null;
-    if (!n.isBig) {
-      final nInt = n.asInt;
-      if (nInt != null) {
-        final approx = math.pow(nInt, 1.0 / q);
-        if (approx.isFinite) {
-          final rInt = approx.round();
-          final candidate = Integer.from(rInt);
-          if (candidate.pow(q) == n) return candidate;
-          if (rInt > 0) {
-            final lower = Integer.from(rInt - 1);
-            if (lower.pow(q) == n) return lower;
-          }
-          final upper = Integer.from(rInt + 1);
-          if (upper.pow(q) == n) return upper;
-          return null;
+    if (n.bitLength <= 52) {
+      final nInt = n.toInt();
+      final approx = math.pow(nInt, 1.0 / q);
+      if (approx.isFinite) {
+        final rInt = approx.round();
+        for (final cand in [rInt, if (rInt > 0) rInt - 1, rInt + 1]) {
+          final bigCand = BigInt.from(cand);
+          if (bigCand.pow(q) == n) return bigCand;
         }
+        return null;
       }
     }
-    final bigN = n.toBigInt();
-    final r = _bigIntNthRoot(bigN, q);
-    if (r != null && r.pow(q) == bigN) {
-      return Integer.big(r);
-    }
-    return null;
-  }
-
-  static BigInt? _bigIntNthRoot(BigInt n, int q) {
-    if (q <= 0) return null;
-    if (q == 1) return n;
-    if (q >= n.bitLength) return null;
     var x = BigInt.one << ((n.bitLength + q - 1) ~/ q + 1);
     final bigQ = BigInt.from(q);
     final bigQMinus1 = BigInt.from(q - 1);
@@ -406,7 +393,7 @@ sealed class Number extends Expr {
       if (next >= x) break;
       x = next;
     }
-    return x;
+    return x.pow(q) == n ? x : null;
   }
 }
 
@@ -418,7 +405,7 @@ sealed class RealNumeric extends Number implements Comparable<RealNumeric> {
   /// Whether this number is strictly less than zero (`< 0`).
   bool get isNegative;
 
-  /// Returns the sign of this number: `-1` if negative, `0` if zero, `1` if positive.
+  /// Returns `-1` if negative, `0` if zero, or `1` if positive.
   int get sign;
 
   @override
@@ -435,10 +422,12 @@ sealed class RealNumeric extends Number implements Comparable<RealNumeric> {
 
   @override
   int compareTo(RealNumeric other) => switch ((this, other)) {
-    (final RationalNumber a, final RationalNumber b) => rationalCompare(
-      a._parts,
-      b._parts,
-    ),
+    (final RationalNumber a, final RationalNumber b) =>
+      a.denominator == b.denominator
+          ? a.numerator.compareTo(b.numerator)
+          : (a.numerator * b.denominator).compareTo(
+              b.numerator * a.denominator,
+            ),
     (final RealNumber a, final RealNumber b) => a.value.compareTo(b.value),
     (final RationalNumber r, final RealNumber f) => _compareRationalReal(r, f),
     (final RealNumber f, final RationalNumber r) => -_compareRationalReal(r, f),
@@ -446,64 +435,69 @@ sealed class RealNumeric extends Number implements Comparable<RealNumeric> {
 }
 
 /// Exact rational number `p / q in Q`, represented canonically as
-/// either an [IntegerNumber] (when `q = 1`) or a reduced [FractionNumber]
-/// (when `q > 1` and `gcd(|p|, q) = 1`).
+/// [IntegerNumber] when `q = 1` or [FractionNumber] when `q > 1`.
 sealed class RationalNumber extends RealNumeric {
   /// Creates a canonical rational number subclass.
   const new _();
 
   /// Creates an exact rational number from machine `int` [numerator] and
-  /// [denominator], reducing by their greatest common divisor and returning
-  /// an [IntegerNumber] when the reduced denominator is `1`.
-  factory(int numerator, [int denominator = 1]) =>
-      RationalNumber.of(Integer.from(numerator), Integer.from(denominator));
+  /// [denominator], reducing by their greatest common divisor.
+  factory(int numerator, [int denominator = 1]) => RationalNumber.of(
+    BigInt.from(numerator),
+    denominator == 1 ? null : BigInt.from(denominator),
+  );
 
   /// Creates an exact rational number from a [Fraction].
   factory fromFraction(Fraction fraction) => RationalNumber.of(
-    Integer.from(fraction.numerator),
-    Integer.from(fraction.denominator),
+    BigInt.from(fraction.numerator),
+    BigInt.from(fraction.denominator),
   );
 
-  /// Creates an exact rational number from arbitrary-precision [Integer]
-  /// [numerator] and [denominator], reducing by their greatest common divisor
-  /// and returning an [IntegerNumber] when the reduced denominator is `1`.
-  factory of(Integer numerator, [Integer denominator = Integer.one]) {
-    final norm = rationalNormalize(numerator, denominator);
-    return norm.denominator.isOne
-        ? IntegerNumber(norm.numerator)
-        : FractionNumber(norm.numerator, norm.denominator);
+  /// Creates an exact rational number from [BigInt] [numerator] and optional
+  /// [denominator], reducing by their greatest common divisor.
+  factory of(BigInt numerator, [BigInt? denominator]) {
+    final den = denominator ?? BigInt.one;
+    if (den == BigInt.zero) {
+      throw UnsupportedError('Division by zero');
+    }
+    if (numerator == BigInt.zero) return IntegerNumber.zero;
+    if (den == BigInt.one) return IntegerNumber(numerator);
+    final rawDiv = numerator.gcd(den);
+    final divisor = den.isNegative ? -rawDiv : rawDiv;
+    final normNum = divisor == BigInt.one ? numerator : numerator ~/ divisor;
+    final normDen = divisor == BigInt.one ? den : den ~/ divisor;
+    return normDen == BigInt.one
+        ? IntegerNumber(normNum)
+        : FractionNumber._(normNum, normDen);
   }
 
-  factory _fromParts(RationalParts parts) => parts.denominator.isOne
-      ? IntegerNumber(parts.numerator)
-      : FractionNumber(parts.numerator, parts.denominator);
-
   /// The signed numerator `p`.
-  Integer get numerator;
+  BigInt get numerator;
 
-  /// The positive coprime denominator `q >=1`.
-  Integer get denominator;
+  /// The positive coprime denominator `q >= 1`.
+  BigInt get denominator;
 
-  RationalParts get _parts => (numerator: numerator, denominator: denominator);
+  @override
+  int get flags => 0;
 
   /// Whether this rational number is an integer (`q = 1`).
   bool get isInteger => this is IntegerNumber;
 
   @override
   bool get isZero => switch (this) {
-    IntegerNumber(:final value) => value.isZero,
+    IntegerNumber(:final value) => value == BigInt.zero,
     FractionNumber() => false,
   };
 
   @override
   bool get isOne => switch (this) {
-    IntegerNumber(:final value) => value.isOne,
+    IntegerNumber(:final value) => value == BigInt.one,
     FractionNumber() => false,
   };
 
   @override
   bool get isNegativeOne => switch (this) {
-    IntegerNumber(:final value) => value == Integer.negativeOne,
+    IntegerNumber(:final value) => value == -BigInt.one,
     FractionNumber() => false,
   };
 
@@ -513,15 +507,18 @@ sealed class RationalNumber extends RealNumeric {
   @override
   int get sign => numerator.sign;
 
-  /// Returns this rational as a machine `int` if it is an [IntegerNumber] that
-  /// fits in a signed 64-bit integer, or `null` otherwise.
-  int? get asInt => switch (this) {
-    IntegerNumber(:final value) => value.asInt,
-    FractionNumber() => null,
-  };
+  /// Returns this rational as a platform-safe machine `int` if it is an
+  /// [IntegerNumber] within `[-(2^53 - 1), 2^53 - 1]`, or `null` otherwise.
+  int? get asInt;
 
-  /// Truncates this rational number toward zero as a machine `int`.
-  int toInt() => (numerator ~/ denominator).toInt();
+  /// Truncates this rational number toward zero as a platform-safe `int`.
+  int toInt() {
+    final q = numerator ~/ denominator;
+    if (q < _negMaxSafeBig || q > _posMaxSafeBig) {
+      throw StateError('$q exceeds the safe integer range');
+    }
+    return q.toInt();
+  }
 
   @override
   RationalNumber neg();
@@ -529,35 +526,97 @@ sealed class RationalNumber extends RealNumeric {
   @override
   RationalNumber abs() => isNegative ? neg() : this;
 
-  /// Returns the multiplicative inverse `q / p` of this rational number.
-  RationalNumber reciprocal() =>
-      RationalNumber._fromParts(rationalInvert(_parts));
+  /// Returns the multiplicative inverse `q / p`.
+  RationalNumber reciprocal() {
+    if (numerator == BigInt.zero) throw UnsupportedError('Division by zero');
+    return numerator.isNegative
+        ? RationalNumber._fromNormalized(-denominator, -numerator)
+        : RationalNumber._fromNormalized(denominator, numerator);
+  }
+
+  static RationalNumber _fromNormalized(BigInt num, BigInt den) =>
+      den == BigInt.one ? IntegerNumber(num) : FractionNumber._(num, den);
 
   /// Exact rational sum `this + other`.
-  RationalNumber addRational(RationalNumber other) =>
-      RationalNumber._fromParts(rationalAdd(_parts, other._parts));
+  RationalNumber addRational(RationalNumber other) {
+    if (denominator == BigInt.one && other.denominator == BigInt.one) {
+      return IntegerNumber(numerator + other.numerator);
+    }
+    if (isZero) return other;
+    if (other.isZero) return this;
+    final divisor = denominator.gcd(other.denominator);
+    if (divisor == BigInt.one) {
+      return RationalNumber._fromNormalized(
+        numerator * other.denominator + other.numerator * denominator,
+        denominator * other.denominator,
+      );
+    }
+    final num =
+        numerator * (other.denominator ~/ divisor) +
+        other.numerator * (denominator ~/ divisor);
+    if (num == BigInt.zero) return IntegerNumber.zero;
+    final reduction = num.gcd(divisor);
+    return RationalNumber._fromNormalized(
+      num ~/ reduction,
+      (denominator ~/ divisor) * (other.denominator ~/ reduction),
+    );
+  }
 
   /// Exact rational difference `this - other`.
-  RationalNumber subRational(RationalNumber other) =>
-      RationalNumber._fromParts(rationalSubtract(_parts, other._parts));
+  RationalNumber subRational(RationalNumber other) => addRational(other.neg());
 
   /// Exact rational product `this * other`.
-  RationalNumber mulRational(RationalNumber other) =>
-      RationalNumber._fromParts(rationalMultiply(_parts, other._parts));
+  RationalNumber mulRational(RationalNumber other) {
+    if (isZero || other.isZero) return IntegerNumber.zero;
+    if (denominator == BigInt.one && other.denominator == BigInt.one) {
+      return IntegerNumber(numerator * other.numerator);
+    }
+    final first = numerator.gcd(other.denominator);
+    final second = other.numerator.gcd(denominator);
+    return RationalNumber._fromNormalized(
+      (numerator ~/ first) * (other.numerator ~/ second),
+      (denominator ~/ second) * (other.denominator ~/ first),
+    );
+  }
 
   /// Exact rational quotient `this / other`.
   RationalNumber divRational(RationalNumber other) =>
-      RationalNumber._fromParts(rationalDivide(_parts, other._parts));
+      mulRational(other.reciprocal());
 
   /// Exact rational integer power `this ^ exponent`, or `null` if the result
-  /// exceeds the maximum bit-length limit.
-  RationalNumber? powInteger(int exponent) {
-    final res = rationalPow(_parts, exponent);
-    return res != null ? RationalNumber._fromParts(res) : null;
+  /// exceeds [maxBitLength].
+  RationalNumber? powInteger(
+    int exponent, {
+    int maxBitLength = Number.defaultMaxBitLength,
+  }) {
+    if (exponent == 0) return IntegerNumber.one;
+    if (isZero) {
+      if (exponent < 0) throw UnsupportedError('Division by zero');
+      return IntegerNumber.zero;
+    }
+    if (isOne) return IntegerNumber.one;
+    if (isNegativeOne) {
+      return exponent.isEven ? IntegerNumber.one : IntegerNumber.negativeOne;
+    }
+    final base = exponent < 0 ? reciprocal() : this;
+    if (exponent < 0 && -exponent < 0) return null;
+    final mag = exponent.abs();
+    final num = Number.bigIntPow(
+      base.numerator,
+      mag,
+      maxBitLength: maxBitLength,
+    );
+    if (num == null) return null;
+    final den = Number.bigIntPow(
+      base.denominator,
+      mag,
+      maxBitLength: maxBitLength,
+    );
+    if (den == null) return null;
+    return RationalNumber._fromNormalized(num, den);
   }
 
-  /// Returns the non-negative greatest common divisor of this rational number
-  /// and [other]: `gcd(p_1/q_1, p_2/q_2) = (gcd(p_1, p_2))/(lcm(q_1, q_2))`.
+  /// Non-negative GCD: `gcd(p_1/q_1, p_2/q_2) = gcd(p_1, p_2) / lcm(q_1, q_2)`.
   RationalNumber gcd(RationalNumber other) {
     if (isZero && other.isZero) return IntegerNumber.zero;
     if (isZero) return other.abs();
@@ -568,8 +627,7 @@ sealed class RationalNumber extends RealNumeric {
     );
   }
 
-  /// Returns the non-negative least common multiple of this rational number
-  /// and [other]: `lcm(p_1/q_1, p_2/q_2) = (lcm(p_1, p_2))/(gcd(q_1, q_2))`.
+  /// Non-negative LCM: `lcm(p_1/q_1, p_2/q_2) = lcm(p_1, p_2) / gcd(q_1, q_2)`.
   RationalNumber lcm(RationalNumber other) {
     if (isZero || other.isZero) return IntegerNumber.zero;
     return RationalNumber.of(
@@ -578,41 +636,71 @@ sealed class RationalNumber extends RealNumeric {
     );
   }
 
-  /// Whether this rational number is a prime integer (`q = 1` and `p >=2` is prime).
+  /// Whether this rational number is a prime integer (`q = 1` and `p >= 2` prime).
   bool get isPrime => switch (this) {
-    IntegerNumber(:final value) => value.isPrime,
+    IntegerNumber(:final value) => value.isProbablyPrime,
     FractionNumber() => false,
   };
 }
 
-/// Exact arbitrary-precision integer literal `n in Z`.
+/// Exact arbitrary-precision integer literal `n in Z` backed directly by [BigInt].
 final class IntegerNumber extends RationalNumber {
-  /// Creates an exact integer literal wrapping [value].
-  const new(this.value) : super._();
+  /// Returns an [IntegerNumber] for [value], reusing cached singletons for
+  /// small integers in `-16..256`.
+  factory(BigInt value) {
+    if (value >= _cacheMinBig && value <= _cacheMaxBig) {
+      return _smallCache[value.toInt() - _cacheMin];
+    }
+    return IntegerNumber._(value);
+  }
+
+  new _(this.value) : super._();
 
   /// Creates an exact integer literal from a machine `int`.
-  factory of(int value) => IntegerNumber(Integer.from(value));
+  factory of(int value) {
+    if (value >= _cacheMin && value <= _cacheMax) {
+      return _smallCache[value - _cacheMin];
+    }
+    return IntegerNumber._(BigInt.from(value));
+  }
+
+  /// Parses an integer literal from [source].
+  factory parse(String source) => IntegerNumber(BigInt.parse(source));
+
+  static const int _cacheMin = -16;
+  static const int _cacheMax = 256;
+  static final BigInt _cacheMinBig = BigInt.from(_cacheMin);
+  static final BigInt _cacheMaxBig = BigInt.from(_cacheMax);
+  static final List<IntegerNumber> _smallCache = List<IntegerNumber>.generate(
+    _cacheMax - _cacheMin + 1,
+    (i) => IntegerNumber._(BigInt.from(i + _cacheMin)),
+    growable: false,
+  );
 
   /// The additive identity `0`.
-  static const zero = IntegerNumber(Integer.zero);
+  static final zero = IntegerNumber.of(0);
 
   /// The multiplicative identity `1`.
-  static const one = IntegerNumber(Integer.one);
+  static final one = IntegerNumber.of(1);
 
   /// The integer `2`.
-  static const two = IntegerNumber(Integer.two);
+  static final two = IntegerNumber.of(2);
 
   /// The integer `-1`.
-  static const negativeOne = IntegerNumber(Integer.negativeOne);
+  static final negativeOne = IntegerNumber.of(-1);
 
-  /// The underlying arbitrary-precision integer value.
-  final Integer value;
-
-  @override
-  Integer get numerator => value;
+  /// The underlying arbitrary-precision [BigInt] value.
+  final BigInt value;
 
   @override
-  Integer get denominator => Integer.one;
+  BigInt get numerator => value;
+
+  @override
+  BigInt get denominator => BigInt.one;
+
+  @override
+  int? get asInt =>
+      value >= _negMaxSafeBig && value <= _posMaxSafeBig ? value.toInt() : null;
 
   @override
   double toDouble() => value.toDouble();
@@ -629,33 +717,40 @@ final class IntegerNumber extends RationalNumber {
   int get hashCode => Object.hash(IntegerNumber, value);
 }
 
-/// Exact reduced non-integer rational fraction `p / q` with `q > 1` and `gcd(|p|, q) = 1`.
+/// Exact reduced non-integer rational fraction `p / q` with `q > 1` and
+/// `gcd(|p|, q) = 1`.
 final class FractionNumber extends RationalNumber {
   /// Creates a reduced fraction with coprime [numerator] and [denominator] `> 1`.
-  const new(this.numerator, this.denominator)
-    : assert(
-        denominator != Integer.zero && denominator != Integer.one,
-        'FractionNumber denominator must be strictly greater than 1',
-      ),
-      super._();
+  factory(BigInt numerator, BigInt denominator) {
+    assert(
+      denominator > BigInt.one && numerator.gcd(denominator) == BigInt.one,
+      'FractionNumber must be reduced with denominator > 1',
+    );
+    return FractionNumber._(numerator, denominator);
+  }
+
+  new _(this.numerator, this.denominator) : super._();
 
   /// The fraction `1/2`.
-  static const half = FractionNumber(Integer.one, Integer.two);
+  static final half = FractionNumber._(BigInt.one, BigInt.two);
 
   /// The fraction `-1/2`.
-  static const negativeHalf = FractionNumber(Integer.negativeOne, Integer.two);
+  static final negativeHalf = FractionNumber._(-BigInt.one, BigInt.two);
 
   /// The fraction `1/3`.
-  static const third = FractionNumber(Integer.one, Integer(3));
+  static final third = FractionNumber._(BigInt.one, BigInt.from(3));
 
   /// The fraction `1/4`.
-  static const quarter = FractionNumber(Integer.one, Integer(4));
+  static final quarter = FractionNumber._(BigInt.one, BigInt.from(4));
 
   @override
-  final Integer numerator;
+  final BigInt numerator;
 
   @override
-  final Integer denominator;
+  final BigInt denominator;
+
+  @override
+  int? get asInt => null;
 
   @override
   double toDouble() {
@@ -663,13 +758,13 @@ final class FractionNumber extends RationalNumber {
       return numerator.toDouble() / denominator.toDouble();
     }
     final shift = math.max(numerator.bitLength, denominator.bitLength) - 53;
-    final scaledNum = (numerator.toBigInt() >> shift).toDouble();
-    final scaledDen = (denominator.toBigInt() >> shift).toDouble();
+    final scaledNum = (numerator >> shift).toDouble();
+    final scaledDen = (denominator >> shift).toDouble();
     return scaledNum / scaledDen;
   }
 
   @override
-  FractionNumber neg() => FractionNumber(-numerator, denominator);
+  FractionNumber neg() => FractionNumber._(-numerator, denominator);
 
   @override
   bool operator ==(Object other) =>
@@ -684,10 +779,9 @@ final class FractionNumber extends RationalNumber {
 
 /// Finite IEEE-754 floating-point real number literal.
 ///
-/// Non-finite IEEE-754 values (`NaN`, `Infinity`, `-Infinity`) are prohibited
-/// in [RealNumber] and are mapped via [RealNumber.fromDouble] to
-/// [Constant.undefined] and `+/-`[Constant.infinity]. Negative zero (`-0.0`)
-/// is canonicalized to `+0.0`.
+/// Non-finite IEEE-754 values (`NaN`, `Infinity`, `-Infinity`) are mapped via
+/// [RealNumber.fromDouble] to [Constant.undefined] and `+/-`[Constant.infinity].
+/// Negative zero (`-0.0`) is canonicalized to `+0.0`.
 final class RealNumber extends RealNumeric {
   /// Creates a finite real number literal.
   const new(double value)
@@ -699,24 +793,18 @@ final class RealNumber extends RealNumeric {
       ),
       value = value == 0.0 ? 0.0 : value;
 
-  /// Converts any IEEE-754 [double] into its canonical symbolic [Expr]:
-  /// - `NaN` `->` [Constant.undefined]
-  /// - `+Infinity` `->` [Constant.infinity]
-  /// - `-Infinity` `->` `-Constant.infinity`
-  /// - finite value `->` [RealNumber]
+  /// Converts any IEEE-754 [double] into its canonical symbolic [Expr].
   static Expr fromDouble(double value) {
     if (value.isNaN) return Constant.undefined;
     if (value == double.infinity) return Constant.infinity;
-    if (value == double.negativeInfinity) {
-      return _negativeInfinity;
-    }
+    if (value == double.negativeInfinity) return _negativeInfinity;
     return RealNumber(value);
   }
 
-  static final _negativeInfinity = Mul(const [
+  static final Expr _negativeInfinity = Mul._([
     IntegerNumber.negativeOne,
     Constant.infinity,
-  ], isSimplified: true);
+  ]);
 
   /// The floating-point zero `0.0`.
   static const zero = RealNumber(0.0);
@@ -729,6 +817,9 @@ final class RealNumber extends RealNumeric {
 
   /// The finite IEEE-754 floating-point value.
   final double value;
+
+  @override
+  int get flags => kFlagHasReal;
 
   @override
   bool get isZero => value == 0.0;
@@ -762,13 +853,7 @@ final class RealNumber extends RealNumeric {
 /// Atomic complex number `a + b i` with [RealNumeric] real and non-zero
 /// imaginary parts.
 final class ComplexNumber extends Number {
-  /// Internal const constructor for canonical constants.
-  const new _(this.real, this.imaginary)
-    : assert(
-        !identical(imaginary, IntegerNumber.zero) &&
-            !identical(imaginary, RealNumber.zero),
-        'ComplexNumber imaginary component must be non-zero; use ComplexNumber.of instead',
-      );
+  new _(this.real, this.imaginary);
 
   /// Creates an atomic complex number with [real] part `a` and non-zero
   /// [imaginary] part `b`.
@@ -779,8 +864,8 @@ final class ComplexNumber extends Number {
       );
 
   /// Constructs a canonical [Number] from [real] and [imaginary] components,
-  /// automatically demoting to [real] when `imaginary.isZero` and matching
-  /// [RealNumber] precision across both components.
+  /// demoting to [real] when `imaginary.isZero` and matching [RealNumber]
+  /// precision across both components.
   static Number of(RealNumeric real, RealNumeric imaginary) {
     if (imaginary.isZero) {
       return (imaginary is RealNumber && real is! RealNumber)
@@ -796,10 +881,10 @@ final class ComplexNumber extends Number {
   }
 
   /// The imaginary unit `i = 0 + 1i`.
-  static const i = ComplexNumber._(IntegerNumber.zero, IntegerNumber.one);
+  static final i = ComplexNumber._(IntegerNumber.zero, IntegerNumber.one);
 
   /// The negated imaginary unit `-i = 0 - 1i`.
-  static const negativeI = ComplexNumber._(
+  static final negativeI = ComplexNumber._(
     IntegerNumber.zero,
     IntegerNumber.negativeOne,
   );
@@ -815,6 +900,10 @@ final class ComplexNumber extends Number {
 
   /// Floating-point [Complex] evaluation of this number.
   Complex get value => toComplex();
+
+  @override
+  int get flags =>
+      (real.flags | imaginary.flags) | (imaginary.isZero ? 0 : kFlagHasComplex);
 
   @override
   bool get isZero => real.isZero && imaginary.isZero;
@@ -853,6 +942,9 @@ final class ComplexNumber extends Number {
   int get hashCode => Object.hash(ComplexNumber, real, imaginary);
 }
 
+final BigInt _posMaxSafeBig = BigInt.parse('9007199254740991');
+final BigInt _negMaxSafeBig = -_posMaxSafeBig;
+
 int _compareRationalReal(RationalNumber r, RealNumber f) =>
     _compareRationalToDoubleValue(r, f.value);
 
@@ -864,7 +956,6 @@ int _compareRationalToDoubleValue(RationalNumber r, double d) {
   if (d == 0.0) return r.sign;
   final dSign = d < 0 ? -1 : 1;
   if (r.sign != dSign) return r.sign.compareTo(dSign);
-  // Decompose IEEE-754 double into exact m * 2^e using 32-bit reads (dart2js safe)
   _compareByteData.setFloat64(0, d.abs());
   final hi = _compareByteData.getUint32(0);
   final lo = _compareByteData.getUint32(4);
@@ -874,8 +965,8 @@ int _compareRationalToDoubleValue(RationalNumber r, double d) {
       (BigInt.from(biasedExp == 0 ? fracHi : (fracHi | 0x100000)) << 32) |
       BigInt.from(lo);
   final exp = (biasedExp == 0 ? 1 : biasedExp) - 1023 - 52;
-  final rNum = r.numerator.abs().toBigInt();
-  final rDen = r.denominator.toBigInt();
+  final rNum = r.numerator.abs();
+  final rDen = r.denominator;
   final cmp = exp >= 0
       ? rNum.compareTo((mantissa << exp) * rDen)
       : (rNum << (-exp)).compareTo(mantissa * rDen);

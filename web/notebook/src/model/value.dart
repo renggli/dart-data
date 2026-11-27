@@ -36,7 +36,7 @@ final class ExprValue extends CalcValue {
 
   final Expr expr;
 
-  bool get isEquation => expr is RelationalExpr;
+  bool get isEquation => expr is Relational;
 
   @override
   String get kind => isEquation ? 'equation' : 'expr';
@@ -57,7 +57,7 @@ final class ExprValue extends CalcValue {
   @override
   String? approxSummary({int digits = 10}) {
     if (!isExact) return null;
-    if (expr is IntegerNumber || expr is RelationalExpr) return null;
+    if (expr is IntegerNumber || expr is Relational) return null;
     if (expr.freeVariables.isNotEmpty) return null;
     if (expr == Constant.infinity ||
         expr == -Constant.infinity ||

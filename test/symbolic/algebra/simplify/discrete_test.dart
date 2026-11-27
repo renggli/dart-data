@@ -12,53 +12,61 @@ void main() {
       const y = Variable('y');
 
       // Numeric and symbolic relationals
-      check(LessEqual(IntegerNumber.two, IntegerNumber.two).simplify())
-          .equals(IntegerNumber.one);
-      check(GreaterThan(IntegerNumber.one, IntegerNumber.two).simplify())
-          .equals(IntegerNumber.zero);
-      check(GreaterEqual(IntegerNumber.two, IntegerNumber.one).simplify())
-          .equals(IntegerNumber.one);
-      check(Equal(IntegerNumber.two, IntegerNumber.two).simplify())
+      check(
+        Relational.lessEqual(IntegerNumber.two, IntegerNumber.two).simplify(),
+      ).equals(IntegerNumber.one);
+      check(
+        Relational.greaterThan(IntegerNumber.one, IntegerNumber.two).simplify(),
+      ).equals(IntegerNumber.zero);
+      check(
+        Relational.greaterEqual(
+          IntegerNumber.two,
+          IntegerNumber.one,
+        ).simplify(),
+      ).equals(IntegerNumber.one);
+      check(Relational.equal(IntegerNumber.two, IntegerNumber.two).simplify())
           .equals(IntegerNumber.one);
 
-      check(LessEqual(x, y).simplify())
-          .equals(LessEqual(x, y, isSimplified: true));
-      check(GreaterThan(x, y).simplify())
-          .equals(GreaterThan(x, y, isSimplified: true));
-      check(GreaterEqual(x, y).simplify())
-          .equals(GreaterEqual(x, y, isSimplified: true));
-      check(Equal(x, y).simplify()).equals(Equal(x, y, isSimplified: true));
+      check(Relational.lessEqual(x, y).simplify())
+          .equals(Relational.lessEqual(x, y));
+      check(Relational.greaterThan(x, y).simplify())
+          .equals(Relational.greaterThan(x, y));
+      check(Relational.greaterEqual(x, y).simplify())
+          .equals(Relational.greaterEqual(x, y));
+      check(Relational.equal(x, y).simplify()).equals(Relational.equal(x, y));
 
       // Piecewise: false branch skipped, true branch after symbolic branch becomes otherwise
       final pwTruncated = Piecewise([
         (
-          relation: LessThan(IntegerNumber.two, IntegerNumber.one),
+          relation: Relational.lessThan(IntegerNumber.two, IntegerNumber.one),
           expr: IntegerNumber.zero,
         ),
-        (relation: LessThan(x, IntegerNumber.zero), expr: x),
-        (relation: LessThan(IntegerNumber.one, IntegerNumber.two), expr: y),
+        (relation: Relational.lessThan(x, IntegerNumber.zero), expr: x),
+        (
+          relation: Relational.lessThan(IntegerNumber.one, IntegerNumber.two),
+          expr: y,
+        ),
       ]).simplify();
       check(pwTruncated).equals(
-        Piecewise(
-          [
-            (
-              relation: LessThan(x, IntegerNumber.zero, isSimplified: true),
-              expr: x,
-            ),
-          ],
-          otherwise: y,
-          isSimplified: true,
-        ),
+        Piecewise([
+          (relation: Relational.lessThan(x, IntegerNumber.zero), expr: x),
+        ], otherwise: y),
       );
 
       // Piecewise with all false branches falls back to otherwise or 0
       final pwAllFalse = Piecewise([
-        (relation: LessThan(IntegerNumber.two, IntegerNumber.one), expr: x),
+        (
+          relation: Relational.lessThan(IntegerNumber.two, IntegerNumber.one),
+          expr: x,
+        ),
       ], otherwise: y).simplify();
       check(pwAllFalse).equals(y);
 
       final pwAllFalseNoOther = Piecewise([
-        (relation: LessThan(IntegerNumber.two, IntegerNumber.one), expr: x),
+        (
+          relation: Relational.lessThan(IntegerNumber.two, IntegerNumber.one),
+          expr: x,
+        ),
       ]).simplify();
       check(pwAllFalseNoOther).equals(IntegerNumber.zero);
 
@@ -71,8 +79,8 @@ void main() {
           upper: IntegerNumber.one,
         ).simplify(),
       ).equals(IntegerNumber.zero);
-      check(Integral(Add([x, IntegerNumber.zero]), 'x').simplify())
-          .equals(Integral(x, 'x', isSimplified: true));
+      check(Integral(Add.of([x, IntegerNumber.zero]), 'x').simplify())
+          .equals(Integral(x, 'x'));
 
       // Derivative and Limit AST simplification
       check(
@@ -88,10 +96,9 @@ void main() {
           'x',
           assumptions: Assumptions.none,
         ),
-      ).equals(Derivative(x, 'x', order: 2, isSimplified: true));
-      check(
-        simplifyDerivative(Sin(x), 'x', assumptions: Assumptions.none),
-      ).equals(Derivative(Sin(x, isSimplified: true), 'x', isSimplified: true));
+      ).equals(Derivative(x, 'x', order: 2));
+      check(simplifyDerivative(Fn.sin(x), 'x', assumptions: Assumptions.none))
+          .equals(Derivative(Fn.sin(x), 'x'));
       check(
         simplifyLimit(
           IntegerNumber.of(5),
@@ -102,19 +109,12 @@ void main() {
       ).equals(IntegerNumber.of(5));
       check(
         simplifyLimit(
-          Sin(x),
+          Fn.sin(x),
           'x',
           IntegerNumber.zero,
           assumptions: Assumptions.none,
         ),
-      ).equals(
-        Limit(
-          Sin(x, isSimplified: true),
-          'x',
-          IntegerNumber.zero,
-          isSimplified: true,
-        ),
-      );
+      ).equals(Limit(Fn.sin(x), 'x', IntegerNumber.zero));
 
       // Factorial and Binomial
       check(
@@ -164,25 +164,20 @@ void main() {
       check(simplifyRound(RationalNumber(2, 3), assumptions: Assumptions.none))
           .equals(IntegerNumber.one);
       final big = BigInt.from(10).pow(400);
-      final bigHalf = FractionNumber(
-        Integer.big(big * BigInt.two + BigInt.one),
-        Integer.two,
+      final bigHalf = RationalNumber.of(
+        big * BigInt.two + BigInt.one,
+        BigInt.two,
       );
       check(simplifyRound(bigHalf, assumptions: Assumptions.none))
-          .equals(IntegerNumber(Integer.big(big + BigInt.one)));
+          .equals(IntegerNumber(big + BigInt.one));
       check(simplifyRound(-bigHalf, assumptions: Assumptions.none))
-          .equals(IntegerNumber(Integer.big(-(big + BigInt.one))));
+          .equals(IntegerNumber(-(big + BigInt.one)));
       check(
         simplifySign(
-          Mul([IntegerNumber.negativeOne, x]),
+          Mul.of([IntegerNumber.negativeOne, x]),
           assumptions: Assumptions.none,
         ),
-      ).equals(
-        Mul([
-          IntegerNumber.negativeOne,
-          Sign(x, isSimplified: true),
-        ], isSimplified: true),
-      );
+      ).equals(Mul.of([IntegerNumber.negativeOne, Fn.sign(x)]));
       check(simplifySign(Constant.pi, assumptions: Assumptions.none))
           .equals(IntegerNumber.one);
       check(
@@ -219,12 +214,15 @@ void main() {
       const complexZ = Assumptions(domains: {'z': VariableDomain.complex});
       check(
         simplifyRe(
-          Add([z, IntegerNumber.two]),
+          Add.of([z, IntegerNumber.two]),
           assumptions: complexZ,
         ).toString(),
       ).equals('2 + re(z)');
       check(
-        simplifyIm(Add([z, ComplexNumber.i]), assumptions: complexZ).toString(),
+        simplifyIm(
+          Add.of([z, ComplexNumber.i]),
+          assumptions: complexZ,
+        ).toString(),
       ).equals('1 + im(z)');
       check(
         simplifyArg(
@@ -260,65 +258,73 @@ void main() {
         ComplexNumber.of(IntegerNumber.two, IntegerNumber.of(3)),
         assumptions: Assumptions.none,
       );
-      check(posArg).isA<Atan>();
+      check(posArg)
+          .isA<Call>()
+          .has('id', (Call c) => c.id)
+          .equals(FunctionId.atan);
       check(posArg.toString()).equals('atan(3/2)');
       check(posArg.anyNode((n) => n is Add)).isFalse;
-      check(simplifyArg(Conjugate(z), assumptions: complexZ))
-          .equals(Arg(Conjugate(z), isSimplified: true));
+      check(simplifyArg(Fn.conj(z), assumptions: complexZ))
+          .equals(Fn.arg(Fn.conj(z)));
       check(
         simplifyArg(
-          Conjugate(z),
+          Fn.conj(z),
           assumptions: const Assumptions(
             domains: {'z': VariableDomain.positive},
           ),
         ),
       ).equals(IntegerNumber.zero);
       check(
-        simplifyArg(Pow(x, IntegerNumber.two), assumptions: Assumptions.real),
+        simplifyArg(
+          Pow.of(x, IntegerNumber.two),
+          assumptions: Assumptions.real,
+        ),
       ).equals(IntegerNumber.zero);
-      check(simplifyArg(z, assumptions: complexZ))
-          .equals(Arg(z, isSimplified: true));
+      check(simplifyArg(z, assumptions: complexZ)).equals(Fn.arg(z));
 
       check(
         simplifyConjugate(
-          Add([z, IntegerNumber.one]),
+          Add.of([z, IntegerNumber.one]),
           assumptions: complexZ,
         ).toString(),
       ).equals('1 + conj(z)');
       check(
         simplifyConjugate(
-          Mul([z, IntegerNumber.two]),
+          Mul.of([z, IntegerNumber.two]),
           assumptions: complexZ,
         ).toString(),
       ).equals('2 * conj(z)');
       check(
-        simplifyConjugate(Pow(Constant.e, z), assumptions: complexZ).toString(),
+        simplifyConjugate(
+          Pow.of(Constant.e, z),
+          assumptions: complexZ,
+        ).toString(),
       ).equals('exp(conj(z))');
       check(
         simplifyConjugate(
-          Pow(z, IntegerNumber.two),
+          Pow.of(z, IntegerNumber.two),
           assumptions: complexZ,
         ).toString(),
       ).equals('conj(z) ^ 2');
-      check(simplifyConjugate(Sin(z), assumptions: complexZ).toString())
+      check(simplifyConjugate(Fn.sin(z), assumptions: complexZ).toString())
           .equals('sin(conj(z))');
-      check(simplifyConjugate(Cos(z), assumptions: complexZ).toString())
+      check(simplifyConjugate(Fn.cos(z), assumptions: complexZ).toString())
           .equals('cos(conj(z))');
-      check(simplifyConjugate(Tan(z), assumptions: complexZ).toString())
+      check(simplifyConjugate(Fn.tan(z), assumptions: complexZ).toString())
           .equals('tan(conj(z))');
-      check(simplifyConjugate(Sinh(z), assumptions: complexZ).toString())
+      check(simplifyConjugate(Fn.sinh(z), assumptions: complexZ).toString())
           .equals('sinh(conj(z))');
-      check(simplifyConjugate(Cosh(z), assumptions: complexZ).toString())
+      check(simplifyConjugate(Fn.cosh(z), assumptions: complexZ).toString())
           .equals('cosh(conj(z))');
-      check(simplifyConjugate(Tanh(z), assumptions: complexZ).toString())
+      check(simplifyConjugate(Fn.tanh(z), assumptions: complexZ).toString())
           .equals('tanh(conj(z))');
-      check(simplifyConjugate(Erf(z), assumptions: complexZ).toString())
+      check(simplifyConjugate(Fn.erf(z), assumptions: complexZ).toString())
           .equals('erf(conj(z))');
-      check(simplifyConjugate(Erfc(z), assumptions: complexZ).toString())
+      check(simplifyConjugate(Fn.erfc(z), assumptions: complexZ).toString())
           .equals('erfc(conj(z))');
-      check(simplifyConjugate(Atan(z), assumptions: complexZ).toString())
+      check(simplifyConjugate(Fn.atan(z), assumptions: complexZ).toString())
           .equals('conj(atan(z))');
-      check(simplifyConjugate(Asinh(z), assumptions: complexZ).toString())
+      check(simplifyConjugate(Fn.asinh(z), assumptions: complexZ).toString())
           .equals('conj(asinh(z))');
       const posA = Variable('a');
       const assumptionsPosA = Assumptions(
@@ -326,53 +332,61 @@ void main() {
       );
       check(
         simplifyConjugate(
-          Pow(posA, z),
+          Pow.of(posA, z),
           assumptions: assumptionsPosA,
         ).toString(),
       ).equals('a ^ conj(z)');
 
-      check(toRectangularExpr(Sin(z), assumptions: complexZ).toString())
+      check(toRectangularExpr(Fn.sin(z), assumptions: complexZ).toString())
           .equals('i * cos(re(z)) * sinh(im(z)) + sin(re(z)) * cosh(im(z))');
-      check(toRectangularExpr(Cos(z), assumptions: complexZ).toString())
+      check(toRectangularExpr(Fn.cos(z), assumptions: complexZ).toString())
           .equals('cos(re(z)) * cosh(im(z)) - i * sin(re(z)) * sinh(im(z))');
-      check(toRectangularExpr(Sinh(z), assumptions: complexZ).toString())
+      check(toRectangularExpr(Fn.sinh(z), assumptions: complexZ).toString())
           .equals('cos(im(z)) * sinh(re(z)) + i * sin(im(z)) * cosh(re(z))');
-      check(toRectangularExpr(Cosh(z), assumptions: complexZ).toString())
+      check(toRectangularExpr(Fn.cosh(z), assumptions: complexZ).toString())
           .equals('cos(im(z)) * cosh(re(z)) + i * sin(im(z)) * sinh(re(z))');
-      check(toRectangularExpr(Tan(z), assumptions: complexZ).toString())
+      check(toRectangularExpr(Fn.tan(z), assumptions: complexZ).toString())
           .equals('re(tan(z)) + i * im(tan(z))');
-      check(toRectangularExpr(Ln(z), assumptions: complexZ).toString())
+      check(toRectangularExpr(Fn.ln(z), assumptions: complexZ).toString())
           .equals('ln(abs(z)) + i * arg(z)');
       check(
-        toRectangularExpr(Ln(ComplexNumber.i), assumptions: Assumptions.none),
+        toRectangularExpr(
+          Fn.ln(ComplexNumber.i),
+          assumptions: Assumptions.none,
+        ),
       ).equals(
-        Mul([
+        Mul.of([
           ComplexNumber(IntegerNumber.zero, FractionNumber.half),
           Constant.pi,
-        ], isSimplified: true),
+        ]),
       );
-      check(simplifyRe(Ln(ComplexNumber.i), assumptions: Assumptions.none))
+      check(simplifyRe(Fn.ln(ComplexNumber.i), assumptions: Assumptions.none))
           .equals(IntegerNumber.zero);
-      check(simplifyIm(Ln(ComplexNumber.i), assumptions: Assumptions.none))
-          .equals(Mul([FractionNumber.half, Constant.pi]));
-      check(simplifyRe(Ln(z), assumptions: complexZ)).equals(Ln(Abs(z)));
-      check(simplifyIm(Ln(z), assumptions: complexZ)).equals(Arg(z));
-      check(toRectangularExpr(Re(z), assumptions: complexZ))
-          .equals(Re(z, isSimplified: true));
-      check(toRectangularExpr(Im(z), assumptions: complexZ))
-          .equals(Im(z, isSimplified: true));
+      check(simplifyIm(Fn.ln(ComplexNumber.i), assumptions: Assumptions.none))
+          .equals(Mul.of([FractionNumber.half, Constant.pi]));
+      check(simplifyRe(Fn.ln(z), assumptions: complexZ))
+          .equals(Fn.ln(Fn.abs(z)));
+      check(simplifyIm(Fn.ln(z), assumptions: complexZ)).equals(Fn.arg(z));
+      check(toRectangularExpr(Fn.re(z), assumptions: complexZ))
+          .equals(Fn.re(z));
+      check(toRectangularExpr(Fn.im(z), assumptions: complexZ))
+          .equals(Fn.im(z));
     });
 
     test('simplifies float relational inequalities directly', () {
       const one = RealNumber(1.0);
       const two = RealNumber(2.0);
-      check(LessThan(one, two).simplify()).equals(IntegerNumber.one);
-      check(LessThan(two, one).simplify()).equals(IntegerNumber.zero);
-      check(LessEqual(two, two).simplify()).equals(IntegerNumber.one);
-      check(GreaterThan(two, one).simplify()).equals(IntegerNumber.one);
-      check(GreaterEqual(one, two).simplify()).equals(IntegerNumber.zero);
-      check(Equal(two, two).simplify()).equals(IntegerNumber.one);
-      check(NotEqual(one, two).simplify()).equals(IntegerNumber.one);
+      check(Relational.lessThan(one, two).simplify()).equals(IntegerNumber.one);
+      check(Relational.lessThan(two, one).simplify())
+          .equals(IntegerNumber.zero);
+      check(Relational.lessEqual(two, two).simplify())
+          .equals(IntegerNumber.one);
+      check(Relational.greaterThan(two, one).simplify())
+          .equals(IntegerNumber.one);
+      check(Relational.greaterEqual(one, two).simplify())
+          .equals(IntegerNumber.zero);
+      check(Relational.equal(two, two).simplify()).equals(IntegerNumber.one);
+      check(Relational.notEqual(one, two).simplify()).equals(IntegerNumber.one);
     });
   });
 }

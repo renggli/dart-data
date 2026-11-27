@@ -6,6 +6,7 @@ import '../../algebra/rational.dart';
 import '../../algebra/simplify.dart';
 import '../../assumptions.dart';
 import '../../ast.dart';
+import '../../functions/fn.dart';
 import '../differentiation.dart';
 import '../linear_form.dart';
 import 'definite.dart';
@@ -86,7 +87,7 @@ Expr? tryExponentialSubstitution(
 
   Expr logBaseOf(Expr b) => b == Constant.e
       ? IntegerNumber.one
-      : Ln(b).simplify(assumptions: assumptions);
+      : Fn.ln(b).simplify(assumptions: assumptions);
 
   final logSlopes = <Expr>[
     for (final item in expNodes)
@@ -112,9 +113,13 @@ Expr? tryExponentialSubstitution(
       ratio = ratio.cancel(assumptions: assumptions);
     }
     if (ratio is! RationalNumber) return null;
-    final p = ratio.numerator.asInt;
-    final q = ratio.denominator.asInt;
-    if (p == null || q == null || p == 0) return null;
+    if (!ratio.numerator.isValidInt ||
+        !ratio.denominator.isValidInt ||
+        ratio.numerator == BigInt.zero) {
+      return null;
+    }
+    final p = ratio.numerator.toInt();
+    final q = ratio.denominator.toInt();
     lcmQ = lcmQ.lcm(q);
     if (lcmQ > 6) return null;
     fracRatios.add((p: p, q: q));
@@ -141,7 +146,8 @@ Expr? tryExponentialSubstitution(
   Expr rewrite(Expr node) {
     if (node is Pow) {
       if (mapByNode[node] case final info?) {
-        return (Pow(info.base, info.beta) * Pow(uVar, IntegerNumber.of(info.m)))
+        return (Pow.of(info.base, info.beta) *
+                Pow.of(uVar, IntegerNumber.of(info.m)))
             .simplify(assumptions: assumptions);
       }
     }
@@ -172,12 +178,12 @@ Expr? tryExponentialSubstitution(
     final alphaEff = (expNodes[bestIdx].a / IntegerNumber.of(lcmQ)).simplify(
       assumptions: assumptions,
     );
-    uExpr = Pow(
+    uExpr = Pow.of(
       commonBase,
       (alphaEff * Variable(variable)).simplify(assumptions: assumptions),
     );
   } else {
-    uExpr = Pow(
+    uExpr = Pow.of(
       Constant.e,
       (effSlope * Variable(variable)).simplify(assumptions: assumptions),
     );
@@ -197,59 +203,65 @@ Expr? tryChainRule(
   if (candidate.dependsOn(variable)) {
     final uPrime = candidate.derivative(variable).simplify();
     if (factor.matchScalarMultiple(uPrime, variable) case final k?) {
-      return (Pow(candidate, IntegerNumber.two) / IntegerNumber.two).scale(k);
+      return (Pow.of(candidate, IntegerNumber.two) / IntegerNumber.two).scale(
+        k,
+      );
     }
   }
 
   return switch (candidate) {
-    Cos(:final expr) when expr.dependsOn(variable) => _scaleMatch(
-      factor,
-      expr.derivative(variable).simplify(),
-      Sin(expr),
-      variable,
-    ),
-    Sin(:final expr) when expr.dependsOn(variable) => _scaleMatch(
-      factor,
-      expr.derivative(variable).simplify(),
-      (-Cos(expr)).simplify(),
-      variable,
-    ),
-    Ln(:final expr) when expr.dependsOn(variable) => _scaleMatch(
-      factor,
-      expr.derivative(variable).simplify(),
-      expr * Ln(expr) - expr,
-      variable,
-    ),
-    Tan(:final expr) when expr.dependsOn(variable) => _scaleMatch(
-      factor,
-      expr.derivative(variable).simplify(),
-      -logAntiderivative(Cos(expr), Assumptions.none),
-      variable,
-    ),
-    Sinh(:final expr) when expr.dependsOn(variable) => _scaleMatch(
-      factor,
-      expr.derivative(variable).simplify(),
-      Cosh(expr),
-      variable,
-    ),
-    Cosh(:final expr) when expr.dependsOn(variable) => _scaleMatch(
-      factor,
-      expr.derivative(variable).simplify(),
-      Sinh(expr),
-      variable,
-    ),
-    Tanh(:final expr) when expr.dependsOn(variable) => _scaleMatch(
-      factor,
-      expr.derivative(variable).simplify(),
-      Ln(Cosh(expr)),
-      variable,
-    ),
-    Abs(:final expr) when expr.dependsOn(variable) => _scaleMatch(
-      factor,
-      expr.derivative(variable).simplify(),
-      (expr * Abs(expr)) / IntegerNumber.two,
-      variable,
-    ),
+    Call(:final id, args: [final expr]) when expr.dependsOn(variable) =>
+      switch (id) {
+        FunctionId.cos => _scaleMatch(
+          factor,
+          expr.derivative(variable).simplify(),
+          Fn.sin(expr),
+          variable,
+        ),
+        FunctionId.sin => _scaleMatch(
+          factor,
+          expr.derivative(variable).simplify(),
+          (-Fn.cos(expr)).simplify(),
+          variable,
+        ),
+        FunctionId.ln => _scaleMatch(
+          factor,
+          expr.derivative(variable).simplify(),
+          expr * Fn.ln(expr) - expr,
+          variable,
+        ),
+        FunctionId.tan => _scaleMatch(
+          factor,
+          expr.derivative(variable).simplify(),
+          -logAntiderivative(Fn.cos(expr), Assumptions.none),
+          variable,
+        ),
+        FunctionId.sinh => _scaleMatch(
+          factor,
+          expr.derivative(variable).simplify(),
+          Fn.cosh(expr),
+          variable,
+        ),
+        FunctionId.cosh => _scaleMatch(
+          factor,
+          expr.derivative(variable).simplify(),
+          Fn.sinh(expr),
+          variable,
+        ),
+        FunctionId.tanh => _scaleMatch(
+          factor,
+          expr.derivative(variable).simplify(),
+          Fn.ln(Fn.cosh(expr)),
+          variable,
+        ),
+        FunctionId.abs => _scaleMatch(
+          factor,
+          expr.derivative(variable).simplify(),
+          (expr * Fn.abs(expr)) / IntegerNumber.two,
+          variable,
+        ),
+        _ => null,
+      },
     Pow(:final base, :final exponent)
         when !exponent.dependsOn(variable) && base.dependsOn(variable) =>
       _tryChainRulePower(
@@ -276,20 +288,20 @@ Expr? tryGaussianAntiderivative(Expr exponent, String variable) {
 
   // Positive leading coefficient a2 > 0 -> erfi
   if (isPositiveConstant(a2)) {
-    final sqrtA2 = Pow(a2, FractionNumber.half).simplify();
-    final sqrtPi = Pow(Constant.pi, FractionNumber.half).simplify();
+    final sqrtA2 = Pow.of(a2, FractionNumber.half).simplify();
+    final sqrtPi = Pow.of(Constant.pi, FractionNumber.half).simplify();
     final xVar = Variable(variable);
     if (a1 == IntegerNumber.zero && a0 == IntegerNumber.zero) {
-      return ((sqrtPi / (IntegerNumber.two * sqrtA2)) * Erfi(sqrtA2 * xVar))
+      return ((sqrtPi / (IntegerNumber.two * sqrtA2)) * Fn.erfi(sqrtA2 * xVar))
           .simplify();
     }
     final shift = (a1 / (IntegerNumber.two * sqrtA2)).simplify();
     final u = (sqrtA2 * xVar + shift).simplify();
     final constExp =
-        (a0 - Pow(a1, IntegerNumber.two) / (IntegerNumber.of(4) * a2))
+        (a0 - Pow.of(a1, IntegerNumber.two) / (IntegerNumber.of(4) * a2))
             .simplify();
-    final expScale = Pow(Constant.e, constExp).simplify();
-    return ((expScale * sqrtPi / (IntegerNumber.two * sqrtA2)) * Erfi(u))
+    final expScale = Pow.of(Constant.e, constExp).simplify();
+    return ((expScale * sqrtPi / (IntegerNumber.two * sqrtA2)) * Fn.erfi(u))
         .simplify();
   }
 
@@ -297,23 +309,24 @@ Expr? tryGaussianAntiderivative(Expr exponent, String variable) {
   final k = (-a2).simplify();
   if (!isPositiveConstant(k)) return null;
 
-  final sqrtK = Pow(k, FractionNumber.half).simplify();
-  final sqrtPi = Pow(Constant.pi, FractionNumber.half).simplify();
+  final sqrtK = Pow.of(k, FractionNumber.half).simplify();
+  final sqrtPi = Pow.of(Constant.pi, FractionNumber.half).simplify();
   final xVar = Variable(variable);
 
   if (a1 == IntegerNumber.zero && a0 == IntegerNumber.zero) {
     // int e^(-k*x^2) dx = (sqrt(pi) / (2 * sqrt(k))) * erf(sqrt(k) * x)
-    return ((sqrtPi / (IntegerNumber.two * sqrtK)) * Erf(sqrtK * xVar))
+    return ((sqrtPi / (IntegerNumber.two * sqrtK)) * Fn.erf(sqrtK * xVar))
         .simplify();
   }
 
   // Complete the square: -k * x^2 + a1 * x + a0 = -(sqrt(k)*x - a1/(2*sqrt(k)))^2 + (a0 + a1^2/(4*k))
   final shift = (a1 / (IntegerNumber.two * sqrtK)).simplify();
   final u = (sqrtK * xVar - shift).simplify();
-  final constExp = (a0 + Pow(a1, IntegerNumber.two) / (IntegerNumber.of(4) * k))
-      .simplify();
-  final expScale = Pow(Constant.e, constExp).simplify();
-  return ((expScale * sqrtPi / (IntegerNumber.two * sqrtK)) * Erf(u))
+  final constExp =
+      (a0 + Pow.of(a1, IntegerNumber.two) / (IntegerNumber.of(4) * k))
+          .simplify();
+  final expScale = Pow.of(Constant.e, constExp).simplify();
+  return ((expScale * sqrtPi / (IntegerNumber.two * sqrtK)) * Fn.erf(u))
       .simplify();
 }
 
@@ -494,7 +507,7 @@ Expr? trySymbolicBinomialAffine(
   // u = a*x + b => x = (u - b) / a, dx = du / a
   const uName = '_sb';
   const uVar = Variable(uName);
-  final expanded = (Pow((uVar - b) / a, IntegerNumber.of(m)) / a)
+  final expanded = (Pow.of((uVar - b) / a, IntegerNumber.of(m)) / a)
       .expand()
       .simplify(assumptions: assumptions);
   final terms = expanded is Add ? expanded.terms : [expanded];
@@ -503,16 +516,19 @@ Expr? trySymbolicBinomialAffine(
     final deg = polynomialDegree(t, uName);
     if (deg == null) return null;
     final coeff =
-        (t / (deg == 0 ? IntegerNumber.one : Pow(uVar, IntegerNumber.of(deg))))
+        (t /
+                (deg == 0
+                    ? IntegerNumber.one
+                    : Pow.of(uVar, IntegerNumber.of(deg))))
             .simplify();
     final newExp = (p + IntegerNumber.of(deg + 1)).simplify();
     if (newExp is Number && newExp.isZero) {
       integrated.add((coeff * logAntiderivative(uVar, assumptions)).simplify());
     } else {
-      integrated.add((coeff * Pow(uVar, newExp) / newExp).simplify());
+      integrated.add((coeff * Pow.of(uVar, newExp) / newExp).simplify());
     }
   }
-  return (scale * Add(integrated))
+  return (scale * Add.of(integrated))
       .substitute(uName, binomPow.base)
       .simplify(assumptions: assumptions);
 }
@@ -530,7 +546,7 @@ Expr? tryMixedTrigLogExp(
     const uName = '_ml';
     const uVar = Variable(uName);
     final xVar = Variable(variable);
-    final expSub = _substituteExpr(exponent, Ln(xVar), uVar);
+    final expSub = _substituteExpr(exponent, Fn.ln(xVar), uVar);
     if (!expSub.dependsOn(variable)) {
       if (expSub.matchLinear(uName) case (a: final a, b: final b)) {
         final quadExp = (a * uVar * uVar + (b + IntegerNumber.one) * uVar)
@@ -538,7 +554,7 @@ Expr? tryMixedTrigLogExp(
         final res = tryGaussianAntiderivative(quadExp, uName);
         if (res != null) {
           return res
-              .substitute(uName, Ln(xVar))
+              .substitute(uName, Fn.ln(xVar))
               .simplify(assumptions: assumptions);
         }
       }
@@ -568,13 +584,19 @@ Expr? tryMixedTrigLogExp(
       xPower = (xPower + exponent).simplify();
       continue;
     }
-    if ((f is Sin || f is Cos) && trigBase == null) {
+    if (f is Call &&
+        (f.id == FunctionId.sin || f.id == FunctionId.cos) &&
+        trigBase == null) {
       trigBase = f;
       trigPower = 1;
       continue;
     }
     if (f case Pow(base: final b, exponent: IntegerNumber(asInt: final k?))
-        when (b is Sin || b is Cos) && k >= 1 && k <= 6 && trigBase == null) {
+        when b is Call &&
+            (b.id == FunctionId.sin || b.id == FunctionId.cos) &&
+            k >= 1 &&
+            k <= 6 &&
+            trigBase == null) {
       trigBase = b;
       trigPower = k;
       continue;
@@ -582,18 +604,23 @@ Expr? tryMixedTrigLogExp(
     xPower = null;
   }
 
-  if (xPower != null && trigBase != null) {
-    final inner = trigBase is Sin ? trigBase.expr : (trigBase as Cos).expr;
-    if (inner case Ln(expr: final lnInner)) {
+  if (xPower != null && trigBase is Call) {
+    final inner = trigBase.args[0];
+    if (inner case Call(id: FunctionId.ln, args: [final lnInner])) {
       if (lnInner.matchLinear(variable) case (:final a, b: final b)
           when b == IntegerNumber.zero) {
         const uName = '_ml';
         const uVar = Variable(uName);
-        final expFactor = Pow(Constant.e, (xPower + IntegerNumber.one) * uVar);
-        final baseTrigU = trigBase is Sin ? Sin(uVar) : Cos(uVar);
+        final expFactor = Pow.of(
+          Constant.e,
+          (xPower + IntegerNumber.one) * uVar,
+        );
+        final baseTrigU = trigBase.id == FunctionId.sin
+            ? Fn.sin(uVar)
+            : Fn.cos(uVar);
         final trigU = trigPower == 1
             ? baseTrigU
-            : Pow(baseTrigU, IntegerNumber.of(trigPower));
+            : Pow.of(baseTrigU, IntegerNumber.of(trigPower));
         final uInt = antiDerivative(
           (expFactor * trigU).simplify(assumptions: assumptions),
           uName,
@@ -601,7 +628,7 @@ Expr? tryMixedTrigLogExp(
           depth: 2,
         );
         if (!hasUnevaluatedIntegral(uInt, uName)) {
-          final preFactor = (scale / Pow(a, xPower + IntegerNumber.one))
+          final preFactor = (scale / Pow.of(a, xPower + IntegerNumber.one))
               .simplify();
           return (preFactor * uInt)
               .substitute(uName, inner)
@@ -640,7 +667,8 @@ Expr? tryMixedTrigLogExp(
               when name == variable && k >= 1) {
             xDeg += k;
           } else if (nf case Pow(base: Constant.e, exponent: final eExp)) {
-            if (eExp case Atan(expr: Variable(:final name))
+            if (eExp
+                case Call(id: FunctionId.atan, args: [Variable(:final name)])
                 when name == variable) {
               atanCoeff = IntegerNumber.one;
             } else if (eExp case Mul(factors: final ef)) {
@@ -648,11 +676,14 @@ Expr? tryMixedTrigLogExp(
                 ef,
                 variable,
               );
-              if (varFactors case [Atan(expr: Variable(:final name))]
+              if (varFactors
+                  case [
+                    Call(id: FunctionId.atan, args: [Variable(:final name)]),
+                  ]
                   when name == variable) {
                 atanCoeff = constFactors.length == 1
                     ? constFactors.first
-                    : Mul(constFactors).simplify();
+                    : Mul.of(constFactors).simplify();
               } else {
                 ok = false;
               }
@@ -669,9 +700,9 @@ Expr? tryMixedTrigLogExp(
           final cosPow = halfExp - 2 - xDeg;
           final integrand =
               (numScale *
-                      Pow(Constant.e, atanCoeff * uVar) *
-                      Pow(Sin(uVar), IntegerNumber.of(xDeg)) *
-                      Pow(Cos(uVar), IntegerNumber.of(cosPow)))
+                      Pow.of(Constant.e, atanCoeff * uVar) *
+                      Pow.of(Fn.sin(uVar), IntegerNumber.of(xDeg)) *
+                      Pow.of(Fn.cos(uVar), IntegerNumber.of(cosPow)))
                   .simplify();
           final uInt = antiDerivative(
             integrand,
@@ -681,7 +712,7 @@ Expr? tryMixedTrigLogExp(
           );
           if (!hasUnevaluatedIntegral(uInt, uName)) {
             return uInt
-                .substitute(uName, Atan(Variable(variable)))
+                .substitute(uName, Fn.atan(Variable(variable)))
                 .simplify(assumptions: assumptions);
           }
         }
@@ -715,7 +746,7 @@ Expr? _tryChainRulePower(
       ).simplify(assumptions: assumptions).scale(k);
     }
     final nPlus1 = (exponent + IntegerNumber.one).simplify();
-    final fU = (Pow(base, nPlus1) / nPlus1).simplify();
+    final fU = (Pow.of(base, nPlus1) / nPlus1).simplify();
     return fU.scale(k);
   }
   return null;
@@ -740,7 +771,7 @@ Expr? _tryChainRuleExponential(
     final uPrime = exponent.derivative(variable).simplify();
     final k = factor.matchScalarMultiple(uPrime, variable);
     if (k != null) {
-      final denom = Ln(base);
+      final denom = Fn.ln(base);
       final fU = (candidate / denom).simplify();
       return fU.scale(k);
     }
@@ -751,31 +782,9 @@ Expr? _tryChainRuleExponential(
 void _collectUCandidates(Expr node, String variable, Set<Expr> out) {
   if (out.length >= 64 || !node.dependsOn(variable)) return;
   switch (node) {
-    case Sin(:final expr) ||
-        Cos(:final expr) ||
-        Tan(:final expr) ||
-        Asin(:final expr) ||
-        Acos(:final expr) ||
-        Atan(:final expr) ||
-        Sinh(:final expr) ||
-        Cosh(:final expr) ||
-        Tanh(:final expr) ||
-        Asinh(:final expr) ||
-        Acosh(:final expr) ||
-        Atanh(:final expr) ||
-        Ln(:final expr) ||
-        Erf(:final expr) ||
-        Erfc(:final expr) ||
-        Erfi(:final expr) ||
-        FresnelS(:final expr) ||
-        FresnelC(:final expr):
-      if (node is Sin ||
-          node is Cos ||
-          node is Tan ||
-          node is Ln ||
-          node is Atan ||
-          node is Asin ||
-          node is Acos) {
+    case Call(:final id, args: [final expr])
+        when _uCandidateFunctions.contains(id):
+      if (_directUFunctions.contains(id)) {
         out.add(node);
       }
       if (expr is! Variable || expr.name != variable) {
@@ -796,7 +805,7 @@ void _collectUCandidates(Expr node, String variable, Set<Expr> out) {
               n.exponent is IntegerNumber &&
               (n.exponent as IntegerNumber).isNegative,
         )) {
-          out.add(Pow(Variable(variable), IntegerNumber.negativeOne));
+          out.add(Pow.of(Variable(variable), IntegerNumber.negativeOne));
         }
       } else {
         if (base.dependsOn(variable) &&
@@ -815,7 +824,7 @@ void _collectUCandidates(Expr node, String variable, Set<Expr> out) {
         if (base case Variable(:final name) when name == variable) {
           if (exponent case IntegerNumber(asInt: final m?)
               when m >= 4 && m.isEven) {
-            out.add(Pow(base, IntegerNumber.of(m ~/ 2)));
+            out.add(Pow.of(base, IntegerNumber.of(m ~/ 2)));
           } else if (exponent is FractionNumber) {
             out.add(node);
           }
@@ -837,22 +846,57 @@ void _collectUCandidates(Expr node, String variable, Set<Expr> out) {
   }
 }
 
+const _uCandidateFunctions = {
+  FunctionId.sin,
+  FunctionId.cos,
+  FunctionId.tan,
+  FunctionId.asin,
+  FunctionId.acos,
+  FunctionId.atan,
+  FunctionId.sinh,
+  FunctionId.cosh,
+  FunctionId.tanh,
+  FunctionId.asinh,
+  FunctionId.acosh,
+  FunctionId.atanh,
+  FunctionId.ln,
+  FunctionId.erf,
+  FunctionId.erfc,
+  FunctionId.erfi,
+  FunctionId.fresnelS,
+  FunctionId.fresnelC,
+};
+
+const _directUFunctions = {
+  FunctionId.sin,
+  FunctionId.cos,
+  FunctionId.tan,
+  FunctionId.ln,
+  FunctionId.atan,
+  FunctionId.asin,
+  FunctionId.acos,
+};
+
 bool _hasDiscontinuousOperator(Expr expr, String variable) => expr.anyNode(
   (node) =>
-      (node is Floor ||
-          node is Ceil ||
-          node is Round ||
-          node is Sign ||
-          node is Mod ||
-          node is Piecewise) &&
+      (node is Piecewise ||
+          (node is Call &&
+              const {
+                FunctionId.floor,
+                FunctionId.ceil,
+                FunctionId.round,
+                FunctionId.sign,
+                FunctionId.mod,
+              }.contains(node.id))) &&
       node.dependsOn(variable),
 );
 
 Expr _expandDoubleAngleTrig(Expr node) {
-  if (node case Sin(:final expr)) {
-    if (expr case Mul(factors: [IntegerNumber(asInt: 2), final inner])) {
-      return IntegerNumber.two * Sin(inner) * Cos(inner);
-    }
+  if (node case Call(
+    id: FunctionId.sin,
+    args: [Mul(factors: [IntegerNumber(asInt: 2), final inner])],
+  )) {
+    return IntegerNumber.two * Fn.sin(inner) * Fn.cos(inner);
   }
   return node.mapChildren(_expandDoubleAngleTrig);
 }
@@ -871,7 +915,7 @@ Expr _replaceUCandidate(
         if (!ratio.dependsOn(variable) &&
             (ratio is IntegerNumber ||
                 !(cExp is IntegerNumber && cExp.value.isEven))) {
-          return Pow(uVar, ratio);
+          return Pow.of(uVar, ratio);
         }
       } else if (cBase is IntegerNumber &&
           nBase is IntegerNumber &&
@@ -883,22 +927,37 @@ Expr _replaceUCandidate(
         if (k != null) {
           final ratio = (IntegerNumber.of(k) * nExp / cExp).simplify();
           if (!ratio.dependsOn(variable)) {
-            return Pow(uVar, ratio);
+            return Pow.of(uVar, ratio);
+          }
+        }
+      } else if (nExp case Add(:final terms)) {
+        final mappedFactors = <Expr>[];
+        var changed = false;
+        for (final t in terms) {
+          final part = Pow.of(nBase, t);
+          final replaced = _replaceUCandidate(part, candidate, uVar, variable);
+          if (!identical(replaced, part)) changed = true;
+          mappedFactors.add(replaced);
+        }
+        if (changed) {
+          final product = Mul.of(mappedFactors);
+          if (!product.dependsOn(variable)) {
+            return product;
           }
         }
       }
     }
   }
-  if (candidate is Sin && node is Pow) {
-    if (node.base == Cos(candidate.expr) &&
-        node.exponent == IntegerNumber.two) {
-      return IntegerNumber.one - Pow(uVar, IntegerNumber.two);
+  if (candidate case Call(id: FunctionId.sin, args: [final cArg])
+      when node is Pow) {
+    if (node.base == Fn.cos(cArg) && node.exponent == IntegerNumber.two) {
+      return IntegerNumber.one - Pow.of(uVar, IntegerNumber.two);
     }
   }
-  if (candidate is Cos && node is Pow) {
-    if (node.base == Sin(candidate.expr) &&
-        node.exponent == IntegerNumber.two) {
-      return IntegerNumber.one - Pow(uVar, IntegerNumber.two);
+  if (candidate case Call(id: FunctionId.cos, args: [final cArg])
+      when node is Pow) {
+    if (node.base == Fn.sin(cArg) && node.exponent == IntegerNumber.two) {
+      return IntegerNumber.one - Pow.of(uVar, IntegerNumber.two);
     }
   }
   return node.mapChildren(
@@ -941,16 +1000,7 @@ bool _hasLargeIntegerExponent(Expr expr, {int limit = 16}) => expr.anyNode(
 
 Expr? _findTranscendental(Expr node, String variable) {
   if (!node.dependsOn(variable)) return null;
-  if (node is Sin ||
-      node is Cos ||
-      node is Tan ||
-      node is Asin ||
-      node is Acos ||
-      node is Atan ||
-      node is Sinh ||
-      node is Cosh ||
-      node is Tanh ||
-      node is Ln ||
+  if ((node is Call && _transcendentalUFunctions.contains(node.id)) ||
       (node is Pow && node.base == Constant.e)) {
     return node;
   }
@@ -961,6 +1011,19 @@ Expr? _findTranscendental(Expr node, String variable) {
   });
   return found;
 }
+
+const _transcendentalUFunctions = {
+  FunctionId.sin,
+  FunctionId.cos,
+  FunctionId.tan,
+  FunctionId.asin,
+  FunctionId.acos,
+  FunctionId.atan,
+  FunctionId.sinh,
+  FunctionId.cosh,
+  FunctionId.tanh,
+  FunctionId.ln,
+};
 
 Expr _substituteExpr(Expr root, Expr target, Expr replacement) {
   if (root == target) return replacement;
@@ -990,11 +1053,14 @@ Expr splitExpSumProduct(Expr node, String variable) {
       if (hasExpTerm && linearTerms.isNotEmpty && otherTerms.isNotEmpty) {
         final otherSum = otherTerms.length == 1
             ? otherTerms.first
-            : Add(otherTerms);
+            : Add.of(otherTerms);
         final linSum = linearTerms.length == 1
             ? linearTerms.first
-            : Add(linearTerms);
-        return Pow(Constant.e, otherSum) * Pow(Constant.e, linSum);
+            : Add.of(linearTerms);
+        return Mul.raw([
+          Pow.of(Constant.e, otherSum),
+          Pow.of(Constant.e, linSum),
+        ]);
       }
     }
     return mapped;
@@ -1017,9 +1083,9 @@ Expr splitExpSumProduct(Expr node, String variable) {
     if (commonExpFactors != null && commonExpFactors.isNotEmpty) {
       final common = commonExpFactors.length == 1
           ? commonExpFactors.first
-          : Mul(commonExpFactors.toList()).simplify();
+          : Mul.of(commonExpFactors.toList()).simplify();
       final remTerms = [for (final t in terms) (t / common).simplify()];
-      return common * Add(remTerms).simplify();
+      return common * Add.of(remTerms).simplify();
     }
   }
   return split;

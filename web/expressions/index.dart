@@ -1249,7 +1249,7 @@ void updatePointTelemetry() {
       final rhs = (fx0Sym + dfx0Sym * (const Variable('x') - x0Expr))
           .expand(assumptions: assumptions)
           .simplify(assumptions: assumptions);
-      setAttrExpr(valTangentEq, Equal(const Variable('y'), rhs));
+      setAttrExpr(valTangentEq, Relational.equal(const Variable('y'), rhs));
     } catch (_) {
       setAttrExpr(valTangentEq, Constant.undefined);
     }

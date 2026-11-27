@@ -99,7 +99,7 @@ final class NotebookEvaluator implements EvaluatorContext {
       } else if (!preserveForm &&
           env.settings.autoSimplify &&
           val is ExprValue &&
-          val.expr is! RelationalExpr) {
+          val.expr is! Relational) {
         val = ExprValue(val.expr.simplify(assumptions: assumptions));
       }
 
@@ -174,7 +174,7 @@ final class NotebookEvaluator implements EvaluatorContext {
         final simplified =
             (env.settings.autoSimplify &&
                 evaluated is ExprValue &&
-                evaluated.expr is! RelationalExpr)
+                evaluated.expr is! Relational)
             ? ExprValue(evaluated.expr.simplify(assumptions: assumptions))
             : evaluated;
         env.variables[name] = simplified;
@@ -331,7 +331,7 @@ final class NotebookEvaluator implements EvaluatorContext {
         }
         if (op == '√') {
           if (val is ExprValue) {
-            return ExprValue(Pow(val.expr, FractionNumber.half));
+            return ExprValue(Pow.of(val.expr, FractionNumber.half));
           }
           throw ArgumentBindingException(
             "Cannot take square root of '${val.kind}'",
@@ -350,7 +350,7 @@ final class NotebookEvaluator implements EvaluatorContext {
             localScope: localScope,
             boundSymbols: boundSymbols,
           );
-          if (val is ExprValue) return ExprValue(Factorial(val.expr));
+          if (val is ExprValue) return ExprValue(Fn.factorial(val.expr));
         }
         throw ArgumentBindingException(
           "Unsupported postfix operator '$op'",
@@ -495,7 +495,7 @@ final class NotebookEvaluator implements EvaluatorContext {
       return ExprValue(ExprSyntax.standardVariadicFunctions[name]!(argExprs));
     }
 
-    return ExprValue(VariableFunction(name, argExprs));
+    return ExprValue(Fn.symbolic(name, argExprs));
   }
 
   CalcValue _evalBinary(String op, CalcValue lv, CalcValue rv, int offset) {
@@ -507,13 +507,13 @@ final class NotebookEvaluator implements EvaluatorContext {
         '-' => l - r,
         '*' => l * r,
         '/' => l / r,
-        '^' => Pow(l, r),
-        '=' => Equal(l, r),
-        '!=' => NotEqual(l, r),
-        '<' => LessThan(l, r),
-        '<=' => LessEqual(l, r),
-        '>' => GreaterThan(l, r),
-        '>=' => GreaterEqual(l, r),
+        '^' => Pow.of(l, r),
+        '=' => Relational.equal(l, r),
+        '!=' => Relational.notEqual(l, r),
+        '<' => Relational.lessThan(l, r),
+        '<=' => Relational.lessEqual(l, r),
+        '>' => Relational.greaterThan(l, r),
+        '>=' => Relational.greaterEqual(l, r),
         _ => throw ArgumentBindingException(
           "Unknown operator '$op'",
           offset: offset,

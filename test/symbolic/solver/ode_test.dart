@@ -157,10 +157,13 @@ void main() {
       test('rejects non-Equal relational expressions', () {
         final dy = Derivative(y, 'x');
         check(
-          () => LessThan(dy, y * 2).solveOde(dependent: 'y', independent: 'x'),
+          () => Relational.lessThan(
+            dy,
+            y * 2,
+          ).solveOde(dependent: 'y', independent: 'x'),
         ).throws<ArgumentError>();
         check(
-          () => GreaterEqual(
+          () => Relational.greaterEqual(
             dy,
             y * 2,
           ).solveOde(dependent: 'y', independent: 'x'),
@@ -169,19 +172,19 @@ void main() {
 
       test('supports Equal relational expression with Derivative node', () {
         final dy = Derivative(y, 'x');
-        final ode = Equal(dy, y * 2);
+        final ode = Relational.equal(dy, y * 2);
         final sol = ode.solveOde(dependent: 'y', independent: 'x');
         check(sol.dependsOn('C1')).isTrue;
       });
 
       test('supports exp(x + y) in separable ODEs', () {
         final dy = Derivative(y, 'x');
-        final sol = (dy - Pow(Constant.e, x + y)).solveOde(
+        final sol = (dy - Pow.of(Constant.e, x + y)).solveOde(
           dependent: 'y',
           independent: 'x',
         );
         check(sol.dependsOn('x')).isTrue;
-        final residual = (sol.derivative('x') - Pow(Constant.e, x + sol))
+        final residual = (sol.derivative('x') - Pow.of(Constant.e, x + sol))
             .simplify();
         check(residual.evaluate({'x': 0.5, 'C1': -5.0})).isCloseTo(0.0, 1e-12);
       });
@@ -356,8 +359,8 @@ void main() {
         check(sol.dependsOn('C1')).isTrue;
         check(sol.dependsOn('C2')).isTrue;
         check(sol.dependsOn('C3')).isTrue;
-        check(sol.anyNode((n) => n is Cos)).isTrue;
-        check(sol.anyNode((n) => n is Sin)).isTrue;
+        check(sol.anyNode((n) => n is Call && n.id == FunctionId.cos)).isTrue;
+        check(sol.anyNode((n) => n is Call && n.id == FunctionId.sin)).isTrue;
       },
     );
 
@@ -403,13 +406,13 @@ void main() {
         ),
       ).throws<ArgumentError>();
       check(
-        () => (Sin(Derivative(y, 'x')) + Derivative(y, 'x')).solveOde(
+        () => (Fn.sin(Derivative(y, 'x')) + Derivative(y, 'x')).solveOde(
           dependent: 'y',
           independent: 'x',
         ),
       ).throws<UnsupportedError>();
       check(
-        () => (Derivative(y, 'x') - Sin(y) - y).solveOde(
+        () => (Derivative(y, 'x') - Fn.sin(y) - y).solveOde(
           dependent: 'y',
           independent: 'x',
         ),
@@ -435,7 +438,7 @@ void main() {
         ),
       ).throws<ArgumentError>();
       check(
-        () => (Derivative(y, 'x') - Pow(y, IntegerNumber.two)).solveOde(
+        () => (Derivative(y, 'x') - Pow.of(y, IntegerNumber.two)).solveOde(
           dependent: 'y',
           independent: 'x',
           at: 0,
@@ -443,7 +446,7 @@ void main() {
         ),
       ).throws<StateError>();
 
-      final expSep = (Derivative(y, 'x') - Pow(IntegerNumber.two, x + y))
+      final expSep = (Derivative(y, 'x') - Pow.of(IntegerNumber.two, x + y))
           .solveOde(dependent: 'y', independent: 'x');
       check(expSep.dependsOn('C1')).isTrue;
 

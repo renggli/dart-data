@@ -4,7 +4,7 @@ import '../../algebra/rational.dart';
 import '../../algebra/simplify.dart';
 import '../../assumptions.dart';
 import '../../ast.dart';
-import '../../number/integer.dart';
+import '../../functions/fn.dart';
 import '../differentiation.dart';
 import '../linear_form.dart';
 import 'definite.dart';
@@ -25,7 +25,7 @@ Expr? tryRepeatedQuadratic(Expr left, Expr quad, int m, String variable) {
   if (degLeft >= 2) {
     final (:quotient, :remainder) = left.polynomialDivide(quad, variable);
     final qTerm = antiDerivative(
-      (quotient / Pow(quad, IntegerNumber.of(m - 1))).simplify(),
+      (quotient / Pow.of(quad, IntegerNumber.of(m - 1))).simplify(),
       variable,
       assumptions: Assumptions.none,
     );
@@ -46,7 +46,7 @@ Expr? tryRepeatedQuadratic(Expr left, Expr quad, int m, String variable) {
   var result = IntegerNumber.zero as Expr;
 
   if (d != IntegerNumber.zero) {
-    result = (-d / (twoA * mMinus1 * Pow(quad, mMinus1))).simplify();
+    result = (-d / (twoA * mMinus1 * Pow.of(quad, mMinus1))).simplify();
   }
 
   final eRem = (e - (d * b) / twoA).simplify();
@@ -74,7 +74,7 @@ Expr? _integrateRepeatedQuadConst(
     );
     return hasUnevaluatedIntegral(res, variable) ? null : res;
   }
-  final disc = (const IntegerNumber(Integer(4)) * a * c - b * b).simplify();
+  final disc = (IntegerNumber.of(4) * a * c - b * b).simplify();
   if (disc is Number && disc.isZero) return null;
 
   final prev = _integrateRepeatedQuadConst(quad, a, b, c, m - 1, variable);
@@ -84,7 +84,7 @@ Expr? _integrateRepeatedQuadConst(
   final twoAxPlusB = (IntegerNumber.two * a * Variable(variable) + b)
       .simplify();
   final denom = (mMinus1 * disc).simplify();
-  final term1 = (twoAxPlusB / (denom * Pow(quad, mMinus1))).simplify();
+  final term1 = (twoAxPlusB / (denom * Pow.of(quad, mMinus1))).simplify();
   final coeff2 = ((IntegerNumber.two * IntegerNumber.of(2 * m - 3) * a) / denom)
       .simplify();
   return (term1 + coeff2 * prev).simplify();
@@ -135,11 +135,8 @@ Expr? tryCubicBinomialDenominator(Expr left, Expr right, String variable) {
   final c = (c0 / a3).simplify();
 
   final r = (c is RealNumeric && c.isNegative)
-      ? (-Pow(
-          c.neg(),
-          const FractionNumber(Integer.one, Integer(3)),
-        )).simplify()
-      : Pow(c, const FractionNumber(Integer.one, Integer(3))).simplify();
+      ? (-Pow.of(c.neg(), RationalNumber(1, 3))).simplify()
+      : Pow.of(c, RationalNumber(1, 3)).simplify();
   final xVar = Variable(variable);
   final linFactor = (xVar + r).simplify();
   final quadFactor = (xVar * xVar - r * xVar + r * r).simplify();
@@ -191,10 +188,10 @@ Expr? trySophieGermainQuartic(Expr left, Expr right, String variable) {
   final p1 = ((numCoeffs[1] ?? IntegerNumber.zero) / a4).simplify();
   final p0 = ((numCoeffs[0] ?? IntegerNumber.zero) / a4).simplify();
 
-  final r = Pow(c, FractionNumber.half).simplify();
+  final r = Pow.of(c, FractionNumber.half).simplify();
   final s =
-      (Pow(IntegerNumber.two, FractionNumber.half) *
-              Pow(c, const FractionNumber(Integer.one, Integer(4))))
+      (Pow.of(IntegerNumber.two, FractionNumber.half) *
+              Pow.of(c, RationalNumber(1, 4)))
           .simplify();
   return _integrateSymmetricQuartic(p0, p1, p2, p3, r, s, variable);
 }
@@ -222,12 +219,10 @@ Expr? tryBiquadraticDenominator(Expr left, Expr right, String variable) {
   final xVar = Variable(variable);
 
   // Case 1: b^2 - 4ac > 0 -> a*(x^2 + r1)*(x^2 + r2)
-  final disc = (b * b - const IntegerNumber(Integer(4)) * a * c)
-      .expand()
-      .simplify();
+  final disc = (b * b - IntegerNumber.of(4) * a * c).expand().simplify();
   if (disc is Number && disc.isZero) return null;
   if (isSymbolicPositive(disc)) {
-    final sqrtDisc = Pow(disc, FractionNumber.half).simplify();
+    final sqrtDisc = Pow.of(disc, FractionNumber.half).simplify();
     final r1 = ((b + sqrtDisc) / (IntegerNumber.two * a)).simplify();
     final r2 = ((b - sqrtDisc) / (IntegerNumber.two * a)).simplify();
     final diffR = (r2 - r1).expand().simplify();
@@ -264,10 +259,10 @@ Expr? tryBiquadraticDenominator(Expr left, Expr right, String variable) {
   final bNorm = (b / a).simplify();
   if (!isSymbolicPositive(cNorm)) return null;
 
-  final r = Pow(cNorm, FractionNumber.half).simplify();
+  final r = Pow.of(cNorm, FractionNumber.half).simplify();
   final sSq = (IntegerNumber.two * r - bNorm).simplify();
   if (!isSymbolicPositive(sSq)) return null;
-  final s = Pow(sSq, FractionNumber.half).simplify();
+  final s = Pow.of(sSq, FractionNumber.half).simplify();
 
   return _integrateSymmetricQuartic(p0, p1, p2, p3, r, s, variable);
 }
@@ -359,9 +354,9 @@ Expr? tryDistinctLinearPartialFractions(
     }
     if (denAtRoot is Number && denAtRoot.isZero) return null;
     final coeff = (numAtRoot / denAtRoot).simplify();
-    terms.add((coeff * Ln(Abs(fi.factor))).simplify());
+    terms.add((coeff * Fn.ln(Fn.abs(fi.factor))).simplify());
   }
-  return Add(terms).simplify();
+  return Add.of(terms).simplify();
 }
 
 Expr? tryPowerSubstitution(
@@ -422,7 +417,7 @@ Expr? tryPowerSubstitution(
     final q = (e + 1 - d0) ~/ k;
     final uPow = q == 0
         ? IntegerNumber.one
-        : (q == 1 ? uVar : Pow(uVar, IntegerNumber.of(q)));
+        : (q == 1 ? uVar : Pow.of(uVar, IntegerNumber.of(q)));
     uNum = uNum + c * uPow;
   }
 
@@ -431,7 +426,7 @@ Expr? tryPowerSubstitution(
     final q = (e - d0) ~/ k;
     final uPow = q == 0
         ? IntegerNumber.one
-        : (q == 1 ? uVar : Pow(uVar, IntegerNumber.of(q)));
+        : (q == 1 ? uVar : Pow.of(uVar, IntegerNumber.of(q)));
     uDen = uDen + c * uPow;
   }
 
@@ -446,7 +441,7 @@ Expr? tryPowerSubstitution(
   );
   if (hasUnevaluatedIntegral(uInt, uName)) return null;
   return uInt
-      .substitute(uName, Pow(Variable(variable), IntegerNumber.of(k)))
+      .substitute(uName, Pow.of(Variable(variable), IntegerNumber.of(k)))
       .simplify(assumptions: assumptions);
 }
 

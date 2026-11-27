@@ -1,10 +1,12 @@
+import 'package:more/math.dart';
+
 import '../../algebra/expand.dart';
 import '../../algebra/helpers.dart';
 import '../../algebra/simplify.dart';
 import '../../algebra/simplify/domain.dart' show isPositiveExpr, isProvenReal;
 import '../../assumptions.dart';
 import '../../ast.dart';
-import '../../number/integer.dart';
+import '../../functions/fn.dart';
 import '../linear_form.dart';
 import '../summation.dart';
 
@@ -39,10 +41,10 @@ Expr? definiteIntegralSpecialCases(
   if (constFactors.isNotEmpty && varFactors.isNotEmpty) {
     final constPart = constFactors.length == 1
         ? constFactors.first
-        : Mul(constFactors).simplify(assumptions: assumptions);
+        : Mul.of(constFactors).simplify(assumptions: assumptions);
     final varPart = varFactors.length == 1
         ? varFactors.first
-        : Mul(varFactors).simplify(assumptions: assumptions);
+        : Mul.of(varFactors).simplify(assumptions: assumptions);
     final inner = definiteIntegralSpecialCases(
       varPart,
       variable,
@@ -122,10 +124,10 @@ Expr? definiteIntegralZeroToInfinity(
 
   // 1. Dirichlet integral: sin(a*x) / x -> pi/2 * sign(a)
   //    and sin(a*x)^2 / x^2 -> pi/2 * |a| (requires real a)
-  if (den == xVar && num is Sin) {
-    if (num.expr.matchLinear(variable) case (a: final slope, :final b)
+  if (den == xVar && num is Call && num.id == FunctionId.sin) {
+    if (num.args[0].matchLinear(variable) case (a: final slope, :final b)
         when b == IntegerNumber.zero && isProvenReal(slope, assumptions)) {
-      return (Constant.pi / IntegerNumber.two * Sign(slope)).simplify(
+      return (Constant.pi / IntegerNumber.two * Fn.sign(slope)).simplify(
         assumptions: assumptions,
       );
     }
@@ -133,13 +135,13 @@ Expr? definiteIntegralZeroToInfinity(
   if (den case Pow(base: final b, exponent: IntegerNumber(asInt: 2))
       when b == xVar) {
     if (num case Pow(
-      base: Sin(expr: final inner),
+      base: Call(id: FunctionId.sin, args: [final inner]),
       exponent: IntegerNumber(asInt: 2),
     )) {
       if (inner.matchLinear(variable) case (a: final slope, b: final shift)
           when shift == IntegerNumber.zero &&
               isProvenReal(slope, assumptions)) {
-        return (Constant.pi / IntegerNumber.two * Abs(slope)).simplify(
+        return (Constant.pi / IntegerNumber.two * Fn.abs(slope)).simplify(
           assumptions: assumptions,
         );
       }
@@ -156,11 +158,11 @@ Expr? definiteIntegralZeroToInfinity(
           ? f0
           : (f1 is Pow && f1.base == Constant.e ? f1 : null);
       final sinFac = expFac == f0
-          ? (f1 is Sin ? f1 : null)
-          : (f0 is Sin ? f0 : null);
+          ? (f1 is Call && f1.id == FunctionId.sin ? f1 : null)
+          : (f0 is Call && f0.id == FunctionId.sin ? f0 : null);
       if (expFac != null && sinFac != null) {
         final expLin = expFac.exponent.matchLinear(variable);
-        final sinLin = sinFac.expr.matchLinear(variable);
+        final sinLin = sinFac.args[0].matchLinear(variable);
         if (expLin != null &&
             sinLin != null &&
             expLin.b == IntegerNumber.zero &&
@@ -169,7 +171,7 @@ Expr? definiteIntegralZeroToInfinity(
           if ((isPositiveConstant(posA) ||
                   isPositiveExpr(posA, assumptions: assumptions)) &&
               isProvenReal(sinLin.a, assumptions)) {
-            return Atan((sinLin.a / posA).simplify(assumptions: assumptions))
+            return Fn.atan((sinLin.a / posA).simplify(assumptions: assumptions))
                 .simplify(assumptions: assumptions);
           }
         }
@@ -207,7 +209,8 @@ Expr? definiteIntegralZeroToInfinity(
           }
         }
       }
-      if (core case Atan(:final expr) when expr.matchLinear(variable) != null) {
+      if (core case Call(id: FunctionId.atan, args: [final expr])
+          when expr.matchLinear(variable) != null) {
         final lin = expr.matchLinear(variable)!;
         if (lin.b == IntegerNumber.zero &&
             (isPositiveConstant(lin.a) ||
@@ -226,14 +229,14 @@ Expr? definiteIntegralZeroToInfinity(
     final m0Pos = matchSingle(t0);
     final m1Neg = matchSingle((-t1).simplify(assumptions: assumptions));
     if (m0Pos.expDecay != null && m1Neg.expDecay != null) {
-      return Ln(
+      return Fn.ln(
         (m1Neg.expDecay! / m0Pos.expDecay!).simplify(assumptions: assumptions),
       ).simplify(assumptions: assumptions);
     }
     if (m0Pos.atanSlope != null && m1Neg.atanSlope != null) {
       return (Constant.pi /
               IntegerNumber.two *
-              Ln(
+              Fn.ln(
                 (m0Pos.atanSlope! / m1Neg.atanSlope!).simplify(
                   assumptions: assumptions,
                 ),
@@ -243,14 +246,14 @@ Expr? definiteIntegralZeroToInfinity(
     final m1Pos = matchSingle(t1);
     final m0Neg = matchSingle((-t0).simplify(assumptions: assumptions));
     if (m1Pos.expDecay != null && m0Neg.expDecay != null) {
-      return Ln(
+      return Fn.ln(
         (m0Neg.expDecay! / m1Pos.expDecay!).simplify(assumptions: assumptions),
       ).simplify(assumptions: assumptions);
     }
     if (m1Pos.atanSlope != null && m0Neg.atanSlope != null) {
       return (Constant.pi /
               IntegerNumber.two *
-              Ln(
+              Fn.ln(
                 (m1Pos.atanSlope! / m0Neg.atanSlope!).simplify(
                   assumptions: assumptions,
                 ),
@@ -260,7 +263,10 @@ Expr? definiteIntegralZeroToInfinity(
   }
 
   // 2. Fresnel integrals: sin(a*x^2) or cos(a*x^2) -> 1/4 * sqrt(2*pi / |a|)
-  if (function case Sin(expr: final inner) || Cos(expr: final inner)) {
+  if (function case Call(
+    id: FunctionId.sin || FunctionId.cos,
+    args: [final inner],
+  )) {
     final coeffs = extractPolynomialCoefficients(inner, variable);
     if (coeffs != null &&
         maxPolynomialDegree(coeffs) == 2 &&
@@ -268,18 +274,18 @@ Expr? definiteIntegralZeroToInfinity(
         (coeffs[0] ?? IntegerNumber.zero) == IntegerNumber.zero) {
       final a2 = coeffs[2] ?? IntegerNumber.zero;
       if (isProvenReal(a2, assumptions)) {
-        final absA = Abs(a2).simplify(assumptions: assumptions);
+        final absA = Fn.abs(a2).simplify(assumptions: assumptions);
         if (isPositiveExpr(absA, assumptions: assumptions) ||
             isPositiveConstant(absA)) {
           final fresnelVal =
               (FractionNumber.quarter *
-                      Pow(
+                      Pow.of(
                         (IntegerNumber.two * Constant.pi) / absA,
                         FractionNumber.half,
                       ))
                   .simplify(assumptions: assumptions);
-          return function is Sin
-              ? (Sign(a2) * fresnelVal).simplify(assumptions: assumptions)
+          return function.id == FunctionId.sin
+              ? (Fn.sign(a2) * fresnelVal).simplify(assumptions: assumptions)
               : fresnelVal;
         }
       }
@@ -322,7 +328,7 @@ Expr? definiteIntegralZeroToInfinity(
     final sPlus1 = (s + IntegerNumber.one).simplify(assumptions: assumptions);
     if (isPositiveExpr(sPlus1, assumptions: assumptions) ||
         isPositiveConstant(sPlus1)) {
-      return (Gamma(sPlus1) / Pow(expSlope, sPlus1)).simplify(
+      return (Fn.gamma(sPlus1) / Pow.of(expSlope, sPlus1)).simplify(
         assumptions: assumptions,
       );
     }
@@ -370,7 +376,7 @@ Expr? definiteIntegralZeroToInfinity(
     );
     if (isPositiveExpr(alpha, assumptions: assumptions) ||
         isPositiveConstant(alpha)) {
-      return (FractionNumber.half * Gamma(alpha) / Pow(gaussCoeff, alpha))
+      return (FractionNumber.half * Fn.gamma(alpha) / Pow.of(gaussCoeff, alpha))
           .simplify(assumptions: assumptions);
     }
   }
@@ -406,7 +412,7 @@ Expr? definiteIntegralZeroToInfinity(
         var matchedFactor = false;
         for (final f in num.factors) {
           if (!matchedFactor &&
-              (f - (IntegerNumber.one + Pow(Constant.e, -xVar))).simplify(
+              (f - (IntegerNumber.one + Pow.of(Constant.e, -xVar))).simplify(
                     assumptions: assumptions,
                   ) ==
                   IntegerNumber.zero) {
@@ -421,7 +427,7 @@ Expr? definiteIntegralZeroToInfinity(
         }
       }
       if (s != null && s.isEven) {
-        final factSMinus1 = IntegerNumber(Integer.from(s - 1).factorial());
+        final factSMinus1 = IntegerNumber(BigInt.from(s - 1).factorial());
         final zetaS = evenZetaValue(s);
         if (hasOnePlusExpNeg) {
           return (IntegerNumber.two * factSMinus1 * zetaS - factSMinus1)
@@ -432,7 +438,7 @@ Expr? definiteIntegralZeroToInfinity(
         } else {
           final etaFactor =
               (IntegerNumber.one -
-                      Pow(IntegerNumber.two, IntegerNumber.of(1 - s)))
+                      Pow.of(IntegerNumber.two, IntegerNumber.of(1 - s)))
                   .simplify();
           return (factSMinus1 * etaFactor * zetaS).simplify(
             assumptions: assumptions,
@@ -501,10 +507,10 @@ Expr? definiteIntegralZeroToInfinity(
           final pref =
               (numScale /
                       denScale *
-                      Pow(c, (sPlus1 - denExp).simplify()) /
-                      Pow(b, sPlus1))
+                      Pow.of(c, (sPlus1 - denExp).simplify()) /
+                      Pow.of(b, sPlus1))
                   .simplify(assumptions: assumptions);
-          return (pref * Beta(sPlus1, dMinusS1)).simplify(
+          return (pref * Fn.beta(sPlus1, dMinusS1)).simplify(
             assumptions: assumptions,
           );
         }
@@ -528,28 +534,41 @@ Expr? definiteIntegralTrigDomain(
   // 1. Euler's log-sine / log-cosine integrals:
   //    int_0^(pi/2) ln(sin(x)) dx = int_0^(pi/2) ln(cos(x)) dx = -pi/2 * ln(2)
   //    int_0^pi ln(sin(x)) dx = -pi * ln(2)
-  if (function case Ln(expr: Sin(expr: final inner)) when inner == xVar) {
+  if (function
+      case Call(
+        id: FunctionId.ln,
+        args: [Call(id: FunctionId.sin, args: [final inner])],
+      )
+      when inner == xVar) {
     if (toExpr == halfPi) {
-      return (-halfPi * Ln(IntegerNumber.two)).simplify(
+      return (-halfPi * Fn.ln(IntegerNumber.two)).simplify(
         assumptions: assumptions,
       );
     }
     if (toExpr == Constant.pi) {
-      return (-Constant.pi * Ln(IntegerNumber.two)).simplify(
+      return (-Constant.pi * Fn.ln(IntegerNumber.two)).simplify(
         assumptions: assumptions,
       );
     }
   }
-  if (function case Ln(expr: Cos(expr: final inner))
+  if (function
+      case Call(
+        id: FunctionId.ln,
+        args: [Call(id: FunctionId.cos, args: [final inner])],
+      )
       when inner == xVar && toExpr == halfPi) {
-    return (-halfPi * Ln(IntegerNumber.two)).simplify(assumptions: assumptions);
+    return (-halfPi * Fn.ln(IntegerNumber.two)).simplify(
+      assumptions: assumptions,
+    );
   }
 
   // 1b. int_0^(pi/2) x * cot(x) dx = pi * ln(2) / 2
   if (toExpr == halfPi &&
-      (function - (xVar * Cos(xVar) / Sin(xVar))).simplify() ==
+      (function - (xVar * Fn.cos(xVar) / Fn.sin(xVar))).simplify() ==
           IntegerNumber.zero) {
-    return (halfPi * Ln(IntegerNumber.two)).simplify(assumptions: assumptions);
+    return (halfPi * Fn.ln(IntegerNumber.two)).simplify(
+      assumptions: assumptions,
+    );
   }
 
   // 2. Wallis / Beta trigonometric integrals on [0, pi/2], [0, pi], and [0, 2*pi]:
@@ -561,20 +580,30 @@ Expr? definiteIntegralTrigDomain(
     Expr nExp = IntegerNumber.zero;
     var validWallis = true;
     for (final f in factors) {
-      if (f case Sin(expr: final inner) when inner == xVar) {
+      if (f case Call(id: FunctionId.sin, args: [final inner])
+          when inner == xVar) {
         mExp = (mExp + IntegerNumber.one).simplify();
         continue;
       }
-      if (f case Cos(expr: final inner) when inner == xVar) {
+      if (f case Call(id: FunctionId.cos, args: [final inner])
+          when inner == xVar) {
         nExp = (nExp + IntegerNumber.one).simplify();
         continue;
       }
-      if (f case Pow(base: Sin(expr: final inner), :final exponent)
+      if (f
+          case Pow(
+            base: Call(id: FunctionId.sin, args: [final inner]),
+            :final exponent,
+          )
           when inner == xVar && !exponent.dependsOn(variable)) {
         mExp = (mExp + exponent).simplify();
         continue;
       }
-      if (f case Pow(base: Cos(expr: final inner), :final exponent)
+      if (f
+          case Pow(
+            base: Call(id: FunctionId.cos, args: [final inner]),
+            :final exponent,
+          )
           when inner == xVar && !exponent.dependsOn(variable)) {
         nExp = (nExp + exponent).simplify();
         continue;
@@ -594,7 +623,7 @@ Expr? definiteIntegralTrigDomain(
               isPositiveConstant(aArg)) &&
           (isPositiveExpr(bArg, assumptions: assumptions) ||
               isPositiveConstant(bArg))) {
-        final qVal = (FractionNumber.half * Beta(aArg, bArg)).simplify(
+        final qVal = (FractionNumber.half * Fn.beta(aArg, bArg)).simplify(
           assumptions: assumptions,
         );
         if (toExpr == halfPi) return qVal;
@@ -635,27 +664,28 @@ Expr? definiteIntegralUnitInterval(
   //    int_0^1 ln(x) / (1 + x) dx = -pi^2 / 12
   //    int_0^1 ln(1 + x) / x dx = pi^2 / 12
   //    int_0^1 ln(1 - x) / x dx = -pi^2 / 6
-  if (num case Ln(expr: final lnArg) when lnArg == xVar) {
+  if (num case Call(id: FunctionId.ln, args: [final lnArg])
+      when lnArg == xVar) {
     if ((den - (IntegerNumber.one - xVar)).expand().simplify() ==
         IntegerNumber.zero) {
-      return (-Pow(Constant.pi, IntegerNumber.two) / IntegerNumber.of(6))
+      return (-Pow.of(Constant.pi, IntegerNumber.two) / IntegerNumber.of(6))
           .simplify(assumptions: assumptions);
     }
     if ((den - (IntegerNumber.one + xVar)).expand().simplify() ==
         IntegerNumber.zero) {
-      return (-Pow(Constant.pi, IntegerNumber.two) / IntegerNumber.of(12))
+      return (-Pow.of(Constant.pi, IntegerNumber.two) / IntegerNumber.of(12))
           .simplify(assumptions: assumptions);
     }
   }
-  if (den == xVar && num is Ln) {
-    if ((num.expr - (IntegerNumber.one + xVar)).expand().simplify() ==
+  if (den == xVar && num is Call && num.id == FunctionId.ln) {
+    if ((num.args[0] - (IntegerNumber.one + xVar)).expand().simplify() ==
         IntegerNumber.zero) {
-      return (Pow(Constant.pi, IntegerNumber.two) / IntegerNumber.of(12))
+      return (Pow.of(Constant.pi, IntegerNumber.two) / IntegerNumber.of(12))
           .simplify(assumptions: assumptions);
     }
-    if ((num.expr - (IntegerNumber.one - xVar)).expand().simplify() ==
+    if ((num.args[0] - (IntegerNumber.one - xVar)).expand().simplify() ==
         IntegerNumber.zero) {
-      return (-Pow(Constant.pi, IntegerNumber.two) / IntegerNumber.of(6))
+      return (-Pow.of(Constant.pi, IntegerNumber.two) / IntegerNumber.of(6))
           .simplify(assumptions: assumptions);
     }
   }
@@ -705,14 +735,15 @@ Expr? definiteIntegralUnitInterval(
             isPositiveConstant(aArg)) &&
         (isPositiveExpr(bArg, assumptions: assumptions) ||
             isPositiveConstant(bArg))) {
-      return Beta(aArg, bArg).simplify(assumptions: assumptions);
+      return Fn.beta(aArg, bArg).simplify(assumptions: assumptions);
     }
   }
 
   // 3. Generalized Frullani / log-quotient on [0, 1]:
   //    int_0^1 (sum_i c_i * x^{m_i}) / ln(x) dx = sum_i c_i * ln(m_i + 1)
   //    when sum_i c_i == 0 and every m_i + 1 > 0.
-  if (den case Ln(expr: final lnArg) when lnArg == xVar) {
+  if (den case Call(id: FunctionId.ln, args: [final lnArg])
+      when lnArg == xVar) {
     final expandedNum = num.expand().simplify(assumptions: assumptions);
     final numTerms = expandedNum is Add ? expandedNum.terms : [expandedNum];
     if (numTerms.length >= 2) {
@@ -728,7 +759,7 @@ Expr? definiteIntegralUnitInterval(
             ? IntegerNumber.one
             : constFactors.length == 1
             ? constFactors.first
-            : Mul(constFactors).simplify(assumptions: assumptions);
+            : Mul.of(constFactors).simplify(assumptions: assumptions);
         Expr exponent;
         if (varFactors.isEmpty) {
           exponent = IntegerNumber.zero;
@@ -754,16 +785,16 @@ Expr? definiteIntegralUnitInterval(
         decomposed.add((coeff: coeff, expPlus1: expPlus1));
       }
       if (validFrullani) {
-        final coeffSum = Add([for (final item in decomposed) item.coeff])
+        final coeffSum = Add.of([for (final item in decomposed) item.coeff])
             .simplify(assumptions: assumptions);
         if (coeffSum == IntegerNumber.zero) {
           if (decomposed.length == 2) {
             return (decomposed[0].coeff *
-                    Ln(decomposed[0].expPlus1 / decomposed[1].expPlus1))
+                    Fn.ln(decomposed[0].expPlus1 / decomposed[1].expPlus1))
                 .simplify(assumptions: assumptions);
           }
-          return Add([
-            for (final item in decomposed) item.coeff * Ln(item.expPlus1),
+          return Add.of([
+            for (final item in decomposed) item.coeff * Fn.ln(item.expPlus1),
           ]).simplify(assumptions: assumptions);
         }
       }

@@ -4,6 +4,7 @@ import '../../algebra/rational.dart';
 import '../../algebra/simplify.dart';
 import '../../assumptions.dart';
 import '../../ast.dart';
+import '../../functions/fn.dart';
 import '../differentiation.dart';
 import '../linear_form.dart';
 import 'definite.dart';
@@ -21,15 +22,15 @@ Expr? tryIntegrationByParts(
   if (depth >= 3 || isIntegrationBudgetExhausted()) return null;
 
   // Symbolic power times logarithm: x^n * ln(a*x)
-  if (vExpr case Ln(expr: final inner)) {
+  if (vExpr case Call(id: FunctionId.ln, args: [final inner])) {
     if (inner.matchLinear(variable) case (a: _, b: final b)
         when b == IntegerNumber.zero) {
       if (pExpr case Pow(base: Variable(:final name), exponent: final n)
           when name == variable && !n.dependsOn(variable)) {
         final nPlus1 = (n + IntegerNumber.one).simplify();
         if (nPlus1 is! Number || !nPlus1.isZero) {
-          final xNP1 = Pow(pExpr.base, nPlus1);
-          return (xNP1 * Ln(inner) / nPlus1 - xNP1 / (nPlus1 * nPlus1))
+          final xNP1 = Pow.of(pExpr.base, nPlus1);
+          return (xNP1 * Fn.ln(inner) / nPlus1 - xNP1 / (nPlus1 * nPlus1))
               .simplify();
         }
       }
@@ -38,12 +39,15 @@ Expr? tryIntegrationByParts(
 
   // Inverse trig / inverse hyperbolic IBP: u = f(g(x)), a + b*f(g(x)), or powered 2..3
   bool isInvFn(Expr n) =>
-      n is Asin ||
-      n is Acos ||
-      n is Atan ||
-      n is Asinh ||
-      n is Acosh ||
-      n is Atanh;
+      n is Call &&
+      const {
+        FunctionId.asin,
+        FunctionId.acos,
+        FunctionId.atan,
+        FunctionId.asinh,
+        FunctionId.acosh,
+        FunctionId.atanh,
+      }.contains(n.id);
   bool isInvOrAffine(Expr n) => _isAffineOf(n, variable, isInvFn);
 
   final isInverseTrigOrHyp = switch (vExpr) {
@@ -70,7 +74,7 @@ Expr? tryIntegrationByParts(
   if (pExpr case Pow(base: Constant.e, exponent: final expInner)) {
     if (expInner.matchLinear(variable) case (a: final a, b: _)) {
       if (depth < 2 && vExpr is Add) {
-        final distSum = Add([
+        final distSum = Add.of([
           for (final t in vExpr.terms)
             antiDerivative(
               (pExpr * t).simplify(assumptions: assumptions),
@@ -81,22 +85,24 @@ Expr? tryIntegrationByParts(
         ]).simplify(assumptions: assumptions);
         if (!hasUnevaluatedIntegral(distSum, variable)) return distSum;
       }
-      if (vExpr case Sin(expr: final trigInner)) {
+      if (vExpr case Call(id: FunctionId.sin, args: [final trigInner])) {
         if (trigInner.matchLinear(variable) case (a: final c, b: _)) {
           final denom = (a * a + c * c).simplify(assumptions: assumptions);
           if (!(denom is Number && denom.isZero)) {
-            final numer = (pExpr * (a * Sin(trigInner) - c * Cos(trigInner)))
-                .simplify(assumptions: assumptions);
+            final numer =
+                (pExpr * (a * Fn.sin(trigInner) - c * Fn.cos(trigInner)))
+                    .simplify(assumptions: assumptions);
             return (numer / denom).simplify(assumptions: assumptions);
           }
         }
       }
-      if (vExpr case Cos(expr: final trigInner)) {
+      if (vExpr case Call(id: FunctionId.cos, args: [final trigInner])) {
         if (trigInner.matchLinear(variable) case (a: final c, b: _)) {
           final denom = (a * a + c * c).simplify(assumptions: assumptions);
           if (!(denom is Number && denom.isZero)) {
-            final numer = (pExpr * (a * Cos(trigInner) + c * Sin(trigInner)))
-                .simplify(assumptions: assumptions);
+            final numer =
+                (pExpr * (a * Fn.cos(trigInner) + c * Fn.sin(trigInner)))
+                    .simplify(assumptions: assumptions);
             return (numer / denom).simplify(assumptions: assumptions);
           }
         }
@@ -107,7 +113,7 @@ Expr? tryIntegrationByParts(
   // exp(a*x + b) * ln(c*x + d)
   if (pExpr case Pow(base: Constant.e, exponent: final expInner)) {
     if (expInner.matchLinear(variable) case (a: final a, b: _)) {
-      if (vExpr case Ln(expr: final lnInner)
+      if (vExpr case Call(id: FunctionId.ln, args: [final lnInner])
           when lnInner.matchLinear(variable) != null) {
         final v = (pExpr / a).simplify();
         final rem = antiDerivative(
@@ -127,7 +133,9 @@ Expr? tryIntegrationByParts(
   if (linP != null) {
     final p = linP.a;
     final linRes = switch (vExpr) {
-      Ln(:final expr) => switch (expr.matchLinear(variable)) {
+      Call(id: FunctionId.ln, args: [final expr]) => switch (expr.matchLinear(
+        variable,
+      )) {
         (:final a, :final b) => _ibpLogarithm(pExpr, vExpr, expr, linP, a, b),
         null => null,
       },
@@ -136,19 +144,27 @@ Expr? tryIntegrationByParts(
           (:final a, b: _) => _ibpExponential(pExpr, vExpr, p, a),
           null => null,
         },
-      Cos(:final expr) => switch (expr.matchLinear(variable)) {
+      Call(id: FunctionId.cos, args: [final expr]) => switch (expr.matchLinear(
+        variable,
+      )) {
         (:final a, b: _) => _ibpCosine(pExpr, vExpr, expr, p, a),
         null => null,
       },
-      Sin(:final expr) => switch (expr.matchLinear(variable)) {
+      Call(id: FunctionId.sin, args: [final expr]) => switch (expr.matchLinear(
+        variable,
+      )) {
         (:final a, b: _) => _ibpSine(pExpr, vExpr, expr, p, a),
         null => null,
       },
-      Sinh(:final expr) => switch (expr.matchLinear(variable)) {
+      Call(id: FunctionId.sinh, args: [final expr]) => switch (expr.matchLinear(
+        variable,
+      )) {
         (:final a, b: _) => _ibpSinh(pExpr, vExpr, expr, p, a),
         null => null,
       },
-      Cosh(:final expr) => switch (expr.matchLinear(variable)) {
+      Call(id: FunctionId.cosh, args: [final expr]) => switch (expr.matchLinear(
+        variable,
+      )) {
         (:final a, b: _) => _ibpCosh(pExpr, vExpr, expr, p, a),
         null => null,
       },
@@ -166,7 +182,7 @@ Expr? tryIntegrationByParts(
   final degP = polynomialDegree(pExpr, variable);
   if (degP != null && degP >= 1 && degP <= 10) {
     // 1. P(x) * ln(R(x)) where u = ln(R(x)), dv = P(x) dx
-    if (vExpr case Ln(:final expr)
+    if (vExpr case Call(id: FunctionId.ln, args: [final expr])
         when (degP >= 2 && expr.matchLinear(variable) != null) || degP <= 6) {
       final uPrime = vExpr
           .derivative(variable)
@@ -194,7 +210,7 @@ Expr? tryIntegrationByParts(
     }
     if (vExpr
         case Pow(
-          base: Ln(expr: final inner),
+          base: Call(id: FunctionId.ln, args: [final inner]),
           exponent: IntegerNumber(asInt: final k?),
         )
         when k >= 1 && k <= 5 && inner.matchLinear(variable) != null) {
@@ -241,7 +257,7 @@ Expr? tryIntegrationByParts(
               .expand()
               .simplify(assumptions: assumptions);
           final wInt = antiDerivative(
-            (pW * Pow(Constant.e, expW)).simplify(assumptions: assumptions),
+            (pW * Pow.of(Constant.e, expW)).simplify(assumptions: assumptions),
             wName,
             assumptions: assumptions,
             depth: depth + 1,
@@ -291,10 +307,14 @@ Expr? tryIntegrationByParts(
       final isIntegrableV = switch (vExpr) {
         Pow(:final base, :final exponent) when base == Constant.e =>
           exponent.matchLinear(variable) != null,
-        Sin(:final expr) ||
-        Cos(:final expr) ||
-        Sinh(:final expr) ||
-        Cosh(:final expr) => expr.matchLinear(variable) != null,
+        Call(
+          id: FunctionId.sin ||
+              FunctionId.cos ||
+              FunctionId.sinh ||
+              FunctionId.cosh,
+          args: [final expr],
+        ) =>
+          expr.matchLinear(variable) != null,
         Mul(factors: [final f0, final f1]) =>
           _isExpTrigPair(f0, f1, variable) || _isExpTrigPair(f1, f0, variable),
         _ => false,
@@ -316,7 +336,8 @@ Expr? tryIntegrationByParts(
   }
 
   // General log rule: P(x) * (a + b * ln(g(x)))^k where P(x) is integrable
-  bool isLogOrAffine(Expr n) => _isAffineOf(n, variable, (e) => e is Ln);
+  bool isLogOrAffine(Expr n) =>
+      _isAffineOf(n, variable, (e) => e is Call && e.id == FunctionId.ln);
   final isLogFactor = switch (vExpr) {
     _ when isLogOrAffine(vExpr) => true,
     Pow(:final base, exponent: IntegerNumber(asInt: final k?))
@@ -337,13 +358,19 @@ Expr? tryIntegrationByParts(
 
   // General polynomial fallback: P(x) of degree 1..4 times any integrable vExpr
   final allowPolyPolylogOrExpInv = switch (vExpr) {
-    Polylog(:final left, right: _) => !left.dependsOn(variable),
-    Atan(:final expr) || Atanh(:final expr) || Ln(:final expr) => expr.anyNode(
-      (n) =>
-          n is Pow &&
-          !n.base.dependsOn(variable) &&
-          n.exponent.dependsOn(variable),
+    Call(id: FunctionId.polylog, args: [final left, _]) => !left.dependsOn(
+      variable,
     ),
+    Call(
+      id: FunctionId.atan || FunctionId.atanh || FunctionId.ln,
+      args: [final expr],
+    ) =>
+      expr.anyNode(
+        (n) =>
+            n is Pow &&
+            !n.base.dependsOn(variable) &&
+            n.exponent.dependsOn(variable),
+      ),
     _ => false,
   };
   if (depth < (allowPolyPolylogOrExpInv ? 3 : 2) &&
@@ -390,7 +417,7 @@ Expr _ibpLogarithm(
   final numB = (q * c - p * d).simplify();
   final bCap = (numB / cSquared).simplify();
   final w = expr;
-  final wSquared = Pow(w, IntegerNumber.two).simplify();
+  final wSquared = Pow.of(w, IntegerNumber.two).simplify();
   final termA1 = ((aCap * wSquared) / IntegerNumber.two).simplify();
   final termB1 = (bCap * w).simplify();
   final coeff1 = (termA1 + termB1).simplify();
@@ -417,7 +444,7 @@ Expr? _ibpGeneralExponential(
   Expr a,
 ) {
   if (isValidExponentialBase(base)) {
-    final cEff = (a * Ln(base)).simplify();
+    final cEff = (a * Fn.ln(base)).simplify();
     final term1 = (pExpr / cEff).simplify();
     final cEffSquared = (cEff * cEff).simplify();
     final term2 = (p / cEffSquared).simplify();
@@ -428,35 +455,44 @@ Expr? _ibpGeneralExponential(
 }
 
 Expr _ibpCosine(Expr pExpr, Expr vExpr, Expr expr, Expr p, Expr c) {
-  final term1 = ((pExpr / c).simplify() * Sin(expr)).simplify();
+  final term1 = ((pExpr / c).simplify() * Fn.sin(expr)).simplify();
   final cSquared = (c * c).simplify();
-  final term2 = ((p / cSquared).simplify() * Cos(expr)).simplify();
+  final term2 = ((p / cSquared).simplify() * Fn.cos(expr)).simplify();
   return (term1 + term2).simplify();
 }
 
 Expr _ibpSine(Expr pExpr, Expr vExpr, Expr expr, Expr p, Expr c) {
-  final term1 = (-((pExpr / c).simplify() * Cos(expr))).simplify();
+  final term1 = (-((pExpr / c).simplify() * Fn.cos(expr))).simplify();
   final cSquared = (c * c).simplify();
-  final term2 = ((p / cSquared).simplify() * Sin(expr)).simplify();
+  final term2 = ((p / cSquared).simplify() * Fn.sin(expr)).simplify();
   return (term1 + term2).simplify();
 }
 
 Expr _ibpSinh(Expr pExpr, Expr vExpr, Expr expr, Expr p, Expr c) {
-  final term1 = ((pExpr / c).simplify() * Cosh(expr)).simplify();
+  final term1 = ((pExpr / c).simplify() * Fn.cosh(expr)).simplify();
   final cSquared = (c * c).simplify();
-  final term2 = ((p / cSquared).simplify() * Sinh(expr)).simplify();
+  final term2 = ((p / cSquared).simplify() * Fn.sinh(expr)).simplify();
   return (term1 - term2).simplify();
 }
 
 Expr _ibpCosh(Expr pExpr, Expr vExpr, Expr expr, Expr p, Expr c) {
-  final term1 = ((pExpr / c).simplify() * Sinh(expr)).simplify();
+  final term1 = ((pExpr / c).simplify() * Fn.sinh(expr)).simplify();
   final cSquared = (c * c).simplify();
-  final term2 = ((p / cSquared).simplify() * Cosh(expr)).simplify();
+  final term2 = ((p / cSquared).simplify() * Fn.cosh(expr)).simplify();
   return (term1 - term2).simplify();
 }
 
 bool _containsLogOrInverseTrig(Expr expr, String variable) => switch (expr) {
-  Ln() || Asin() || Acos() || Atan() || Asinh() || Acosh() || Atanh() => true,
+  Call(
+    id: FunctionId.ln ||
+        FunctionId.asin ||
+        FunctionId.acos ||
+        FunctionId.atan ||
+        FunctionId.asinh ||
+        FunctionId.acosh ||
+        FunctionId.atanh,
+  ) =>
+    true,
   Add(:final terms) => terms.any((t) => _containsLogOrInverseTrig(t, variable)),
   Mul(:final factors) => factors.any(
     (f) => _containsLogOrInverseTrig(f, variable),
@@ -479,8 +515,8 @@ bool _isExpTrigPair(Expr expNode, Expr trigNode, String variable) {
   if (expNode case Pow(:final base, :final exponent) when base == Constant.e) {
     if (exponent.matchLinear(variable) == null) return false;
     return switch (trigNode) {
-      Sin(:final expr) ||
-      Cos(:final expr) => expr.matchLinear(variable) != null,
+      Call(id: FunctionId.sin || FunctionId.cos, args: [final expr]) =>
+        expr.matchLinear(variable) != null,
       _ => false,
     };
   }
@@ -503,7 +539,7 @@ Expr? _applySingleStepIbp(
   final prod = (v * uPrime).simplify(assumptions: assumptions);
   final remIntegrand = exceedsNodeBudget(prod, 250)
       ? prod
-      : (vExpr.anyNode((n) => n is Ln)
+      : (vExpr.anyNode((n) => n is Call && n.id == FunctionId.ln)
                 ? prod.cancel(assumptions: assumptions)
                 : prod.together(assumptions: assumptions))
             .simplify(assumptions: assumptions);

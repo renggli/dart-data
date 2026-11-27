@@ -16,7 +16,7 @@ void main() {
         n,
         assumptions: Assumptions.none,
       );
-      check(res).equals(Factorial(n));
+      check(res).equals(Fn.factorial(n));
     });
 
     test('telescoping product', () {

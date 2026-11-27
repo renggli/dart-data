@@ -20,13 +20,13 @@ void main() {
           .unorderedEquals([_piFrac(1, 6), _piFrac(5, 6)]);
       check(Expr.parse('sin(x) + 1/2').solve('x'))
           .unorderedEquals([_piFrac(7, 6), _piFrac(11, 6)]);
-      check((Sin(x) - Expr.parse('sqrt(2)/2')).solve('x'))
+      check((Fn.sin(x) - Expr.parse('sqrt(2)/2')).solve('x'))
           .unorderedEquals([_piFrac(1, 4), _piFrac(3, 4)]);
-      check((Sin(x) + Expr.parse('sqrt(2)/2')).solve('x'))
+      check((Fn.sin(x) + Expr.parse('sqrt(2)/2')).solve('x'))
           .unorderedEquals([_piFrac(5, 4), _piFrac(7, 4)]);
-      check((Sin(x) - Expr.parse('sqrt(3)/2')).solve('x'))
+      check((Fn.sin(x) - Expr.parse('sqrt(3)/2')).solve('x'))
           .unorderedEquals([_piFrac(1, 3), _piFrac(2, 3)]);
-      check((Sin(x) + Expr.parse('sqrt(3)/2')).solve('x'))
+      check((Fn.sin(x) + Expr.parse('sqrt(3)/2')).solve('x'))
           .unorderedEquals([_piFrac(4, 3), _piFrac(5, 3)]);
     });
 
@@ -35,7 +35,7 @@ void main() {
       () {
         check(Expr.parse('sin(x) - 2').solve('x')).isEmpty;
         check(Expr.parse('sin(x) + 2').solve('x')).isEmpty;
-        check((Sin(const Variable('x')) - Constant.pi).solve('x')).isEmpty;
+        check((Fn.sin(const Variable('x')) - Constant.pi).solve('x')).isEmpty;
 
         final gen = Expr.parse('sin(x) - 1/3').solve('x');
         check(gen.length).equals(2);
@@ -74,13 +74,13 @@ void main() {
           .unorderedEquals([_piFrac(1, 3), _piFrac(5, 3)]);
       check(Expr.parse('cos(x) + 1/2').solve('x'))
           .unorderedEquals([_piFrac(2, 3), _piFrac(4, 3)]);
-      check((Cos(x) - Expr.parse('sqrt(2)/2')).solve('x'))
+      check((Fn.cos(x) - Expr.parse('sqrt(2)/2')).solve('x'))
           .unorderedEquals([_piFrac(1, 4), _piFrac(7, 4)]);
-      check((Cos(x) + Expr.parse('sqrt(2)/2')).solve('x'))
+      check((Fn.cos(x) + Expr.parse('sqrt(2)/2')).solve('x'))
           .unorderedEquals([_piFrac(3, 4), _piFrac(5, 4)]);
-      check((Cos(x) - Expr.parse('sqrt(3)/2')).solve('x'))
+      check((Fn.cos(x) - Expr.parse('sqrt(3)/2')).solve('x'))
           .unorderedEquals([_piFrac(1, 6), _piFrac(11, 6)]);
-      check((Cos(x) + Expr.parse('sqrt(3)/2')).solve('x'))
+      check((Fn.cos(x) + Expr.parse('sqrt(3)/2')).solve('x'))
           .unorderedEquals([_piFrac(5, 6), _piFrac(7, 6)]);
     });
 
@@ -118,13 +118,13 @@ void main() {
           .unorderedEquals([_piFrac(1, 4), _piFrac(5, 4)]);
       check(Expr.parse('tan(x) + 1').solve('x'))
           .unorderedEquals([_piFrac(3, 4), _piFrac(7, 4)]);
-      check((Tan(x) - Expr.parse('sqrt(3)/3')).solve('x'))
+      check((Fn.tan(x) - Expr.parse('sqrt(3)/3')).solve('x'))
           .unorderedEquals([_piFrac(1, 6), _piFrac(7, 6)]);
-      check((Tan(x) + Expr.parse('sqrt(3)/3')).solve('x'))
+      check((Fn.tan(x) + Expr.parse('sqrt(3)/3')).solve('x'))
           .unorderedEquals([_piFrac(5, 6), _piFrac(11, 6)]);
-      check((Tan(x) - Expr.parse('sqrt(3)')).solve('x'))
+      check((Fn.tan(x) - Expr.parse('sqrt(3)')).solve('x'))
           .unorderedEquals([_piFrac(1, 3), _piFrac(4, 3)]);
-      check((Tan(x) + Expr.parse('sqrt(3)')).solve('x'))
+      check((Fn.tan(x) + Expr.parse('sqrt(3)')).solve('x'))
           .unorderedEquals([_piFrac(2, 3), _piFrac(5, 3)]);
     });
 

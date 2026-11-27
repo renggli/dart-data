@@ -81,7 +81,8 @@ void main() {
 
         final symQuad = Expr.parse('1 / (x^2 + a)').integrate('x');
         check(symQuad).isNotA<Integral>();
-        check(symQuad.anyNode((n) => n is Abs)).isFalse;
+        check(symQuad.anyNode((n) => n is Call && n.id == FunctionId.abs))
+            .isFalse;
       },
     );
 

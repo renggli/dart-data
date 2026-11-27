@@ -184,16 +184,18 @@ void main() {
       final tanComplex = Expr.parse('i * a * tan(c + d * x) + a')
           .integrate('x');
       check(tanComplex).isNotA<Integral>();
-      check(tanComplex.anyNode((n) => n is Abs)).equals(false);
+      check(tanComplex.anyNode((n) => n is Call && n.id == FunctionId.abs))
+          .equals(false);
 
       final sinhComplex = Expr.parse('sinh(x)^4 / (sinh(x) + i)')
           .integrate('x');
       check(sinhComplex).isNotA<Integral>();
-      check(sinhComplex.anyNode((n) => n is Abs)).equals(false);
+      check(sinhComplex.anyNode((n) => n is Call && n.id == FunctionId.abs))
+          .equals(false);
 
       const realAssumptions = Assumptions(domains: {'x': VariableDomain.real});
       check(
-        Ln(Abs(Pow(Constant.e, const Variable('x'))))
+        Fn.ln(Fn.abs(Pow.of(Constant.e, const Variable('x'))))
             .simplify(assumptions: realAssumptions),
       ).equals(const Variable('x'));
     });

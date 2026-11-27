@@ -60,51 +60,96 @@ final ExprSyntax casSyntax = buildCasSyntax();
 
 /// Builds a SymPy-compatible [ExprSyntax], optionally treating lowercase `e` or
 /// `i` as symbolic variables (for Rubi and Blake integration suites).
-ExprSyntax buildCasSyntax({bool renameE = false, bool renameI = false}) =>
-    ExprSyntax(
-      constants: {
-        'E': Constant.e,
-        'I': ComplexNumber.i,
-        'oo': Constant.infinity,
-        if (renameE) 'e': const Variable('e'),
-        if (renameI) 'i': const Variable('i'),
-      },
-      unaryFunctions: {
-        'Abs': Abs.new,
-        'ceiling': Ceil.new,
-        'log': Ln.new,
-        'elliptic_k': (m) => EllipticK(Pow(m, FractionNumber.half)),
-        'elliptic_e': (m) => EllipticE(Pow(m, FractionNumber.half)),
-      },
-      binaryFunctions: {
-        'Max': (a, b) => Max([a, b]),
-        'Min': (a, b) => Min([a, b]),
-        'Mod': Mod.new,
-        'Rational': (a, b) => a / b,
-        'real_root': (x, n) => Pow(x, IntegerNumber.one / n),
-        'log': (x, b) => Ln(x) / Ln(b),
-        'elliptic_f': (phi, m) => EllipticF(phi, Pow(m, FractionNumber.half)),
-        'elliptic_e': (phi, m) =>
-            EllipticE(Pow(m, FractionNumber.half), amplitude: phi),
-        'elliptic_pi': (n, m) => EllipticPi(
-          n,
-          FractionNumber.half * Constant.pi,
-          Pow(m, FractionNumber.half),
-        ),
-      },
-      variadicFunctions: {
-        'Derivative': ExprSyntax.standardVariadicFunctions['diff']!,
-        'row': Tuple.new,
-        'det': (rows) => Matrix<Expr>.fromRows([
-          for (final r in rows) (r as Tuple).args,
-        ], type: exprDataType).determinant(),
-        'elliptic_pi': (args) => args.length == 3
-            ? EllipticPi(args[0], args[1], Pow(args[2], FractionNumber.half))
-            : throw const FormatException(
-                'elliptic_pi requires 2 or 3 arguments',
-              ),
-      },
-    );
+ExprSyntax buildCasSyntax({
+  bool renameE = false,
+  bool renameI = false,
+}) => ExprSyntax(
+  constants: {
+    'E': Constant.e,
+    'I': ComplexNumber.i,
+    'oo': Constant.infinity,
+    if (renameE) 'e': const Variable('e'),
+    if (renameI) 'i': const Variable('i'),
+  },
+  aliases: {
+    'Abs': Fn.abs,
+    'ceiling': Fn.ceil,
+    'Max': Fn.max,
+    'Min': Fn.min,
+    'Mod': Fn.mod,
+    'conjugate': Fn.conj,
+    'arcsin': Fn.asin,
+    'arccos': Fn.acos,
+    'arctan': Fn.atan,
+    'arcsinh': Fn.asinh,
+    'arccosh': Fn.acosh,
+    'arctanh': Fn.atanh,
+    'Ei': Fn.ei,
+    'Li': Fn.li,
+    'Si': Fn.si,
+    'Ci': Fn.ci,
+    'Shi': Fn.shi,
+    'Chi': Fn.chi,
+    'Erfi': Fn.erfi,
+    'fresnels': Fn.fresnelS,
+    'fresnelc': Fn.fresnelC,
+    'FresnelS': Fn.fresnelS,
+    'FresnelC': Fn.fresnelC,
+    'LambertW': Fn.lambertW,
+    'expint': Fn.expIntegralE,
+    'lowergamma': Fn.lowerGamma,
+    'uppergamma': Fn.upperGamma,
+    'loggamma': Fn.logGamma,
+    'Polygamma': Fn.polygamma,
+    'PolyGamma': Fn.polygamma,
+    'besselj': Fn.besselJ,
+    'bessely': Fn.besselY,
+    'besseli': Fn.besselI,
+    'besselk': Fn.besselK,
+    'BesselJ': Fn.besselJ,
+    'BesselY': Fn.besselY,
+    'BesselI': Fn.besselI,
+    'BesselK': Fn.besselK,
+    'Polylog': Fn.polylog,
+    'hyper': Fn.hypergeometric,
+    'appellf1': Fn.appellF1,
+    'AppellF1': Fn.appellF1,
+    'Atan2': Fn.atan2,
+  },
+  unaryFunctions: {
+    'log': Fn.ln.call,
+    'arcsec': (a) => Fn.acos(Pow.of(a, IntegerNumber.negativeOne)),
+    'arccsc': (a) => Fn.asin(Pow.of(a, IntegerNumber.negativeOne)),
+    'arccot': (a) => Fn.atan(Pow.of(a, IntegerNumber.negativeOne)),
+    'arcsech': (a) => Fn.acosh(Pow.of(a, IntegerNumber.negativeOne)),
+    'arccsch': (a) => Fn.asinh(Pow.of(a, IntegerNumber.negativeOne)),
+    'arccoth': (a) => Fn.atanh(Pow.of(a, IntegerNumber.negativeOne)),
+    'elliptic_k': (m) => Fn.ellipticK(Pow.of(m, FractionNumber.half)),
+    'elliptic_e': (m) => Fn.ellipticE(Pow.of(m, FractionNumber.half)),
+  },
+  binaryFunctions: {
+    'Rational': (a, b) => a / b,
+    'real_root': (x, n) => Pow.of(x, IntegerNumber.one / n),
+    'log': (x, b) => Fn.ln(x) / Fn.ln(b),
+    'elliptic_f': (phi, m) => Fn.ellipticF(phi, Pow.of(m, FractionNumber.half)),
+    'elliptic_e': (phi, m) => Fn.ellipticE(phi, Pow.of(m, FractionNumber.half)),
+    'elliptic_pi': (n, m) => Fn.ellipticPi(
+      n,
+      FractionNumber.half * Constant.pi,
+      Pow.of(m, FractionNumber.half),
+    ),
+  },
+  variadicFunctions: {
+    'Derivative': ExprSyntax.standardVariadicFunctions['diff']!,
+    'row': Fn.tuple.call,
+    'det': (rows) => Matrix<Expr>.fromRows([
+      for (final r in rows) (r as Call).args,
+    ], type: exprDataType).determinant(),
+    'elliptic_pi': (args) => args.length == 3
+        ? Fn.ellipticPi(args[0], args[1], Pow.of(args[2], FractionNumber.half))
+        : throw const FormatException('elliptic_pi requires 2 or 3 arguments'),
+  },
+);
 
 /// Selects the appropriate [ExprSyntax] for [renameE] / [renameI].
 ExprSyntax selectCasSyntax({bool renameE = false, bool renameI = false}) =>
@@ -679,7 +724,7 @@ bool _isNegOddRoot(Expr node) =>
     node.base is RationalNumber &&
     (node.base as RationalNumber).isNegative &&
     node.exponent is FractionNumber &&
-    (node.exponent as FractionNumber).denominator > Integer.one &&
+    (node.exponent as FractionNumber).denominator > BigInt.one &&
     (node.exponent as FractionNumber).denominator.isOdd;
 
 /// Verifies whether `d/d[variable]([antideriv]) == [integrand]` symbolically or
@@ -882,10 +927,10 @@ bool verifyExprEquivalent(
   }
 }
 
-/// Returns the name of the first unknown [VariableFunction] in [expr], or `null`.
+/// Returns the name of the first unknown symbolic function call in [expr], or `null`.
 String? findUnknownFunction(Expr? expr) {
   if (expr == null) return null;
-  if (expr is VariableFunction) return expr.name;
+  if (expr is Call && expr.id == FunctionId.symbolic) return expr.spec.name;
   String? found;
   expr.mapChildren((child) {
     found ??= findUnknownFunction(child);

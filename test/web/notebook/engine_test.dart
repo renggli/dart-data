@@ -20,7 +20,7 @@ void main() {
         (eval.evaluate('solve(x^2 - 5*x + 6 = 0, x)').value as ListValue)
             .elements,
       ).unorderedEquals([
-        const ExprValue(IntegerNumber.two),
+        ExprValue(IntegerNumber.two),
         ExprValue(IntegerNumber.of(3)),
       ]);
     });
@@ -41,7 +41,7 @@ void main() {
       check(eval.evaluate('diff(x^3, x, order: 2)').value)
           .equals(ExprValue(Expr.parse('6*x')));
       check(eval.evaluate('integrate(sin(x), x, from: 0, to: pi)').value)
-          .equals(const ExprValue(IntegerNumber.two));
+          .equals(ExprValue(IntegerNumber.two));
       check(eval.evaluate("limit(1/x, x, 0, direction: 'right')").value)
           .equals(const ExprValue(Constant.infinity));
       check(eval.evaluate('series(exp(x), x, order: 3)').value)
@@ -151,13 +151,13 @@ void main() {
         check(eval.evaluate('chebyshevT(3, x)').value)
             .equals(ExprValue(chebyshevT(3)));
         check(eval.evaluate('logGamma(5)').value)
-            .equals(ExprValue(LogGamma(IntegerNumber.of(5))));
+            .equals(ExprValue(Fn.logGamma(IntegerNumber.of(5))));
         final lgApprox =
             eval.evaluate('approx(logGamma(5))').value as ExprValue;
         check(((lgApprox.expr as RealNumber).value - 3.1780538303479458).abs())
             .isLessThan(1e-9);
         check(eval.evaluate('cbrt(8)').value)
-            .equals(const ExprValue(IntegerNumber.two));
+            .equals(ExprValue(IntegerNumber.two));
         check(eval.evaluate('appellF1(1, 2, 3, 4, x, y)').value)
             .isA<ExprValue>();
       },
@@ -177,7 +177,7 @@ void main() {
 
       final pd = eval.evaluate('polydiv(x^3 - 1, x - 1, x)').value as ListValue;
       check(pd.elements[0]).equals(ExprValue(Expr.parse('1 + x + x^2')));
-      check(pd.elements[1]).equals(const ExprValue(IntegerNumber.zero));
+      check(pd.elements[1]).equals(ExprValue(IntegerNumber.zero));
 
       final sys =
           eval.evaluate('solvesystem([x + y = 10, x - y = 2], [x, y])').value
@@ -185,8 +185,8 @@ void main() {
       check(sys.elements.length).equals(1);
       final sol0 = sys.elements.first as ListValue;
       check(sol0.elements).unorderedEquals([
-        ExprValue(Equal(const Variable('x'), IntegerNumber.of(6))),
-        ExprValue(Equal(const Variable('y'), IntegerNumber.of(4))),
+        ExprValue(Relational.equal(const Variable('x'), IntegerNumber.of(6))),
+        ExprValue(Relational.equal(const Variable('y'), IntegerNumber.of(4))),
       ]);
     });
 

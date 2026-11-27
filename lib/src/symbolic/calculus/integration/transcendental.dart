@@ -4,7 +4,7 @@ import '../../algebra/rational.dart';
 import '../../algebra/simplify.dart';
 import '../../assumptions.dart';
 import '../../ast.dart';
-import '../../number/integer.dart';
+import '../../functions/fn.dart';
 import '../differentiation.dart';
 import 'definite.dart';
 import 'integration.dart';
@@ -45,7 +45,7 @@ Expr? tryTranscendentalTower(
 
   final hasExpOrLn = node.anyNode(
     (n) =>
-        (n is Ln && n.expr.dependsOn(variable)) ||
+        (n is Call && n.id == FunctionId.ln && n.args[0].dependsOn(variable)) ||
         (n is Pow && n.base == Constant.e && n.exponent.dependsOn(variable)),
   );
   if (!hasExpOrLn) return null;
@@ -88,7 +88,7 @@ Expr? tryExpRischOde(
       assumptions,
     );
     if (candidate != null) {
-      return (candidate * Pow(Constant.e, exponent)).simplify(
+      return (candidate * Pow.of(Constant.e, exponent)).simplify(
         assumptions: assumptions,
       );
     }
@@ -132,7 +132,7 @@ Expr? _integrateInTower(
 
 List<_TowerKernel> _selectMaximalKernels(Expr expr, String variable) {
   final expBases = <Expr, int>{};
-  final lnNodes = <Ln>{};
+  final lnNodes = <Call>{};
 
   void visit(Expr e) {
     if (e is Pow && e.base == Constant.e && e.exponent.dependsOn(variable)) {
@@ -140,7 +140,9 @@ List<_TowerKernel> _selectMaximalKernels(Expr expr, String variable) {
       if (primBase != null) {
         expBases[primBase] = (expBases[primBase] ?? 0) + 1;
       }
-    } else if (e is Ln && e.expr.dependsOn(variable)) {
+    } else if (e is Call &&
+        e.id == FunctionId.ln &&
+        e.args[0].dependsOn(variable)) {
       lnNodes.add(e);
     }
     e.mapChildren((c) {
@@ -185,7 +187,7 @@ List<_TowerKernel> _selectMaximalKernels(Expr expr, String variable) {
         gen = (IntegerNumber.of(g) * prim).simplify();
       }
     }
-    rawCandidates.add(_TowerKernel(Pow(Constant.e, gen), true));
+    rawCandidates.add(_TowerKernel(Pow.of(Constant.e, gen), true));
   }
   for (final ln in lnNodes) {
     rawCandidates.add(_TowerKernel(ln, false));
@@ -195,7 +197,7 @@ List<_TowerKernel> _selectMaximalKernels(Expr expr, String variable) {
     if (inner.expr == outer.expr) return false;
     final outerArg = outer.isExp
         ? (outer.expr as Pow).exponent
-        : (outer.expr as Ln).expr;
+        : (outer.expr as Call).args[0];
     return outerArg.anyNode((n) => n == inner.expr);
   }
 
@@ -207,11 +209,11 @@ List<_TowerKernel> _selectMaximalKernels(Expr expr, String variable) {
   // (or higher-nesting ones first).
   maximal.sort((a, b) {
     final aHasSub = _hasExpOrLn(
-      a.isExp ? (a.expr as Pow).exponent : (a.expr as Ln).expr,
+      a.isExp ? (a.expr as Pow).exponent : (a.expr as Call).args[0],
       variable,
     );
     final bHasSub = _hasExpOrLn(
-      b.isExp ? (b.expr as Pow).exponent : (b.expr as Ln).expr,
+      b.isExp ? (b.expr as Pow).exponent : (b.expr as Call).args[0],
       variable,
     );
     if (aHasSub != bHasSub) return aHasSub ? -1 : 1;
@@ -237,7 +239,7 @@ Expr? _integrateWithKernel(
     uExpr = (kernel.expr as Pow).exponent;
     rewritten = _substituteExpKernel(node, uExpr, tVar, variable, assumptions);
   } else {
-    uExpr = (kernel.expr as Ln).expr;
+    uExpr = (kernel.expr as Call).args[0];
     rewritten = _substituteLnKernel(node, uExpr, tVar, assumptions);
   }
   if (rewritten == null ||
@@ -458,7 +460,9 @@ Expr? _integrateWithKernel(
             final cExpr = _polyEval(cPoly, kernel.expr, assumptions);
             final vExpr = _polyEval(vPoly, kernel.expr, assumptions);
             rationalTerms.add(
-              (cExpr / Pow(vExpr, kMinus1)).simplify(assumptions: assumptions),
+              (cExpr / Pow.of(vExpr, kMinus1)).simplify(
+                assumptions: assumptions,
+              ),
             );
 
             final dc = totalDeriv(cPoly);
@@ -623,7 +627,7 @@ Expr? _integrateWithKernel(
           polyPart.add(odeRes);
         } else {
           final recRes = antiDerivative(
-            (coeff * Pow(Constant.e, expArg)).simplify(
+            (coeff * Pow.of(Constant.e, expArg)).simplify(
               assumptions: assumptions,
             ),
             variable,
@@ -650,7 +654,7 @@ Expr? _integrateWithKernel(
       if (ratio != null && !ratio.dependsOn(variable) && !ratio.dependsOn(tv)) {
         polyPart.add(
           (ratio *
-                  Pow(kernel.expr, IntegerNumber.of(k + 1)) /
+                  Pow.of(kernel.expr, IntegerNumber.of(k + 1)) /
                   IntegerNumber.of(k + 1))
               .simplify(assumptions: assumptions),
         );
@@ -664,7 +668,7 @@ Expr? _integrateWithKernel(
       );
       if (hasUnevaluatedIntegral(pK, variable)) return null;
       polyPart.add(
-        (pK * Pow(kernel.expr, IntegerNumber.of(k))).simplify(
+        (pK * Pow.of(kernel.expr, IntegerNumber.of(k))).simplify(
           assumptions: assumptions,
         ),
       );
@@ -695,7 +699,7 @@ Expr? _integrateWithKernel(
 
   final allTerms = <Expr>[...rationalTerms, ...logTerms, ...polyPart];
   if (allTerms.isEmpty) return IntegerNumber.zero;
-  return Add(allTerms).simplify(assumptions: assumptions);
+  return Add.of(allTerms).simplify(assumptions: assumptions);
 }
 
 ({List<Expr> logTerms, Expr polyShift})? _tryQuadraticRothsteinTrager(
@@ -748,7 +752,7 @@ Expr? _integrateWithKernel(
     if (_isPolyCoeffZero(disc, assumptions)) {
       roots.add((-c1 / twoC2).simplify(assumptions: assumptions));
     } else {
-      final sqrtDisc = Pow(
+      final sqrtDisc = Pow.of(
         disc,
         FractionNumber.half,
       ).simplify(assumptions: assumptions);
@@ -839,7 +843,7 @@ Expr? _tryNonRationalOdeCandidate(
           )
         : _substituteLnKernel(
             coeff,
-            (kernel.expr as Ln).expr,
+            (kernel.expr as Call).args[0],
             tVar,
             assumptions,
           );
@@ -853,7 +857,7 @@ Expr? _tryNonRationalOdeCandidate(
           )
         : _substituteLnKernel(
             gPrime,
-            (kernel.expr as Ln).expr,
+            (kernel.expr as Call).args[0],
             tVar,
             assumptions,
           );
@@ -932,7 +936,7 @@ Expr? _tryNonRationalOdeCandidate(
           }
           workR[k] = updatedK;
         } else {
-          final inner = (kernel.expr as Ln).expr;
+          final inner = (kernel.expr as Call).args[0];
           final uP = _safeCancel(
             inner.derivative(variable, assumptions: assumptions) / inner,
             assumptions,
@@ -1156,7 +1160,9 @@ Expr? _tryRationalExpOde(
   final dExpr = _polyEval(dPoly, Variable(variable), assumptions);
   final hExpr = _safeCancel(pExpr / dExpr, assumptions);
   if (hExpr == null) return null;
-  return (hExpr * Pow(Constant.e, exponent)).simplify(assumptions: assumptions);
+  return (hExpr * Pow.of(Constant.e, exponent)).simplify(
+    assumptions: assumptions,
+  );
 }
 
 List<Expr>? _solveLinearSystemExpr(
@@ -1228,7 +1234,7 @@ List<Expr>? _solveLinearSystemExpr(
 
 bool _hasExpOrLn(Expr expr, String variable) => expr.anyNode(
   (n) =>
-      (n is Ln && n.expr.dependsOn(variable)) ||
+      (n is Call && n.id == FunctionId.ln && n.args[0].dependsOn(variable)) ||
       (n is Pow && n.base == Constant.e && n.exponent.dependsOn(variable)),
 );
 
@@ -1256,12 +1262,12 @@ Expr? _tryIntegrateSelfPower(
             base.dependsOn(variable) &&
             exponent.dependsOn(variable)) {
       found = true;
-      final prod = (exponent * Ln(base)).expand().simplify(
+      final prod = (exponent * Fn.ln(base)).expand().simplify(
         assumptions: assumptions,
       );
       final terms = prod is Add ? prod.terms : [prod];
       for (final t in terms) {
-        final expT = Pow(Constant.e, t).simplify(assumptions: assumptions);
+        final expT = Pow.of(Constant.e, t).simplify(assumptions: assumptions);
         final keepsVarExp =
             (expT is Pow &&
                 expT.base == Constant.e &&
@@ -1287,7 +1293,7 @@ Expr? _tryIntegrateSelfPower(
       ? IntegerNumber.one
       : (extraCoeff.length == 1
             ? extraCoeff.first
-            : Mul(extraCoeff).simplify(assumptions: assumptions));
+            : Mul.of(extraCoeff).simplify(assumptions: assumptions));
   if (tryExpRischOde(coeff, gTotal, variable, assumptions: assumptions)
       case final odeRes?) {
     return odeRes;
@@ -1298,7 +1304,7 @@ Expr? _tryIntegrateSelfPower(
       .simplify(assumptions: assumptions);
   if (_tryNonRationalOdeCandidate(coeff, gPrime, variable, assumptions)
       case final h?) {
-    return (h * Pow(Constant.e, gTotal)).simplify(assumptions: assumptions);
+    return (h * Pow.of(Constant.e, gTotal)).simplify(assumptions: assumptions);
   }
   return null;
 }
@@ -1317,7 +1323,7 @@ Expr? _tryIntegrateSelfPower(
   if (varTerms.isEmpty) return (primBase: null, scale: 1);
   final varPart = varTerms.length == 1
       ? varTerms.first
-      : Add(varTerms).simplify();
+      : Add.of(varTerms).simplify();
   if (varPart case Mul(:final factors)) {
     final intCoeff = factors.whereType<IntegerNumber>().fold<int>(
       1,
@@ -1328,7 +1334,7 @@ Expr? _tryIntegrateSelfPower(
         for (final f in factors)
           if (f is! IntegerNumber) f,
       ];
-      final prim = (rest.length == 1 ? rest.first : Mul(rest)).simplify();
+      final prim = (rest.length == 1 ? rest.first : Mul.of(rest)).simplify();
       return (primBase: prim, scale: intCoeff);
     }
   }
@@ -1376,20 +1382,20 @@ Expr? _substituteExpKernel(
             assumptions: assumptions,
           );
           if (!diff.dependsOn(variable)) {
-            final tPow = k == 1 ? tVar : Pow(tVar, IntegerNumber.of(k));
+            final tPow = k == 1 ? tVar : Pow.of(tVar, IntegerNumber.of(k));
             return (diff is Number && diff.isZero)
                 ? tPow
-                : Pow(Constant.e, diff) * tPow;
+                : Pow.of(Constant.e, diff) * tPow;
           }
         }
       }
       if (exponent.freeVariables.length <= genArg.freeVariables.length + 2) {
         final diff = (exponent - genArg).simplify(assumptions: assumptions);
         if (!diff.dependsOn(variable)) {
-          return Pow(Constant.e, diff) * tVar;
+          return Pow.of(Constant.e, diff) * tVar;
         }
       }
-      return Pow(base, replace(exponent));
+      return Pow.of(base, replace(exponent));
     }
     return e.mapChildren(replace);
   }
@@ -1406,7 +1412,7 @@ Expr? _substituteLnKernel(
   Assumptions assumptions,
 ) {
   Expr replace(Expr e) {
-    if (e case Ln(:final expr) when expr == uExpr) {
+    if (e case Call(id: FunctionId.ln, args: [final expr]) when expr == uExpr) {
       return tVar;
     }
     return e.mapChildren(replace);
@@ -1447,7 +1453,7 @@ bool _hasHighVariableExponent(Expr expr, String variable, int limit) =>
           n is Pow &&
           n.base.dependsOn(variable) &&
           n.exponent is IntegerNumber &&
-          (n.exponent as IntegerNumber).value.abs() > Integer(limit),
+          (n.exponent as IntegerNumber).value.abs() > BigInt.from(limit),
     );
 
 bool _isPolyCoeffZero(Expr expr, Assumptions assumptions) {
@@ -1538,8 +1544,8 @@ _Poly? _polyMul(_Poly a, _Poly b, Assumptions assumptions) {
 }
 
 _Poly? _polyPow(_Poly a, int exp, Assumptions assumptions) {
-  if (exp == 0) return const {0: IntegerNumber.one};
-  var res = const <int, Expr>{0: IntegerNumber.one};
+  if (exp == 0) return {0: IntegerNumber.one};
+  var res = <int, Expr>{0: IntegerNumber.one};
   var cur = a;
   var e = exp;
   while (e > 0) {
@@ -1637,10 +1643,10 @@ _Poly? _polyGcd(_Poly a, _Poly b, Assumptions assumptions) {
 ) {
   var oldR = a;
   var r = b;
-  var oldS = const <int, Expr>{0: IntegerNumber.one};
+  var oldS = <int, Expr>{0: IntegerNumber.one};
   var s = const <int, Expr>{};
   var oldT = const <int, Expr>{};
-  var t = const <int, Expr>{0: IntegerNumber.one};
+  var t = <int, Expr>{0: IntegerNumber.one};
   var steps = 0;
   while (_polyDeg(r) >= 0) {
     if (isIntegrationBudgetExhausted() || steps++ > 30) return null;
@@ -1731,7 +1737,7 @@ Expr _polyEval(_Poly poly, Expr kernelExpr, Assumptions assumptions) {
       else if (k == 1)
         c * kernelExpr
       else
-        c * Pow(kernelExpr, IntegerNumber.of(k)),
+        c * Pow.of(kernelExpr, IntegerNumber.of(k)),
   ];
-  return Add(terms).simplify(assumptions: assumptions);
+  return Add.of(terms).simplify(assumptions: assumptions);
 }

@@ -11,7 +11,7 @@ void main() {
         const x = Variable('x');
         check(simplifyMul(const [], assumptions: Assumptions.none))
             .equals(IntegerNumber.one);
-        check(simplifyMul([Mul(const [])], assumptions: Assumptions.none))
+        check(simplifyMul([Mul.of(const [])], assumptions: Assumptions.none))
             .equals(IntegerNumber.one);
         check(simplifyMul([x], assumptions: Assumptions.none)).equals(x);
         check(
@@ -39,26 +39,26 @@ void main() {
       ).equals('sqrt(x / y)');
       check(
         simplifyMul([
-          Pow(const Variable('x'), FractionNumber.negativeHalf),
-          Pow(const Variable('y'), FractionNumber.half),
+          Pow.of(const Variable('x'), FractionNumber.negativeHalf),
+          Pow.of(const Variable('y'), FractionNumber.half),
         ], assumptions: Assumptions.positive).toString(),
       ).equals('sqrt(y / x)');
 
       // When combinedBase already exists in baseExponents (unflattened via Pow)
       const x = Variable('x');
       const y = Variable('y');
-      final xy = Mul([x, y], isSimplified: true);
+      final xy = Mul.of([x, y]);
       final mergedExisting = simplifyMul([
-        Pow(xy, IntegerNumber.two),
-        Pow(x, FractionNumber.half),
-        Pow(y, FractionNumber.half),
+        Pow.of(xy, IntegerNumber.two),
+        Pow.of(x, FractionNumber.half),
+        Pow.of(y, FractionNumber.half),
       ], assumptions: Assumptions.positive);
       check(mergedExisting.toString()).equals('(x * y) ^ (5/2)');
 
       final cancelledExisting = simplifyMul([
-        Pow(xy, const RealNumber(-0.5)),
-        Pow(x, FractionNumber.half),
-        Pow(y, FractionNumber.half),
+        Pow.of(xy, const RealNumber(-0.5)),
+        Pow.of(x, FractionNumber.half),
+        Pow.of(y, FractionNumber.half),
       ], assumptions: Assumptions.positive);
       check(cancelledExisting).equals(IntegerNumber.one);
 
@@ -93,7 +93,7 @@ void main() {
       check(
         simplifyMul([
           IntegerNumber.of(4),
-          Pow(IntegerNumber.two, RationalNumber(-3, 2)),
+          Pow.of(IntegerNumber.two, RationalNumber(-3, 2)),
         ], assumptions: Assumptions.none).toString(),
       ).equals('sqrt(2)');
 
@@ -101,16 +101,16 @@ void main() {
       check(
         simplifyMul([
           const Variable('x'),
-          Pow(const Variable('x'), IntegerNumber.zero),
-          Pow(IntegerNumber.of(12), FractionNumber.half),
+          Pow.of(const Variable('x'), IntegerNumber.zero),
+          Pow.of(IntegerNumber.of(12), FractionNumber.half),
         ], assumptions: Assumptions.none).toString(),
-      ).equals('2 * sqrt(3) * x');
+      ).equals('2 * x * sqrt(3)');
 
       // Product where radical bases fold to an integer Number
       check(
         simplifyMul([
-          Pow(IntegerNumber.two, FractionNumber.half),
-          Pow(IntegerNumber.two, FractionNumber.half),
+          Pow.of(IntegerNumber.two, FractionNumber.half),
+          Pow.of(IntegerNumber.two, FractionNumber.half),
           const Variable('x'),
         ], assumptions: Assumptions.none).toString(),
       ).equals('2 * x');
@@ -157,10 +157,10 @@ void main() {
 
       const x = Variable('x');
       final sorted = simplifySymbolicProduct(IntegerNumber.one, [
-        Pow(x, IntegerNumber.of(3)),
-        Pow(x, IntegerNumber.two),
+        Pow.of(x, IntegerNumber.of(3)),
+        Pow.of(x, IntegerNumber.two),
       ]);
-      check(sorted.toString()).equals('x ^ 2 * x ^ 3');
+      check(sorted.toString()).equals('x ^ 5');
     });
   });
 
@@ -171,11 +171,11 @@ void main() {
         const x = Variable('x');
         const y = Variable('y');
         const z = Variable('z');
-        const ord2 = OrderTerm('x', 2);
-        const ord3 = OrderTerm('x', 3);
+        final ord2 = OrderTerm('x', 2);
+        final ord3 = OrderTerm('x', 3);
 
         check(simplifyMul([ord2, ord3], assumptions: Assumptions.none))
-            .equals(const OrderTerm('x', 5));
+            .equals(OrderTerm('x', 5));
         check(
           simplifyMul([
             IntegerNumber.of(5),
@@ -188,42 +188,42 @@ void main() {
             .equals(ord3);
         check(
           simplifyMul([
-            Pow(x, IntegerNumber.of(3)),
+            Pow.of(x, IntegerNumber.of(3)),
             ord2,
           ], assumptions: Assumptions.none),
-        ).equals(const OrderTerm('x', 5));
+        ).equals(OrderTerm('x', 5));
 
         // Shifted point OrderTerm multiplication
-        const shiftedOrd = OrderTerm('x', 2, point: IntegerNumber.one);
+        final shiftedOrd = OrderTerm('x', 2, point: IntegerNumber.one);
         final shiftedVar = x - IntegerNumber.one;
         check(
           simplifyMul([shiftedVar, shiftedOrd], assumptions: Assumptions.none),
-        ).equals(const OrderTerm('x', 3, point: IntegerNumber.one));
+        ).equals(OrderTerm('x', 3, point: IntegerNumber.one));
         check(
           simplifyMul([
-            Pow(shiftedVar, IntegerNumber.of(3)),
+            Pow.of(shiftedVar, IntegerNumber.of(3)),
             shiftedOrd,
           ], assumptions: Assumptions.none),
-        ).equals(const OrderTerm('x', 5, point: IntegerNumber.one));
+        ).equals(OrderTerm('x', 5, point: IntegerNumber.one));
 
         // Distributing OrderTerm over Add (collapsing and non-collapsing)
         check(
           simplifyMul([
-            Add([IntegerNumber.one, x]),
+            Add.of([IntegerNumber.one, x]),
             ord2,
           ], assumptions: Assumptions.none),
         ).equals(ord2);
         check(
           simplifyMul([
             ord2,
-            Add([y, z]),
+            Add.of([y, z]),
           ], assumptions: Assumptions.none).toString(),
         ).equals('y * O(x^2) + z * O(x^2)');
         check(
           simplifyMul([
             y,
             ord2,
-            Add([y, z]),
+            Add.of([y, z]),
           ], assumptions: Assumptions.none).toString(),
         ).equals('y * (y * O(x^2) + z * O(x^2))');
       },
@@ -259,11 +259,12 @@ void main() {
               .simplify(),
         ).equals(RationalNumber(8001, 2000));
         check(
-          (Gamma(IntegerNumber.of(102)) / Gamma(IntegerNumber.of(-102)))
+          (Fn.gamma(IntegerNumber.of(102)) / Fn.gamma(IntegerNumber.of(-102)))
               .simplify(),
         ).not(.it()..equals(IntegerNumber.zero));
         check(
-          (Factorial(IntegerNumber.of(102)) / Factorial(IntegerNumber.of(-102)))
+          (Fn.factorial(IntegerNumber.of(102)) /
+                  Fn.factorial(IntegerNumber.of(-102)))
               .simplify(),
         ).equals(Constant.undefined);
       },

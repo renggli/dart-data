@@ -10,14 +10,14 @@ void main() {
       () {
         const x = Variable('x');
         final m = Matrix<Expr>.fromRows([
-          [x * x, Sin(x)],
-          [IntegerNumber.of(3) * x, Pow(Constant.e, x)],
+          [x * x, Fn.sin(x)],
+          [IntegerNumber.of(3) * x, Pow.of(Constant.e, x)],
         ], type: exprDataType);
         final dm = m.derivative('x');
         check(dm.get(0, 0).toString()).equals('2 * x');
-        check(dm.get(0, 1)).equals(Cos(x));
+        check(dm.get(0, 1)).equals(Fn.cos(x));
         check(dm.get(1, 0)).equals(IntegerNumber.of(3));
-        check(dm.get(1, 1)).equals(Pow(Constant.e, x, isSimplified: true));
+        check(dm.get(1, 1)).equals(Pow.of(Constant.e, x));
 
         final a = Matrix<Expr>.fromRows([
           [IntegerNumber.two, IntegerNumber.zero],
@@ -66,10 +66,10 @@ void main() {
       check(rat.get(0, 1)).equals(FractionNumber.quarter);
 
       final integrated = Matrix<Expr>.fromRows([
-        [const Variable('x'), Sin(const Variable('x'))],
+        [const Variable('x'), Fn.sin(const Variable('x'))],
       ], type: exprDataType).integrate('x', from: 0, to: Constant.pi);
       check(integrated.get(0, 0)).equals(
-        (Pow(Constant.pi, IntegerNumber.two) / IntegerNumber.two).simplify(),
+        (Pow.of(Constant.pi, IntegerNumber.two) / IntegerNumber.two).simplify(),
       );
       check(integrated.get(0, 1)).equals(IntegerNumber.two);
 
@@ -166,10 +166,10 @@ void main() {
       'computes element-wise derivative, dot product, and cross product',
       () {
         const x = Variable('x');
-        final v = Vector<Expr>.fromList([x * x, Sin(x)], type: exprDataType);
+        final v = Vector<Expr>.fromList([x * x, Fn.sin(x)], type: exprDataType);
         final dv = v.derivative('x');
         check(dv[0].toString()).equals('2 * x');
-        check(dv[1]).equals(Cos(x));
+        check(dv[1]).equals(Fn.cos(x));
 
         final syntax = ExprSyntax.standard;
         final u = syntax.parseVector('[1, x, x^2]');

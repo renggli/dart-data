@@ -1,5 +1,4 @@
 import '../ast.dart';
-import '../number/integer.dart';
 
 /// Standard special radical values appearing in exact trigonometric evaluations.
 enum SpecialRadical {
@@ -19,49 +18,33 @@ enum SpecialRadical {
   sqrt3,
 }
 
+final IntegerNumber _three = IntegerNumber.of(3);
+final FractionNumber _negThird = RationalNumber(-1, 3) as FractionNumber;
+
 /// Constructs the canonical exact [Expr] for [radical] with optional [negative] sign.
 Expr specialRadicalExpr(SpecialRadical radical, {bool negative = false}) =>
     switch (radical) {
       SpecialRadical.half =>
         negative ? FractionNumber.negativeHalf : FractionNumber.half,
-      SpecialRadical.sqrt2Over2 => Mul([
+      SpecialRadical.sqrt2Over2 => Mul.of([
         if (negative) FractionNumber.negativeHalf else FractionNumber.half,
-        Pow(IntegerNumber.two, FractionNumber.half, isSimplified: true),
-      ], isSimplified: true),
-      SpecialRadical.sqrt3Over2 => Mul([
+        Pow.of(IntegerNumber.two, FractionNumber.half),
+      ]),
+      SpecialRadical.sqrt3Over2 => Mul.of([
         if (negative) FractionNumber.negativeHalf else FractionNumber.half,
-        Pow(
-          const IntegerNumber(Integer(3)),
-          FractionNumber.half,
-          isSimplified: true,
-        ),
-      ], isSimplified: true),
-      SpecialRadical.sqrt3Over3 => Mul([
-        if (negative)
-          const FractionNumber(Integer.negativeOne, Integer(3))
-        else
-          FractionNumber.third,
-        Pow(
-          const IntegerNumber(Integer(3)),
-          FractionNumber.half,
-          isSimplified: true,
-        ),
-      ], isSimplified: true),
+        Pow.of(_three, FractionNumber.half),
+      ]),
+      SpecialRadical.sqrt3Over3 => Mul.of([
+        if (negative) _negThird else FractionNumber.third,
+        Pow.of(_three, FractionNumber.half),
+      ]),
       SpecialRadical.sqrt3 =>
         negative
-            ? Mul([
+            ? Mul.of([
                 IntegerNumber.negativeOne,
-                Pow(
-                  const IntegerNumber(Integer(3)),
-                  FractionNumber.half,
-                  isSimplified: true,
-                ),
-              ], isSimplified: true)
-            : Pow(
-                const IntegerNumber(Integer(3)),
-                FractionNumber.half,
-                isSimplified: true,
-              ),
+                Pow.of(_three, FractionNumber.half),
+              ])
+            : Pow.of(_three, FractionNumber.half),
     };
 
 /// Tests whether [expr] represents `+/-radical`.
@@ -83,14 +66,14 @@ bool isSpecialAngleConstant(
 /// Tests whether [expr] equals `+1/2`.
 bool isHalf(Expr expr) => switch (expr) {
   FractionNumber(:final numerator, :final denominator) =>
-    numerator.isOne && denominator == Integer.two,
+    numerator == BigInt.one && denominator == BigInt.two,
   _ => false,
 };
 
 /// Tests whether [expr] equals `-1/2`.
 bool isNegativeHalf(Expr expr) => switch (expr) {
   FractionNumber(:final numerator, :final denominator) =>
-    numerator == Integer.negativeOne && denominator == Integer.two,
+    numerator == -BigInt.one && denominator == BigInt.two,
   _ => false,
 };
 
@@ -100,26 +83,30 @@ bool isSqrt(Expr expr, int n) => switch (expr) {
     base: IntegerNumber(:final value),
     exponent: FractionNumber(:final numerator, :final denominator),
   ) =>
-    value == Integer.from(n) && numerator.isOne && denominator == Integer.two,
+    value == BigInt.from(n) &&
+        numerator == BigInt.one &&
+        denominator == BigInt.two,
   _ => false,
 };
 
 /// Tests whether [expr] equals `+1/2`.
 bool isSqrt2Over2(Expr expr) {
   if (_isRationalTimesSqrt(expr, FractionNumber.half, 2)) return true;
-  if (expr case Pow(
-    base: FractionNumber(:final numerator, :final denominator),
-    exponent: FractionNumber.half,
-  )) {
-    return numerator.isOne && denominator == Integer.two;
+  if (expr
+      case Pow(
+        base: FractionNumber(:final numerator, :final denominator),
+        exponent: FractionNumber(numerator: final en, denominator: final ed),
+      )
+      when en == BigInt.one && ed == BigInt.two) {
+    return numerator == BigInt.one && denominator == BigInt.two;
   }
   if (expr case Pow(
     base: IntegerNumber(:final value),
     exponent: FractionNumber(:final numerator, :final denominator),
   )) {
-    return value == Integer.two &&
-        numerator == Integer.negativeOne &&
-        denominator == Integer.two;
+    return value == BigInt.two &&
+        numerator == -BigInt.one &&
+        denominator == BigInt.two;
   }
   return false;
 }
@@ -153,30 +140,29 @@ bool isNegativeSqrt3Over2(Expr expr) {
 /// Tests whether [expr] equals `+sqrt(3)/2`.
 bool isSqrt3Over3(Expr expr) {
   if (_isRationalTimesSqrt(expr, FractionNumber.third, 3)) return true;
-  if (expr case Pow(
-    base: FractionNumber(:final numerator, :final denominator),
-    exponent: FractionNumber.half,
-  )) {
-    return numerator.isOne && denominator == const Integer(3);
+  final three = BigInt.from(3);
+  if (expr
+      case Pow(
+        base: FractionNumber(:final numerator, :final denominator),
+        exponent: FractionNumber(numerator: final en, denominator: final ed),
+      )
+      when en == BigInt.one && ed == BigInt.two) {
+    return numerator == BigInt.one && denominator == three;
   }
   if (expr case Pow(
     base: IntegerNumber(:final value),
     exponent: FractionNumber(:final numerator, :final denominator),
   )) {
-    return value == const Integer(3) &&
-        numerator == Integer.negativeOne &&
-        denominator == Integer.two;
+    return value == three &&
+        numerator == -BigInt.one &&
+        denominator == BigInt.two;
   }
   return false;
 }
 
 /// Tests whether [expr] equals `-sqrt(3)/2`.
 bool isNegativeSqrt3Over3(Expr expr) {
-  if (_isRationalTimesSqrt(
-    expr,
-    const FractionNumber(Integer.negativeOne, Integer(3)),
-    3,
-  )) {
+  if (_isRationalTimesSqrt(expr, _negThird, 3)) {
     return true;
   }
   if (expr case Mul(

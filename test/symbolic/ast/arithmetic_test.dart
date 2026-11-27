@@ -6,7 +6,7 @@ import 'package:test/scaffolding.dart';
 
 void main() {
   group('Add and Mul n-ary operators', () {
-    test('flatten unsimplified operands, preserve order, and support AST traversals', () {
+    test('flatten operands, canonicalize deterministically, and support AST traversals', () {
       const x = Variable('x');
       const y = Variable('y');
       const z = Variable('z');
@@ -19,8 +19,8 @@ void main() {
       check(sum.mapChildren((e) => e)).equals(sum);
       check(sum.anyNode((e) => e == z)).isTrue;
       check(sum.anyNode((e) => e == const Variable('w'))).isFalse;
-      check(sum == Add([x, y])).isFalse;
-      check(sum == Add([x, y, -z, IntegerNumber.two])).isFalse;
+      check(sum == Add.of([x, y])).isFalse;
+      check(sum == Add.of([x, y, -z, IntegerNumber.two])).isFalse;
 
       final prod = x * y / z;
       check(prod).isA<Mul>();
@@ -30,8 +30,8 @@ void main() {
       check(prod.mapChildren((e) => e)).equals(prod);
       check(prod.anyNode((e) => e == z)).isTrue;
       check(prod.anyNode((e) => e == const Variable('w'))).isFalse;
-      check(prod == Mul([x, y])).isFalse;
-      check(prod == Mul([x, y, z])).isFalse;
+      check(prod == Mul.of([x, y])).isFalse;
+      check(prod == Mul.of([x, y, z])).isFalse;
     });
   });
 
@@ -40,19 +40,20 @@ void main() {
       'evaluation with e, sqrt, odd roots of negative bases, and mapChildren',
       () {
         const x = Variable('x');
-        check(Pow(Constant.e, IntegerNumber.one).evaluate())
+        check(Pow.of(Constant.e, IntegerNumber.one).evaluate())
             .isCloseTo(math.e, 1e-15);
-        check(Pow(x, FractionNumber.half).evaluate({'x': 9.0})).equals(3.0);
-        check(Pow(x, FractionNumber.third).evaluate({'x': -8.0}))
+        check(Pow.of(x, FractionNumber.half).evaluate({'x': 9.0})).equals(3.0);
+        check(Pow.of(x, FractionNumber.third).evaluate({'x': -8.0}))
             .isCloseTo(-2.0, 1e-15);
-        check(Pow(x, RationalNumber(2, 3)).evaluate({'x': -8.0}))
+        check(Pow.of(x, RationalNumber(2, 3)).evaluate({'x': -8.0}))
             .isCloseTo(4.0, 1e-15);
-        check(Pow(x, IntegerNumber.two).substitute('x', IntegerNumber.of(3)))
-            .equals(Pow(IntegerNumber.of(3), IntegerNumber.two));
-        check(Pow(x, IntegerNumber.two).mapChildren((e) => e))
-            .equals(Pow(x, IntegerNumber.two));
-        check(Pow(x, IntegerNumber.two).anyNode((e) => e == IntegerNumber.two))
-            .isTrue;
+        check(Pow.of(x, IntegerNumber.two).substitute('x', IntegerNumber.of(3)))
+            .equals(IntegerNumber.of(9));
+        check(Pow.of(x, IntegerNumber.two).mapChildren((e) => e))
+            .equals(Pow.of(x, IntegerNumber.two));
+        check(
+          Pow.of(x, IntegerNumber.two).anyNode((e) => e == IntegerNumber.two),
+        ).isTrue;
       },
     );
   });

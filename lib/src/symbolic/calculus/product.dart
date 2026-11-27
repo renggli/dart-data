@@ -7,7 +7,7 @@ import '../algebra/simplify/multiplicative.dart';
 import '../algebra/simplify/transcendental.dart';
 import '../assumptions.dart';
 import '../ast.dart';
-import '../number/integer.dart';
+import '../functions/fn.dart';
 import 'limit.dart';
 import 'linear_form.dart';
 import 'summation.dart';
@@ -81,7 +81,7 @@ Expr computeProduct(
       return infClosed.simplify(assumptions: assumptions);
     }
 
-    return Product(simplifiedFactor, variable, a, b, isSimplified: true);
+    return Product(simplifiedFactor, variable, a, b);
   }
 
   // Concrete integer bounds
@@ -113,7 +113,7 @@ Expr computeProduct(
     return closed.simplify(assumptions: assumptions);
   }
 
-  return Product(simplifiedFactor, variable, a, b, isSimplified: true);
+  return Product(simplifiedFactor, variable, a, b);
 }
 
 /// Evaluates a finite product using algebraic rules (constants, linear factors,
@@ -121,7 +121,7 @@ Expr computeProduct(
 Expr? closedFormProduct(Expr factor, String variable, Expr a, Expr b) {
   final count = (b - a + IntegerNumber.one).simplify();
   if (!factor.dependsOn(variable)) {
-    return Pow(factor, count).simplify();
+    return Pow.of(factor, count).simplify();
   }
 
   // Exponential factor: base^exponent where base is independent of variable
@@ -135,7 +135,7 @@ Expr? closedFormProduct(Expr factor, String variable, Expr a, Expr b) {
       assumptions: Assumptions.none,
     );
     if (expSum is! Sum) {
-      return Pow(base, expSum).simplify();
+      return Pow.of(base, expSum).simplify();
     }
   }
 
@@ -144,7 +144,7 @@ Expr? closedFormProduct(Expr factor, String variable, Expr a, Expr b) {
       when !exponent.dependsOn(variable)) {
     final baseProd = closedFormProduct(base, variable, a, b);
     if (baseProd != null) {
-      return Pow(baseProd, exponent).simplify();
+      return Pow.of(baseProd, exponent).simplify();
     }
   }
 
@@ -176,9 +176,9 @@ Expr? closedFormProduct(Expr factor, String variable, Expr a, Expr b) {
     final upperShifted = (b + unitShift).simplify();
     final slopePow = slope == IntegerNumber.one
         ? IntegerNumber.one
-        : Pow(slope, count).simplify();
+        : Pow.of(slope, count).simplify();
     if (lowerShifted == IntegerNumber.one) {
-      return (slopePow * Factorial(upperShifted)).simplify();
+      return (slopePow * Fn.factorial(upperShifted)).simplify();
     }
     if ((lowerShifted, upperShifted) case (
       IntegerNumber(asInt: final l?),
@@ -192,14 +192,14 @@ Expr? closedFormProduct(Expr factor, String variable, Expr a, Expr b) {
         final sign = nTerms.isOdd
             ? IntegerNumber.negativeOne
             : IntegerNumber.one;
-        final numFact = Factorial(IntegerNumber.of(-l));
-        final denFact = Factorial(IntegerNumber.of(-u - 1));
+        final numFact = Fn.factorial(IntegerNumber.of(-l));
+        final denFact = Fn.factorial(IntegerNumber.of(-u - 1));
         return (slopePow * sign * numFact / denFact).simplify();
       }
       if (l > 1) {
         return (slopePow *
-                Factorial(upperShifted) /
-                Factorial(IntegerNumber.of(l - 1)))
+                Fn.factorial(upperShifted) /
+                Fn.factorial(IntegerNumber.of(l - 1)))
             .simplify();
       }
     }
@@ -208,8 +208,8 @@ Expr? closedFormProduct(Expr factor, String variable, Expr a, Expr b) {
     }
     if (lowerShifted case IntegerNumber(asInt: final l?) when l > 1) {
       return (slopePow *
-              Factorial(upperShifted) /
-              Factorial(IntegerNumber.of(l - 1)))
+              Fn.factorial(upperShifted) /
+              Fn.factorial(IntegerNumber.of(l - 1)))
           .simplify();
     }
     final negLowerShifted = (-lowerShifted).simplify();
@@ -219,14 +219,14 @@ Expr? closedFormProduct(Expr factor, String variable, Expr a, Expr b) {
         upperShifted.isZero &&
         !(negLowerShifted is Number && negLowerShifted.isZero)) {
       // prod_{k=0}^{n-1} (n - k) = n!
-      return Factorial(negLowerShifted);
+      return Fn.factorial(negLowerShifted);
     }
     if (lowerShifted case IntegerNumber(asInt: final l?) when l < 0) {
-      return Product(factor, variable, a, b, isSimplified: true);
+      return null;
     }
     return (slopePow *
-            Gamma((upperShifted + IntegerNumber.one).simplify()) /
-            Gamma(lowerShifted))
+            Fn.gamma((upperShifted + IntegerNumber.one).simplify()) /
+            Fn.gamma(lowerShifted))
         .simplify();
   }
 
@@ -277,7 +277,7 @@ Expr? tryProductTelescoping(
     if (f.dependsOn(variable)) {
       varDen.add(f);
     } else {
-      constFactors.add(Pow(f, IntegerNumber.negativeOne).simplify());
+      constFactors.add(Pow.of(f, IntegerNumber.negativeOne).simplify());
     }
   }
   if (varNum.length != varDen.length || varNum.isEmpty) return null;
@@ -302,7 +302,7 @@ Expr? tryProductTelescoping(
   if (constFactors.isNotEmpty) {
     final count = (b - a + IntegerNumber.one).simplify();
     pairProducts.add(
-      Pow(
+      Pow.of(
         simplifyMul(constFactors, assumptions: Assumptions.none),
         count,
       ).simplify(),
@@ -386,7 +386,7 @@ Expr? infiniteProductClosedForm(
       assumptions: assumptions,
     );
     if (baseProd is! Product) {
-      return Pow(baseProd, exponent).simplify(assumptions: assumptions);
+      return Pow.of(baseProd, exponent).simplify(assumptions: assumptions);
     }
   }
 
@@ -401,12 +401,13 @@ Expr? infiniteProductClosedForm(
       assumptions: assumptions,
     );
     if (expSum is! Sum) {
-      return Pow(base, expSum).simplify(assumptions: assumptions);
+      return Pow.of(base, expSum).simplify(assumptions: assumptions);
     }
   }
 
   // 3. Viète / dyadic cosine product: prod_{k=1..inf} cos(x / 2^k) = sin(x) / x
-  if (factor case Cos(expr: final inner) when inner.dependsOn(variable)) {
+  if (factor case Call(id: FunctionId.cos, args: [final inner])
+      when inner.dependsOn(variable)) {
     final vRes = matchVieteCosineProduct(
       factor,
       inner,
@@ -445,9 +446,9 @@ Expr? matchVieteCosineProduct(
     if (f case Pow(:final base, :final exponent)
         when !base.dependsOn(variable) && exponent.dependsOn(variable)) {
       if (exponent.matchLinear(variable) case (:final a, :final b)) {
-        ratios.add(Pow(base, a).simplify());
+        ratios.add(Pow.of(base, a).simplify());
         if (b != IntegerNumber.zero) {
-          scales.add(Pow(base, b).simplify());
+          scales.add(Pow.of(base, b).simplify());
         }
         continue;
       }
@@ -464,7 +465,7 @@ Expr? matchVieteCosineProduct(
   if (xPart is Number && xPart.isZero) return IntegerNumber.one;
 
   // At k = 1, inner(1) = xPart / 2, so prod_{k=1..inf} cos(xPart / 2^k) = sin(xPart) / xPart
-  final canonProd = (Sin(xPart) / xPart).simplify(assumptions: assumptions);
+  final canonProd = (Fn.sin(xPart) / xPart).simplify(assumptions: assumptions);
   return adjustProductStart(
     factor,
     variable,
@@ -604,9 +605,9 @@ Expr? eulerSineProductValue(Expr zSquared, {required Assumptions assumptions}) {
   }
   final piZ = (Constant.pi * z).simplify(assumptions: assumptions);
   if (isNeg) {
-    return (Sinh(piZ) / piZ).simplify(assumptions: assumptions);
+    return (Fn.sinh(piZ) / piZ).simplify(assumptions: assumptions);
   }
-  return (Sin(piZ) / piZ).simplify(assumptions: assumptions);
+  return (Fn.sin(piZ) / piZ).simplify(assumptions: assumptions);
 }
 
 Expr? eulerCosineProductValue(
@@ -621,9 +622,9 @@ Expr? eulerCosineProductValue(
   }
   final piZ = (Constant.pi * z).simplify(assumptions: assumptions);
   if (isNeg) {
-    return Cosh(piZ).simplify(assumptions: assumptions);
+    return Fn.cosh(piZ).simplify(assumptions: assumptions);
   }
-  return Cos(piZ).simplify(assumptions: assumptions);
+  return Fn.cos(piZ).simplify(assumptions: assumptions);
 }
 
 Expr extractProductRoot(Expr posZ2, {required Assumptions assumptions}) {
@@ -632,18 +633,18 @@ Expr extractProductRoot(Expr posZ2, {required Assumptions assumptions}) {
   for (final f in factors) {
     if (f case Pow(:final base, exponent: IntegerNumber(:final value))
         when value.isEven) {
-      final halfExp = value ~/ Integer.two;
+      final halfExp = value ~/ BigInt.two;
       rootFactors.add(
-        halfExp == Integer.one
+        halfExp == BigInt.one
             ? base
-            : Pow(
+            : Pow.of(
                 base,
                 IntegerNumber(halfExp),
               ).simplify(assumptions: assumptions),
       );
     } else {
       rootFactors.add(
-        Pow(f, FractionNumber.half).simplify(assumptions: assumptions),
+        Pow.of(f, FractionNumber.half).simplify(assumptions: assumptions),
       );
     }
   }

@@ -12,8 +12,12 @@ void main() {
       'solves Equal nodes, linear, quadratic, biquadratic, and cubic equations',
       () {
         const x = Variable('x');
-        check(Equal(IntegerNumber.of(3) * x, IntegerNumber.of(6)).solve('x'))
-            .deepEquals([IntegerNumber.two]);
+        check(
+          Relational.equal(
+            IntegerNumber.of(3) * x,
+            IntegerNumber.of(6),
+          ).solve('x'),
+        ).deepEquals([IntegerNumber.two]);
         check(IntegerNumber.of(5).solve('x')).isEmpty;
 
         final quad = Expr.parse('x^2 - 5*x + 6').solve('x');
@@ -44,7 +48,7 @@ void main() {
         // Already-factored product with multiplicity
         final factoredProd =
             ((x - IntegerNumber.one) *
-                    Pow(x - IntegerNumber.two, IntegerNumber.two))
+                    Pow.of(x - IntegerNumber.two, IntegerNumber.two))
                 .solve('x');
         check(factoredProd)
             .unorderedEquals([IntegerNumber.one, IntegerNumber.two]);
@@ -142,8 +146,8 @@ void main() {
       final symRoots = symQuad.solve('x', assumptions: posA);
       check(symRoots.length).equals(2);
       check(symRoots).unorderedEquals([
-        -Pow(const Variable('a'), FractionNumber.half),
-        Pow(const Variable('a'), FractionNumber.half),
+        -Pow.of(const Variable('a'), FractionNumber.half),
+        Pow.of(const Variable('a'), FractionNumber.half),
       ]);
       check(imagEq.solve('x', assumptions: Assumptions.positive)).isEmpty;
     });
@@ -154,13 +158,13 @@ void main() {
         check(isZeroExpr(IntegerNumber.zero)).isTrue;
         check(isZeroExpr(const RealNumber(0.0))).isTrue;
         check(isZeroExpr(const RealNumber(1e-12))).isFalse;
-        check(isZeroExpr(Sin(Constant.pi))).isTrue;
+        check(isZeroExpr(Fn.sin(Constant.pi))).isTrue;
         check(isZeroExpr(Constant.pi)).isFalse;
 
         final dedup = deduplicateRoots([
           IntegerNumber.one,
           const RealNumber(1.0),
-          Sin(Constant.pi),
+          Fn.sin(Constant.pi),
           IntegerNumber.zero,
         ]);
         check(dedup.length).equals(2);
@@ -218,8 +222,8 @@ void main() {
 
       // Distinct exact rationals closer than 1e-12 are preserved
       final closeRat = RationalNumber.of(
-        Integer.parse('1000000000000001'),
-        Integer.parse('1000000000000000'),
+        BigInt.parse('1000000000000001'),
+        BigInt.parse('1000000000000000'),
       );
       final closeRoots =
           ((const Variable('x') - IntegerNumber.one) *
@@ -271,7 +275,7 @@ void main() {
       () {
         const x = Variable('x');
         const a = Variable('a');
-        final roots = (Pow(x, IntegerNumber.two) + a).solve(
+        final roots = (Pow.of(x, IntegerNumber.two) + a).solve(
           'x',
           assumptions: const Assumptions(
             domains: {'x': VariableDomain.real, 'a': VariableDomain.positive},
@@ -287,7 +291,7 @@ void main() {
       check(deduplicateRoots([r1, r2]).length).equals(1);
 
       // Symbolic vs numeric approximation within 1e-12 is preserved when exact is present
-      final s2 = Pow(IntegerNumber.two, FractionNumber.half).simplify();
+      final s2 = Pow.of(IntegerNumber.two, FractionNumber.half).simplify();
       const s2Approx = RealNumber(1.4142135623730951);
       check(deduplicateRoots([s2, s2Approx]).length).equals(1);
 
@@ -306,8 +310,8 @@ void main() {
     test('biquadratic equation forwards assumptions', () {
       const a = Variable('a');
       final roots =
-          (Pow(const Variable('x'), IntegerNumber.of(4)) -
-                  a * Pow(const Variable('x'), IntegerNumber.two))
+          (Pow.of(const Variable('x'), IntegerNumber.of(4)) -
+                  a * Pow.of(const Variable('x'), IntegerNumber.two))
               .solve(
                 'x',
                 assumptions: const Assumptions(
@@ -323,10 +327,11 @@ void main() {
       const realAssump = Assumptions(
         domains: {'x': VariableDomain.real, 'a': VariableDomain.positive},
       );
-      check((Pow(x, IntegerNumber.two) + a).solve('x', assumptions: realAssump))
-          .isEmpty;
+      check(
+        (Pow.of(x, IntegerNumber.two) + a).solve('x', assumptions: realAssump),
+      ).isEmpty;
       final largeRoots =
-          (const RealNumber(1000000.0) * Pow(x, IntegerNumber.two) -
+          (const RealNumber(1000000.0) * Pow.of(x, IntegerNumber.two) -
                   const RealNumber(1000000.0))
               .solve('x');
       check(largeRoots.length).equals(2);

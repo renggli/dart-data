@@ -10,7 +10,7 @@ void main() {
         const y = Variable('y');
         // First equation has 0 coefficient for x, requiring row swap
         final sol2 = [
-          Equal(y, IntegerNumber.one),
+          Relational.equal(y, IntegerNumber.one),
           Expr.parse('2*x + y - 5'),
         ].solve(['x', 'y']);
         check(sol2.length).equals(1);
@@ -47,8 +47,8 @@ void main() {
 
         // Rejects non-linear equations containing zero-derivative functions like Floor
         const x = Variable('x');
-        check([Floor(x) + x - IntegerNumber.two].solve(['x'])).isEmpty;
-        check([Floor(x)].solve(['x'])).isEmpty;
+        check([Fn.floor(x) + x - IntegerNumber.two].solve(['x'])).isEmpty;
+        check([Fn.floor(x)].solve(['x'])).isEmpty;
       },
     );
   });

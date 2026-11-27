@@ -10,9 +10,9 @@ void main() {
       const y = Variable('y');
 
       check(isMonomial(x)).isTrue;
-      check(isMonomial(Pow(x, IntegerNumber.two))).isTrue;
-      check(isMonomial(Mul([x, Pow(y, IntegerNumber.of(3))]))).isTrue;
-      check(isMonomial(Add([x, y]))).isFalse;
+      check(isMonomial(Pow.of(x, IntegerNumber.two))).isTrue;
+      check(isMonomial(Mul.of([x, Pow.of(y, IntegerNumber.of(3))]))).isTrue;
+      check(isMonomial(Add.of([x, y]))).isFalse;
       check(isMonomial(IntegerNumber.two)).isFalse;
     });
 
@@ -36,8 +36,16 @@ void main() {
       const y = Variable('y');
 
       // Numerator multiplicity > denominator multiplicity, and vice versa
-      final num = Mul([IntegerNumber.of(6), Pow(x, IntegerNumber.of(3)), y]);
-      final den = Mul([IntegerNumber.two, x, Pow(y, IntegerNumber.of(4))]);
+      final num = Mul.of([
+        IntegerNumber.of(6),
+        Pow.of(x, IntegerNumber.of(3)),
+        y,
+      ]);
+      final den = Mul.of([
+        IntegerNumber.two,
+        x,
+        Pow.of(y, IntegerNumber.of(4)),
+      ]);
       final cancelled = cancelFactoredFraction(num, den);
       check(cancelled.toString()).equals('3 * x ^ 2 / y ^ 3');
 
@@ -54,19 +62,25 @@ void main() {
         check(distributePower(x, 1)).equals(x);
         check(distributePower(RationalNumber(2, 3), 2))
             .equals(RationalNumber(4, 9));
-        check(distributePower(Pow(x, FractionNumber.half), 4))
-            .equals(Pow(x, IntegerNumber.two, isSimplified: true));
+        check(distributePower(Pow.of(x, FractionNumber.half), 4))
+            .equals(Pow.of(x, IntegerNumber.two));
 
         // Mul with -1 raised to even and odd exponents
-        check(distributePower(Mul([IntegerNumber.negativeOne]), 2))
+        check(distributePower(Mul.of([IntegerNumber.negativeOne]), 2))
             .equals(IntegerNumber.one);
-        check(distributePower(Mul([IntegerNumber.negativeOne]), 3))
+        check(distributePower(Mul.of([IntegerNumber.negativeOne]), 3))
             .equals(IntegerNumber.negativeOne);
         check(
-          distributePower(Mul([IntegerNumber.negativeOne, x, y]), 2).toString(),
+          distributePower(
+            Mul.of([IntegerNumber.negativeOne, x, y]),
+            2,
+          ).toString(),
         ).equals('x ^ 2 * y ^ 2');
         check(
-          distributePower(Mul([IntegerNumber.negativeOne, x, y]), 3).toString(),
+          distributePower(
+            Mul.of([IntegerNumber.negativeOne, x, y]),
+            3,
+          ).toString(),
         ).equals('-x ^ 3 * y ^ 3');
       },
     );
@@ -75,8 +89,8 @@ void main() {
       const x = Variable('x');
       final combined = combineFactoredProducts([
         IntegerNumber.two,
-        Pow(x, IntegerNumber.negativeOne),
-        Sin(x),
+        Pow.of(x, IntegerNumber.negativeOne),
+        Fn.sin(x),
       ]);
       check(combined.toString()).equals('2 * sin(x) / x');
     });

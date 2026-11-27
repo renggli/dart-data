@@ -23,20 +23,20 @@ void main() {
       check(y.derivative('x')).equals(IntegerNumber.zero);
       check(x.derivative('x', order: 3)).equals(IntegerNumber.zero);
 
-      final sum = Add([
+      final sum = Add.of([
         x,
         IntegerNumber.of(5),
         Constant.pi,
         y,
-        Sin(y),
-        LessThan(x, IntegerNumber.zero),
-        LessEqual(x, IntegerNumber.zero),
-        GreaterThan(x, IntegerNumber.zero),
-        GreaterEqual(x, IntegerNumber.zero),
-        Equal(x, IntegerNumber.zero),
+        Fn.sin(y),
+        Relational.lessThan(x, IntegerNumber.zero),
+        Relational.lessEqual(x, IntegerNumber.zero),
+        Relational.greaterThan(x, IntegerNumber.zero),
+        Relational.greaterEqual(x, IntegerNumber.zero),
+        Relational.equal(x, IntegerNumber.zero),
       ]);
       check(sum.derivative('x')).equals(IntegerNumber.one);
-      check(LessThan(x, IntegerNumber.one).derivative('x'))
+      check(Relational.lessThan(x, IntegerNumber.one).derivative('x'))
           .equals(IntegerNumber.zero);
     });
   });
@@ -45,7 +45,7 @@ void main() {
     test('differentiates products and quotients', () {
       check(Expr.parse('x^3 - 3*x + 1').derivative('x').toString())
           .equals('-3 + 3 * x ^ 2');
-      check(Mul([x]).derivative('x')).equals(IntegerNumber.one);
+      check(Mul.of([x]).derivative('x')).equals(IntegerNumber.one);
       check((IntegerNumber.of(3) * y * x).derivative('x'))
           .equals(IntegerNumber.of(3) * y);
       check(
@@ -55,10 +55,10 @@ void main() {
       ).isCloseTo(2 * 0.5 * math.cos(1.0) + math.sin(1.0), 1e-12);
 
       check(
-        (Sin(x) / x).derivative('x').evaluate({'x': 1.2}),
+        (Fn.sin(x) / x).derivative('x').evaluate({'x': 1.2}),
       ).isCloseTo((1.2 * math.cos(1.2) - math.sin(1.2)) / (1.2 * 1.2), 1e-12);
       check(
-        (Sin(x) / Pow(x, IntegerNumber.two)).derivative('x').evaluate({
+        (Fn.sin(x) / Pow.of(x, IntegerNumber.two)).derivative('x').evaluate({
           'x': 1.2,
         }),
       ).isCloseTo(
@@ -66,7 +66,9 @@ void main() {
         1e-12,
       );
       check(
-        ((x * Sin(x)) / (Cos(x) * Ln(x))).derivative('x').evaluate({'x': 2.0}),
+        ((x * Fn.sin(x)) / (Fn.cos(x) * Fn.ln(x))).derivative('x').evaluate({
+          'x': 2.0,
+        }),
       ).isCloseTo(
         ((math.sin(2.0) + 2.0 * math.cos(2.0)) *
                     (math.cos(2.0) * math.log(2.0)) -
@@ -80,9 +82,9 @@ void main() {
     test('differentiates exponential and generalized power forms', () {
       check(Expr.parse('exp(2*x)').derivative('x').toString())
           .equals('2 * exp(2 * x)');
-      check(Pow(IntegerNumber.two, x).derivative('x').evaluate({'x': 3.0}))
+      check(Pow.of(IntegerNumber.two, x).derivative('x').evaluate({'x': 3.0}))
           .isCloseTo(8.0 * math.log(2.0), 1e-12);
-      check(Pow(x, x).derivative('x').evaluate({'x': 2.0}))
+      check(Pow.of(x, x).derivative('x').evaluate({'x': 2.0}))
           .isCloseTo(4.0 * (math.log(2.0) + 1.0), 1e-12);
     });
   });
@@ -91,56 +93,51 @@ void main() {
     test(
       'differentiates trigonometric and inverse trigonometric functions',
       () {
-        check(Tan(x).derivative('x').evaluate({'x': 0.5}))
+        check(Fn.tan(x).derivative('x').evaluate({'x': 0.5}))
             .isCloseTo(1.0 / math.pow(math.cos(0.5), 2), 1e-12);
-        check(Asin(x).derivative('x').evaluate({'x': 0.5}))
+        check(Fn.asin(x).derivative('x').evaluate({'x': 0.5}))
             .isCloseTo(1.0 / math.sqrt(1.0 - 0.25), 1e-12);
-        check(Acos(x).derivative('x').evaluate({'x': 0.5}))
+        check(Fn.acos(x).derivative('x').evaluate({'x': 0.5}))
             .isCloseTo(-1.0 / math.sqrt(1.0 - 0.25), 1e-12);
-        check(Atan(x).derivative('x').evaluate({'x': 1.0}))
+        check(Fn.atan(x).derivative('x').evaluate({'x': 1.0}))
             .isCloseTo(0.5, 1e-12);
       },
     );
 
     test('differentiates hyperbolic and inverse hyperbolic functions', () {
-      check(Sinh(x).derivative('x').evaluate({'x': 0.0})).isCloseTo(1.0, 1e-12);
-      check(Cosh(x).derivative('x').evaluate({'x': 0.0})).isCloseTo(0.0, 1e-12);
-      check(Tanh(x).derivative('x').evaluate({'x': 0.0})).isCloseTo(1.0, 1e-12);
-      check(Asinh(x).derivative('x').evaluate({'x': 0.0}))
+      check(Fn.sinh(x).derivative('x').evaluate({'x': 0.0}))
           .isCloseTo(1.0, 1e-12);
-      check(Acosh(x).derivative('x').evaluate({'x': 2.0}))
+      check(Fn.cosh(x).derivative('x').evaluate({'x': 0.0}))
+          .isCloseTo(0.0, 1e-12);
+      check(Fn.tanh(x).derivative('x').evaluate({'x': 0.0}))
+          .isCloseTo(1.0, 1e-12);
+      check(Fn.asinh(x).derivative('x').evaluate({'x': 0.0}))
+          .isCloseTo(1.0, 1e-12);
+      check(Fn.acosh(x).derivative('x').evaluate({'x': 2.0}))
           .isCloseTo(1.0 / math.sqrt(3.0), 1e-12);
-      check(Atanh(x).derivative('x').evaluate({'x': 0.5}))
+      check(Fn.atanh(x).derivative('x').evaluate({'x': 0.5}))
           .isCloseTo(1.0 / 0.75, 1e-12);
     });
 
     test('differentiates logarithm and absolute value', () {
       check(Expr.parse('ln(x^2 + 1)').derivative('x').evaluate({'x': 2.0}))
           .isCloseTo(4.0 / 5.0, 1e-12);
-      check(Abs(x).derivative('x').evaluate({'x': 3.0})).equals(1.0);
-      check(Abs(x).derivative('x').evaluate({'x': -3.0})).equals(-1.0);
+      check(Fn.abs(x).derivative('x').evaluate({'x': 3.0})).equals(1.0);
+      check(Fn.abs(x).derivative('x').evaluate({'x': -3.0})).equals(-1.0);
     });
   });
 
   group('Special functions, Piecewise, OrderTerm, and Integral', () {
     test('differentiates Erf, Erfc, LambertW, and returns unevaluated Derivative for Zeta and VariableFunction', () {
-      check(Erf(x).derivative('x').evaluate({'x': 0.0}))
+      check(Fn.erf(x).derivative('x').evaluate({'x': 0.0}))
           .isCloseTo(2.0 / math.sqrt(math.pi), 1e-12);
-      check(Erfc(x).derivative('x').evaluate({'x': 0.0}))
+      check(Fn.erfc(x).derivative('x').evaluate({'x': 0.0}))
           .isCloseTo(-2.0 / math.sqrt(math.pi), 1e-12);
-      check(LambertW(x).derivative('x').evaluate({'x': 1.0}))
+      check(Fn.lambertW(x).derivative('x').evaluate({'x': 1.0}))
           .isCloseTo(0.3618962566348892, 1e-12);
-      check(Zeta(x).derivative('x')).equals(
-        Derivative(Zeta(x, isSimplified: true), 'x', isSimplified: true),
-      );
-      check(Zeta(x).derivative('x', order: 2)).equals(
-        Derivative(
-          Zeta(x, isSimplified: true),
-          'x',
-          order: 2,
-          isSimplified: true,
-        ),
-      );
+      check(Fn.zeta(x).derivative('x')).equals(Derivative(Fn.zeta(x), 'x'));
+      check(Fn.zeta(x).derivative('x', order: 2))
+          .equals(Derivative(Fn.zeta(x), 'x', order: 2));
       final fx = Expr.parse('f(x)');
       check(fx.derivative('x').toString()).equals('diff(f(x), x)');
       check(fx.derivative('x', order: 3).toString()).equals('diff(f(x), x, 3)');
@@ -164,7 +161,7 @@ void main() {
         Derivative(
           fx,
           'x',
-          point: Pow(x, IntegerNumber.two),
+          point: Pow.of(x, IntegerNumber.two),
         ).derivative('x').toString(),
       ).equals('2 * x * diff(f(x), x, 2, x ^ 2)');
       check(
@@ -174,34 +171,28 @@ void main() {
           point: IntegerNumber.one,
         ).derivative('y').toString(),
       ).equals('diff(diff(f(x, y), y), x, 1, 1)');
-      check(Mod(x * IntegerNumber.two, IntegerNumber.of(5)).derivative('x'))
+      check(Fn.mod(x * IntegerNumber.two, IntegerNumber.of(5)).derivative('x'))
           .equals(IntegerNumber.two);
-      check(Mod(x, x).derivative('x')).equals(Derivative(Mod(x, x), 'x'));
-      check(Integral(Sin(Pow(x, IntegerNumber.two)), 'x').derivative('x'))
-          .equals(Sin(Pow(x, IntegerNumber.two)).simplify());
-      check(Integral(Sin(x * y), 'x').derivative('y'))
-          .equals(Integral(x * Cos(x * y), 'x').simplify());
+      check(Fn.mod(x, x).derivative('x')).equals(Derivative(Fn.mod(x, x), 'x'));
+      check(Integral(Fn.sin(Pow.of(x, IntegerNumber.two)), 'x').derivative('x'))
+          .equals(Fn.sin(Pow.of(x, IntegerNumber.two)).simplify());
+      check(Integral(Fn.sin(x * y), 'x').derivative('y'))
+          .equals(Integral(x * Fn.cos(x * y), 'x').simplify());
       check(
         Sum(
-          Sin(x * t),
+          Fn.sin(x * t),
           't',
           IntegerNumber.one,
           const Variable('n'),
         ).derivative('x'),
       ).equals(
-        Sum(
-          t * Cos(t * x),
-          't',
-          IntegerNumber.one,
-          const Variable('n'),
-          isSimplified: true,
-        ),
+        Sum(t * Fn.cos(t * x), 't', IntegerNumber.one, const Variable('n')),
       );
-      check(Sum(Sin(t * t), 't', IntegerNumber.one, x).derivative('x'))
+      check(Sum(Fn.sin(t * t), 't', IntegerNumber.one, x).derivative('x'))
           .isA<Derivative>();
       check(
         Product(
-          Sin(x * t),
+          Fn.sin(x * t),
           't',
           IntegerNumber.one,
           const Variable('n'),
@@ -212,11 +203,10 @@ void main() {
     });
 
     test('differentiates OrderTerm and Piecewise nodes', () {
-      check(const OrderTerm('x', 4).derivative('x'))
-          .equals(const OrderTerm('x', 3));
-      check(const OrderTerm('y', 4, point: x).derivative('x'))
-          .equals(const OrderTerm('y', 4, point: x));
-      check(const OrderTerm('y', 4).derivative('x')).equals(IntegerNumber.zero);
+      check(OrderTerm('x', 4).derivative('x')).equals(OrderTerm('x', 3));
+      check(OrderTerm('y', 4, point: x).derivative('x'))
+          .equals(OrderTerm('y', 4, point: x));
+      check(OrderTerm('y', 4).derivative('x')).equals(IntegerNumber.zero);
 
       final pwWithOtherwise = Expr.parse('piecewise(x < 0, -x^2, x^2)')
           .derivative('x');
@@ -224,8 +214,8 @@ void main() {
       check(pwWithOtherwise.evaluate({'x': 2.0})).equals(4.0);
 
       final pwNoOtherwise = Piecewise([
-        (relation: LessThan(x, IntegerNumber.zero), expr: -x),
-        (relation: GreaterEqual(x, IntegerNumber.zero), expr: x),
+        (relation: Relational.lessThan(x, IntegerNumber.zero), expr: -x),
+        (relation: Relational.greaterEqual(x, IntegerNumber.zero), expr: x),
       ]).derivative('x');
       check(pwNoOtherwise.evaluate({'x': -2.0})).equals(-1.0);
       check(pwNoOtherwise.evaluate({'x': 2.0})).equals(1.0);
@@ -235,7 +225,7 @@ void main() {
       'differentiates Integral nodes via Fundamental Theorem and Leibniz rule',
       () {
         final constInt = Integral(
-          Sin(t),
+          Fn.sin(t),
           't',
           lower: IntegerNumber.zero,
           upper: IntegerNumber.one,
@@ -250,26 +240,26 @@ void main() {
         check(indefParam.derivative('x')).equals(Integral(t, 't'));
 
         final upperOnly = Integral(
-          Sin(t),
+          Fn.sin(t),
           't',
           lower: IntegerNumber.zero,
           upper: x,
         );
-        check(upperOnly.derivative('x')).equals(Sin(x));
+        check(upperOnly.derivative('x')).equals(Fn.sin(x));
 
         final lowerOnly = Integral(
-          Sin(t),
+          Fn.sin(t),
           't',
           lower: x,
           upper: IntegerNumber.one,
         );
-        check(lowerOnly.derivative('x')).equals((-Sin(x)).simplify());
+        check(lowerOnly.derivative('x')).equals((-Fn.sin(x)).simplify());
 
         final fullLeibniz = Integral(
           x * t,
           't',
           lower: x,
-          upper: Pow(x, IntegerNumber.two),
+          upper: Pow.of(x, IntegerNumber.two),
         );
         final dFull = fullLeibniz.derivative('x');
         check(dFull.evaluate({'x': 2.0})).isCloseTo(
@@ -282,57 +272,58 @@ void main() {
 
   group('Special functions analytical differentiation', () {
     test('differentiates Gamma, Digamma, Polygamma, Beta, and Factorial', () {
-      check(Gamma(x).derivative('x')).equals(Gamma(x) * Digamma(x));
-      check(Digamma(x).derivative('x')).equals(Polygamma(IntegerNumber.one, x));
-      check(Polygamma(IntegerNumber.one, x).derivative('x'))
-          .equals(Polygamma(IntegerNumber.two, x));
-      check(Factorial(x).derivative('x'))
-          .equals(Factorial(x) * Digamma(IntegerNumber.one + x));
+      check(Fn.gamma(x).derivative('x')).equals(Fn.gamma(x) * Fn.digamma(x));
+      check(Fn.digamma(x).derivative('x'))
+          .equals(Fn.polygamma(IntegerNumber.one, x));
+      check(Fn.polygamma(IntegerNumber.one, x).derivative('x'))
+          .equals(Fn.polygamma(IntegerNumber.two, x));
+      check(Fn.factorial(x).derivative('x'))
+          .equals(Fn.factorial(x) * Fn.digamma(IntegerNumber.one + x));
 
-      final dBetaX = Beta(x, y).derivative('x');
+      final dBetaX = Fn.beta(x, y).derivative('x');
       check(dBetaX).isA<Mul>();
 
       // Chain rule
-      check(Gamma(Pow(x, IntegerNumber.two)).derivative('x').toString())
+      check(Fn.gamma(Pow.of(x, IntegerNumber.two)).derivative('x').toString())
           .equals('2 * x * gamma(x ^ 2) * digamma(x ^ 2)');
     });
 
     test('differentiates Bessel functions J, Y, I, K', () {
-      check(BesselJ(IntegerNumber.zero, x).derivative('x'))
-          .equals(-BesselJ(IntegerNumber.one, x));
-      check(BesselJ(IntegerNumber.one, x).derivative('x')).isA<Mul>();
+      check(Fn.besselJ(IntegerNumber.zero, x).derivative('x'))
+          .equals(-Fn.besselJ(IntegerNumber.one, x));
+      check(Fn.besselJ(IntegerNumber.one, x).derivative('x')).isA<Mul>();
 
-      check(BesselY(IntegerNumber.zero, x).derivative('x'))
-          .equals(-BesselY(IntegerNumber.one, x));
-      check(BesselY(IntegerNumber.one, x).derivative('x')).isA<Mul>();
+      check(Fn.besselY(IntegerNumber.zero, x).derivative('x'))
+          .equals(-Fn.besselY(IntegerNumber.one, x));
+      check(Fn.besselY(IntegerNumber.one, x).derivative('x')).isA<Mul>();
 
-      check(BesselI(IntegerNumber.zero, x).derivative('x'))
-          .equals(BesselI(IntegerNumber.one, x));
-      check(BesselI(IntegerNumber.one, x).derivative('x')).isA<Mul>();
+      check(Fn.besselI(IntegerNumber.zero, x).derivative('x'))
+          .equals(Fn.besselI(IntegerNumber.one, x));
+      check(Fn.besselI(IntegerNumber.one, x).derivative('x')).isA<Mul>();
 
-      check(BesselK(IntegerNumber.zero, x).derivative('x'))
-          .equals(-BesselK(IntegerNumber.one, x));
-      check(BesselK(IntegerNumber.one, x).derivative('x')).isA<Mul>();
+      check(Fn.besselK(IntegerNumber.zero, x).derivative('x'))
+          .equals(-Fn.besselK(IntegerNumber.one, x));
+      check(Fn.besselK(IntegerNumber.one, x).derivative('x')).isA<Mul>();
     });
 
     test('differentiates complete elliptic integrals K and E', () {
-      final dK = EllipticK(x).derivative('x');
+      final dK = Fn.ellipticK(x).derivative('x');
       check(dK).isA<Mul>();
-      final dE = EllipticE(x).derivative('x');
+      final dE = Fn.ellipticE(x).derivative('x');
       check(dE).isA<Mul>();
 
       // Numerical verification of elliptic derivative against finite differences
       const x0 = 0.5;
       const h = 1e-6;
       final kNum =
-          (EllipticK(x).evaluate({'x': x0 + h}) -
-              EllipticK(x).evaluate({'x': x0 - h})) /
+          (Fn.ellipticK(x).evaluate({'x': x0 + h}) -
+              Fn.ellipticK(x).evaluate({'x': x0 - h})) /
           (2 * h);
       check(dK.evaluate({'x': x0})).isCloseTo(kNum, 1e-6);
 
       final eNum =
-          (EllipticE(x).evaluate({'x': x0 + h}) -
-              EllipticE(x).evaluate({'x': x0 - h})) /
+          (Fn.ellipticE(x).evaluate({'x': x0 + h}) -
+              Fn.ellipticE(x).evaluate({'x': x0 - h})) /
           (2 * h);
       check(dE.evaluate({'x': x0})).isCloseTo(eNum, 1e-6);
     });
@@ -348,12 +339,12 @@ void main() {
               .simplify(),
         ).equals(IntegerNumber.zero);
         check(
-          (Expr.parse('fresnels(x)').derivative('x') -
+          (Expr.parse('fresnelS(x)').derivative('x') -
                   Expr.parse('sin(pi * x^2 / 2)'))
               .simplify(),
         ).equals(IntegerNumber.zero);
         check(
-          (Expr.parse('fresnelc(x)').derivative('x') -
+          (Expr.parse('fresnelC(x)').derivative('x') -
                   Expr.parse('cos(pi * x^2 / 2)'))
               .simplify(),
         ).equals(IntegerNumber.zero);
@@ -398,12 +389,12 @@ void main() {
       'differentiates UpperGamma, LowerGamma, Polylog, EllipticF, EllipticE',
       () {
         check(
-          (Expr.parse('uppergamma(3, x^2)').derivative('x') -
+          (Expr.parse('upperGamma(3, x^2)').derivative('x') -
                   Expr.parse('-2 * x^5 * exp(-x^2)'))
               .simplify(),
         ).equals(IntegerNumber.zero);
         check(
-          (Expr.parse('lowergamma(3, x^2)').derivative('x') -
+          (Expr.parse('lowerGamma(3, x^2)').derivative('x') -
                   Expr.parse('2 * x^5 * exp(-x^2)'))
               .simplify(),
         ).equals(IntegerNumber.zero);
@@ -418,38 +409,38 @@ void main() {
               .simplify(),
         ).equals(IntegerNumber.zero);
         check(
-          (Expr.parse('elliptic_f(x, k)').derivative('x') -
+          (Expr.parse('ellipticF(x, k)').derivative('x') -
                   Expr.parse('1 / sqrt(1 - k^2 * sin(x)^2)'))
               .simplify(),
         ).equals(IntegerNumber.zero);
         check(
-          (Expr.parse('elliptic_e(x, k)').derivative('x') -
+          (Expr.parse('ellipticE(x, k)').derivative('x') -
                   Expr.parse('sqrt(1 - k^2 * sin(x)^2)'))
               .simplify(),
         ).equals(IntegerNumber.zero);
 
         // Parameter-dependent differentiation falls back to Derivative
-        check(UpperGamma(x, IntegerNumber.two).derivative('x'))
+        check(Fn.upperGamma(x, IntegerNumber.two).derivative('x'))
             .isA<Derivative>();
-        check(LowerGamma(x, IntegerNumber.two).derivative('x'))
+        check(Fn.lowerGamma(x, IntegerNumber.two).derivative('x'))
             .isA<Derivative>();
-        check(Polylog(x, FractionNumber.half).derivative('x'))
+        check(Fn.polylog(x, FractionNumber.half).derivative('x'))
             .isA<Derivative>();
 
         // Modulus differentiation of incomplete elliptic integrals
         const k = Variable('k');
         final piOver4 = Constant.pi / IntegerNumber.of(4);
         final piOver3 = Constant.pi / IntegerNumber.of(3);
-        check(EllipticE(k, amplitude: piOver4).derivative('k')).equals(
-          ((EllipticE(k, amplitude: piOver4) - EllipticF(piOver4, k)) / k)
+        check(Fn.ellipticE(piOver4, k).derivative('k')).equals(
+          ((Fn.ellipticE(piOver4, k) - Fn.ellipticF(piOver4, k)) / k)
               .simplify(),
         );
 
-        final dFdk = EllipticF(piOver3, k).derivative('k');
+        final dFdk = Fn.ellipticF(piOver3, k).derivative('k');
         const h = 1e-6;
         final fd =
-            (EllipticF(piOver3, k).evaluate({'k': 0.5 + h}) -
-                EllipticF(piOver3, k).evaluate({'k': 0.5 - h})) /
+            (Fn.ellipticF(piOver3, k).evaluate({'k': 0.5 + h}) -
+                Fn.ellipticF(piOver3, k).evaluate({'k': 0.5 - h})) /
             (2.0 * h);
         check(dFdk.evaluate({'k': 0.5})).isCloseTo(fd, 1e-6);
       },
@@ -458,13 +449,19 @@ void main() {
     test('differentiates symbolic Product via logarithmic differentiation', () {
       const t = Variable('t');
       const n = Variable('n');
-      final prod = Product(Cos(x * t), 't', IntegerNumber.one, n);
+      final prod = Product(Fn.cos(x * t), 't', IntegerNumber.one, n);
       check(prod.derivative('x')).equals(
-        (prod * Sum((-t * Sin(x * t)) / Cos(x * t), 't', IntegerNumber.one, n))
+        (prod *
+                Sum(
+                  (-t * Fn.sin(x * t)) / Fn.cos(x * t),
+                  't',
+                  IntegerNumber.one,
+                  n,
+                ))
             .simplify(),
       );
       // Bound variable match or dependent bounds remain unevaluated Derivative
-      check(Product(Cos(x * t), 't', IntegerNumber.one, x).derivative('x'))
+      check(Product(Fn.cos(x * t), 't', IntegerNumber.one, x).derivative('x'))
           .isA<Derivative>();
     });
 
@@ -474,7 +471,7 @@ void main() {
         const h = 1e-6;
 
         // EllipticPi wrt amplitude
-        final piPhi = Expr.parse('elliptic_pi(n, x, k)');
+        final piPhi = Expr.parse('ellipticPi(n, x, k)');
         check(
           (piPhi.derivative('x') -
                   Expr.parse(
@@ -484,7 +481,7 @@ void main() {
         ).equals(IntegerNumber.zero);
 
         // EllipticPi wrt modulus k
-        final piK = Expr.parse('elliptic_pi(0.3, 0.8, x)');
+        final piK = Expr.parse('ellipticPi(0.3, 0.8, x)');
         final dPidK = piK.derivative('x');
         final fdK =
             (piK.evaluate({'x': 0.5 + h}) - piK.evaluate({'x': 0.5 - h})) /
@@ -492,7 +489,7 @@ void main() {
         check(dPidK.evaluate({'x': 0.5})).isCloseTo(fdK, 1e-6);
 
         // EllipticPi wrt characteristic n
-        final piN = Expr.parse('elliptic_pi(x, 0.8, 0.5)');
+        final piN = Expr.parse('ellipticPi(x, 0.8, 0.5)');
         final dPidN = piN.derivative('x');
         final fdN =
             (piN.evaluate({'x': 0.3 + h}) - piN.evaluate({'x': 0.3 - h})) /
@@ -514,7 +511,8 @@ void main() {
       check(dPoly).equals(Expr.parse('(3 * x^2 - 6 * x + 2) / 6').expand());
 
       final general = Expr.parse('binomial(x, 25)').derivative('x');
-      check(general.anyNode((n) => n is Polygamma)).isTrue;
+      check(general.anyNode((n) => n is Call && n.id == FunctionId.polygamma))
+          .isTrue;
       check(general.evaluate({'x': 27.0})).isCloseTo(
         (Expr.parse('binomial(x, 25)').evaluate({'x': 27.0 + 1e-6}) -
                 Expr.parse('binomial(x, 25)').evaluate({'x': 27.0 - 1e-6})) /
@@ -560,7 +558,7 @@ void main() {
       () {
         final f1 = Expr.parse('ln(abs(a * x + b))');
         final d1 = f1.derivative('x').simplify();
-        check(d1.anyNode((n) => n is Abs)).isFalse;
+        check(d1.anyNode((n) => n is Call && n.id == FunctionId.abs)).isFalse;
         final cEnv = {
           'a': const Complex(1.4, 0.3),
           'b': const Complex(-0.7, 0.5),
@@ -572,7 +570,7 @@ void main() {
 
         final f2 = Expr.parse('ln(abs(x - 1) * abs(x + 2))');
         final d2 = f2.derivative('x').simplify();
-        check(d2.anyNode((n) => n is Abs)).isFalse;
+        check(d2.anyNode((n) => n is Call && n.id == FunctionId.abs)).isFalse;
         final expected2 = Expr.parse('1 / (x - 1) + 1 / (x + 2)')
             .evaluateComplex(cEnv);
         check((d2.evaluateComplex(cEnv) - expected2).abs())

@@ -43,7 +43,7 @@ final List<Command> numbersCommands = [
     doc: 'Computes the greatest common divisor.',
     examples: ['gcd(48, 180)'],
     run: (args, ctx) => ExprValue(
-      Gcd([args.expr('a'), ...args.rest.cast<Expr>()])
+      Fn.gcd([args.expr('a'), ...args.rest.cast<Expr>()])
           .simplify(assumptions: ctx.assumptions),
     ),
   ),
@@ -58,7 +58,7 @@ final List<Command> numbersCommands = [
     doc: 'Computes the least common multiple.',
     examples: ['lcm(12, 18)'],
     run: (args, ctx) => ExprValue(
-      Lcm([args.expr('a'), ...args.rest.cast<Expr>()])
+      Fn.lcm([args.expr('a'), ...args.rest.cast<Expr>()])
           .simplify(assumptions: ctx.assumptions),
     ),
   ),
@@ -73,7 +73,7 @@ final List<Command> numbersCommands = [
     doc: 'Computes the minimum of expressions.',
     examples: ['min(3, -1, 7)'],
     run: (args, ctx) => ExprValue(
-      Min([args.expr('a'), ...args.rest.cast<Expr>()])
+      Fn.min([args.expr('a'), ...args.rest.cast<Expr>()])
           .simplify(assumptions: ctx.assumptions),
     ),
   ),
@@ -88,7 +88,7 @@ final List<Command> numbersCommands = [
     doc: 'Computes the maximum of expressions.',
     examples: ['max(3, -1, 7)'],
     run: (args, ctx) => ExprValue(
-      Max([args.expr('a'), ...args.rest.cast<Expr>()])
+      Fn.max([args.expr('a'), ...args.rest.cast<Expr>()])
           .simplify(assumptions: ctx.assumptions),
     ),
   ),
@@ -101,7 +101,7 @@ final List<Command> numbersCommands = [
     doc: 'Computes the modulo remainder a mod b.',
     examples: ['mod(17, 5)'],
     run: (args, ctx) => ExprValue(
-      Mod(
+      Fn.mod(
         args.expr('a'),
         args.expr('b'),
       ).simplify(assumptions: ctx.assumptions),
@@ -124,7 +124,7 @@ final List<Command> numbersCommands = [
     doc: 'Computes the factorial n!.',
     examples: ['factorial(10)'],
     run: (args, ctx) => ExprValue(
-      Factorial(args.expr('n')).simplify(assumptions: ctx.assumptions),
+      Fn.factorial(args.expr('n')).simplify(assumptions: ctx.assumptions),
     ),
   ),
   Command(
@@ -137,7 +137,7 @@ final List<Command> numbersCommands = [
     doc: 'Computes the binomial coefficient C(n, k).',
     examples: ['binomial(10, 3)'],
     run: (args, ctx) => ExprValue(
-      Binomial(
+      Fn.binomial(
         args.expr('n'),
         args.expr('k'),
       ).simplify(assumptions: ctx.assumptions),
@@ -149,8 +149,9 @@ final List<Command> numbersCommands = [
     signature: const FunctionSignature(positional: [ParamSpec.positional('x')]),
     doc: 'Computes the floor (greatest integer <= x).',
     examples: ['floor(3.7)'],
-    run: (args, ctx) =>
-        ExprValue(Floor(args.expr('x')).simplify(assumptions: ctx.assumptions)),
+    run: (args, ctx) => ExprValue(
+      Fn.floor(args.expr('x')).simplify(assumptions: ctx.assumptions),
+    ),
   ),
   Command(
     name: 'ceil',
@@ -158,8 +159,9 @@ final List<Command> numbersCommands = [
     signature: const FunctionSignature(positional: [ParamSpec.positional('x')]),
     doc: 'Computes the ceiling (smallest integer >= x).',
     examples: ['ceil(3.2)'],
-    run: (args, ctx) =>
-        ExprValue(Ceil(args.expr('x')).simplify(assumptions: ctx.assumptions)),
+    run: (args, ctx) => ExprValue(
+      Fn.ceil(args.expr('x')).simplify(assumptions: ctx.assumptions),
+    ),
   ),
   Command(
     name: 'round',
@@ -167,8 +169,9 @@ final List<Command> numbersCommands = [
     signature: const FunctionSignature(positional: [ParamSpec.positional('x')]),
     doc: 'Rounds to the nearest integer.',
     examples: ['round(3.6)'],
-    run: (args, ctx) =>
-        ExprValue(Round(args.expr('x')).simplify(assumptions: ctx.assumptions)),
+    run: (args, ctx) => ExprValue(
+      Fn.round(args.expr('x')).simplify(assumptions: ctx.assumptions),
+    ),
   ),
   Command(
     name: 'sign',
@@ -177,8 +180,9 @@ final List<Command> numbersCommands = [
     signature: const FunctionSignature(positional: [ParamSpec.positional('x')]),
     doc: 'Computes the signum (-1, 0, or 1).',
     examples: ['sign(-42)'],
-    run: (args, ctx) =>
-        ExprValue(Sign(args.expr('x')).simplify(assumptions: ctx.assumptions)),
+    run: (args, ctx) => ExprValue(
+      Fn.sign(args.expr('x')).simplify(assumptions: ctx.assumptions),
+    ),
   ),
 ];
 

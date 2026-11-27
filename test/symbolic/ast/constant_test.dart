@@ -9,7 +9,6 @@ void main() {
   group('Constant built-ins', () {
     test('pi, e, infinity, and undefined properties and evaluation', () {
       check(Constant.pi.name).equals('pi');
-      check(Constant.pi.isSimplified).isTrue;
       check(Constant.pi.isReal).isTrue;
       check(Constant.pi.evaluate()).isCloseTo(math.pi, 1e-15);
       check(Constant.e.evaluate()).isCloseTo(math.e, 1e-15);
@@ -18,11 +17,10 @@ void main() {
       check(Constant.undefined.evaluate().isNaN).isTrue;
       check(Constant.undefined.isReal).isFalse;
 
-      check(Im(Constant.undefined).simplify()).equals(Constant.undefined);
-      check(Re(Constant.undefined).simplify()).equals(Constant.undefined);
-      check(Conjugate(Constant.undefined).simplify())
-          .equals(Constant.undefined);
-      check(Arg(Constant.undefined).simplify()).equals(Constant.undefined);
+      check(Fn.im(Constant.undefined).simplify()).equals(Constant.undefined);
+      check(Fn.re(Constant.undefined).simplify()).equals(Constant.undefined);
+      check(Fn.conj(Constant.undefined).simplify()).equals(Constant.undefined);
+      check(Fn.arg(Constant.undefined).simplify()).equals(Constant.undefined);
     });
   });
 

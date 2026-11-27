@@ -7,7 +7,7 @@ import '../../algebra/simplify.dart';
 import '../../algebra/simplify/domain.dart';
 import '../../assumptions.dart';
 import '../../ast.dart';
-import '../../number/integer.dart';
+import '../../functions/fn.dart';
 import '../linear_form.dart';
 import 'definite.dart';
 import 'integration.dart';
@@ -77,8 +77,8 @@ Expr? tryChebyshevBinomial(
       final transformed =
           (constScale *
                   (IntegerNumber.one / (IntegerNumber.of(n) * b)) *
-                  Pow((uVar - a) / b, IntegerNumber.of(k - 1)) *
-                  Pow(uVar, FractionNumber(Integer(p), Integer(q))))
+                  Pow.of((uVar - a) / b, IntegerNumber.of(k - 1)) *
+                  Pow.of(uVar, RationalNumber(p, q)))
               .expand()
               .simplify(assumptions: assumptions);
       final uAntideriv = antiDerivative(
@@ -93,13 +93,13 @@ Expr? tryChebyshevBinomial(
             .simplify(assumptions: assumptions);
       }
     } else if (k <= 0 && k >= -10 && q >= 2) {
-      final bPow = k == 0 ? IntegerNumber.one : Pow(b, IntegerNumber.of(k));
+      final bPow = k == 0 ? IntegerNumber.one : Pow.of(b, IntegerNumber.of(k));
       final transformed =
           (constScale *
                   (IntegerNumber.of(q) / (IntegerNumber.of(n) * bPow)) *
-                  Pow(uVar, IntegerNumber.of(p + q - 1)) *
-                  Pow(
-                    Pow(uVar, IntegerNumber.of(q)) - a,
+                  Pow.of(uVar, IntegerNumber.of(p + q - 1)) *
+                  Pow.of(
+                    Pow.of(uVar, IntegerNumber.of(q)) - a,
                     IntegerNumber.of(k - 1),
                   ))
               .simplify(assumptions: assumptions);
@@ -111,10 +111,7 @@ Expr? tryChebyshevBinomial(
       );
       if (!hasUnevaluatedIntegral(uAntideriv, uName)) {
         return uAntideriv
-            .substitute(
-              uName,
-              Pow(binomPow.base, FractionNumber(Integer.one, Integer(q))),
-            )
+            .substitute(uName, Pow.of(binomPow.base, RationalNumber(1, q)))
             .simplify(assumptions: assumptions);
       }
     }
@@ -129,9 +126,9 @@ Expr? tryChebyshevBinomial(
       final transformed =
           (constScale *
                   (-IntegerNumber.of(q) / (IntegerNumber.of(n) * a)) *
-                  Pow(uVar, IntegerNumber.of(q - 1 + p)) *
-                  Pow(
-                    (Pow(uVar, IntegerNumber.of(q)) - b) / a,
+                  Pow.of(uVar, IntegerNumber.of(q - 1 + p)) *
+                  Pow.of(
+                    (Pow.of(uVar, IntegerNumber.of(q)) - b) / a,
                     IntegerNumber.of(-(r + 1)),
                   ))
               .expand()
@@ -147,21 +144,21 @@ Expr? tryChebyshevBinomial(
         final Expr backSub;
         if (n % q == 0) {
           backSub =
-              (Pow(binomPow.base, FractionNumber(Integer.one, Integer(q))) *
-                      Pow(xVar, IntegerNumber.of(-(n ~/ q))))
+              (Pow.of(binomPow.base, RationalNumber(1, q)) *
+                      Pow.of(xVar, IntegerNumber.of(-(n ~/ q))))
                   .simplify(assumptions: assumptions);
         } else {
-          final backRad = Pow(
-            (a * Pow(xVar, IntegerNumber.of(-n)) + b).simplify(
+          final backRad = Pow.of(
+            (a * Pow.of(xVar, IntegerNumber.of(-n)) + b).simplify(
               assumptions: assumptions,
             ),
-            FractionNumber(Integer.one, Integer(q)),
+            RationalNumber(1, q),
           );
           final absXSignPow =
               (n.isEven &&
                   p.isOdd &&
                   !isNonNegativeExpr(xVar, assumptions: assumptions))
-              ? Sign(xVar)
+              ? Fn.sign(xVar)
               : IntegerNumber.one;
           backSub = (absXSignPow * backRad).simplify(assumptions: assumptions);
         }
@@ -174,23 +171,27 @@ Expr? tryChebyshevBinomial(
 
   final isNegIntAlpha = (m + 1) % n == 0 && (m + 1) ~/ n <= 0;
   if (m != -1 && isSymbolicPositive(a) && !isNegIntAlpha) {
-    final alpha = FractionNumber(Integer(m + 1), Integer(n));
-    final beta = FractionNumber(Integer(-p), Integer(q));
+    final alpha = RationalNumber(m + 1, n);
+    final beta = RationalNumber(-p, q);
     final alphaPlus1 = (alpha + IntegerNumber.one).simplify(
       assumptions: assumptions,
     );
     final xVar = Variable(variable);
-    final aPow = Pow(
+    final aPow = Pow.of(
       a,
-      FractionNumber(Integer(p), Integer(q)),
+      RationalNumber(p, q),
     ).simplify(assumptions: assumptions);
-    final arg = (-b * Pow(xVar, IntegerNumber.of(n)) / a).simplify(
+    final arg = (-b * Pow.of(xVar, IntegerNumber.of(n)) / a).simplify(
       assumptions: assumptions,
     );
     return (constScale *
             aPow *
-            Pow(xVar, IntegerNumber.of(m + 1)) *
-            Hypergeometric([alpha, beta], [alphaPlus1], arg) /
+            Pow.of(xVar, IntegerNumber.of(m + 1)) *
+            Fn.hypergeometric(
+              Fn.tuple([alpha, beta]),
+              Fn.tuple([alphaPlus1]),
+              arg,
+            ) /
             IntegerNumber.of(m + 1))
         .simplify(assumptions: assumptions);
   }
@@ -229,7 +230,7 @@ Expr? tryPolynomialOverSqrtQuadratic(Expr left, Expr right, String variable) {
   if (left case Pow(base: final q, exponent: final exp)
       when halfIntExponent(exp) == 1) {
     polyFactorLeft = IntegerNumber.one;
-    radLeft = Pow(q, exp);
+    radLeft = Pow.of(q, exp) as Pow;
   } else if (left is Mul) {
     Pow? foundRad;
     final polyParts = <Expr>[];
@@ -243,7 +244,7 @@ Expr? tryPolynomialOverSqrtQuadratic(Expr left, Expr right, String variable) {
     if (foundRad != null && polyParts.isNotEmpty) {
       final candidatePoly = polyParts.length == 1
           ? polyParts.first
-          : Mul(polyParts).simplify();
+          : Mul.of(polyParts).simplify();
       final degP = polynomialDegree(candidatePoly, variable);
       if (degP != null && degP <= 6) {
         polyFactorLeft = candidatePoly;
@@ -292,7 +293,7 @@ Expr? tryPolynomialOverSqrtQuadratic(Expr left, Expr right, String variable) {
               if (j >= k) {
                 final numJ = j == k
                     ? cJ
-                    : (cJ * Pow(xVar, IntegerNumber.of(j - k))).simplify();
+                    : (cJ * Pow.of(xVar, IntegerNumber.of(j - k))).simplify();
                 tRes =
                     tryQuadraticRadical(numJ, radLeft.base, 1, variable) ??
                     antiDerivative(
@@ -304,7 +305,7 @@ Expr? tryPolynomialOverSqrtQuadratic(Expr left, Expr right, String variable) {
               } else {
                 final denJ = k - j == 1
                     ? xVar
-                    : Pow(xVar, IntegerNumber.of(k - j));
+                    : Pow.of(xVar, IntegerNumber.of(k - j));
                 tRes = tryPolynomialOverSqrtQuadratic(
                   (cJ * radLeft).simplify(),
                   denJ,
@@ -320,7 +321,7 @@ Expr? tryPolynomialOverSqrtQuadratic(Expr left, Expr right, String variable) {
             if (ok) {
               return sumTerms.isEmpty
                   ? IntegerNumber.zero
-                  : Add(sumTerms).simplify();
+                  : Add.of(sumTerms).simplify();
             }
           }
           return null;
@@ -345,7 +346,7 @@ Expr? tryPolynomialOverSqrtQuadratic(Expr left, Expr right, String variable) {
                     )
                   : tryPolynomialOverSqrtQuadratic(
                       a,
-                      Pow(xVar, IntegerNumber.of(k - 2)) * radLeft,
+                      Pow.of(xVar, IntegerNumber.of(k - 2)) * radLeft,
                       variable,
                     ));
         final term2 = (b is Number && b.isZero)
@@ -358,7 +359,7 @@ Expr? tryPolynomialOverSqrtQuadratic(Expr left, Expr right, String variable) {
                     )
                   : tryPolynomialOverSqrtQuadratic(
                       b,
-                      Pow(xVar, IntegerNumber.of(k - 1)) * radLeft,
+                      Pow.of(xVar, IntegerNumber.of(k - 1)) * radLeft,
                       variable,
                     ));
         final term3 = (c is Number && c.isZero)
@@ -417,7 +418,8 @@ Expr? tryPolynomialOverSqrtQuadratic(Expr left, Expr right, String variable) {
               if (j >= k) {
                 final numTerm = j == k
                     ? coeff
-                    : (coeff * Pow(xVar, IntegerNumber.of(j - k))).simplify();
+                    : (coeff * Pow.of(xVar, IntegerNumber.of(j - k)))
+                          .simplify();
                 termRes = antiDerivative(
                   (numTerm / rad).simplify(),
                   variable,
@@ -425,7 +427,7 @@ Expr? tryPolynomialOverSqrtQuadratic(Expr left, Expr right, String variable) {
                   depth: 2,
                 );
               } else {
-                final denomTerm = (Pow(xVar, IntegerNumber.of(k - j)) * rad)
+                final denomTerm = (Pow.of(xVar, IntegerNumber.of(k - j)) * rad)
                     .simplify();
                 termRes = tryPolynomialOverSqrtQuadratic(
                   coeff,
@@ -443,7 +445,7 @@ Expr? tryPolynomialOverSqrtQuadratic(Expr left, Expr right, String variable) {
             if (ok) {
               return results.isEmpty
                   ? IntegerNumber.zero
-                  : Add(results).simplify();
+                  : Add.of(results).simplify();
             }
           }
         }
@@ -461,9 +463,9 @@ Expr? tryPolynomialOverSqrtQuadratic(Expr left, Expr right, String variable) {
             (-left *
                     (k == 1
                         ? IntegerNumber.one
-                        : Pow(tVar, IntegerNumber.of(k - 1))))
+                        : Pow.of(tVar, IntegerNumber.of(k - 1))))
                 .simplify();
-        final tIntegrand = (numT / Pow(qT, FractionNumber.half)).simplify();
+        final tIntegrand = (numT / Pow.of(qT, FractionNumber.half)).simplify();
         final tInt =
             tryQuadraticRadical(numT, qT, -1, tName, preferLog: true) ??
             (c is Number && c.isZero
@@ -489,8 +491,10 @@ Expr? tryPolynomialOverSqrtQuadratic(Expr left, Expr right, String variable) {
               : null;
           Expr replaceQuadT(Expr node) {
             if (node case Pow(:final base, exponent: final FractionNumber exp)
-                when exp.denominator == Integer.two) {
-              final numInt = exp.numerator.asInt;
+                when exp.denominator == BigInt.two) {
+              final numInt = exp.numerator.isValidInt
+                  ? exp.numerator.toInt()
+                  : null;
               if (numInt != null) {
                 Expr? scaleFactor;
                 if (base == qT) {
@@ -514,8 +518,8 @@ Expr? tryPolynomialOverSqrtQuadratic(Expr left, Expr right, String variable) {
                   final newRadBase = scaleFactor == IntegerNumber.one
                       ? radBase
                       : (scaleFactor * radBase).simplify();
-                  return Pow(newRadBase, exp) *
-                      Pow(xVar, IntegerNumber.of(-numInt));
+                  return Pow.of(newRadBase, exp) *
+                      Pow.of(xVar, IntegerNumber.of(-numInt));
                 }
               }
             }
@@ -571,12 +575,13 @@ Expr? tryPolynomialOverSqrtQuadratic(Expr left, Expr right, String variable) {
           final xOfU = ((uVar - intercept) / slope).simplify();
           final constScale = constFactors.isEmpty
               ? IntegerNumber.one
-              : Mul(constFactors).simplify();
+              : Mul.of(constFactors).simplify();
           final numU = (left.substitute(variable, xOfU) / (constScale * slope))
               .simplify();
           final qU = rad.base.substitute(variable, xOfU).simplify();
           final denU =
-              (Pow(uVar, IntegerNumber.of(k)) * Pow(qU, FractionNumber.half))
+              (Pow.of(uVar, IntegerNumber.of(k)) *
+                      Pow.of(qU, FractionNumber.half))
                   .simplify();
           final uRes = tryPolynomialOverSqrtQuadratic(numU, denU, uName);
           if (uRes != null && !hasUnevaluatedIntegral(uRes, uName)) {
@@ -648,9 +653,9 @@ Expr? tryFractionalLinearRadical(
   final det = (a * d - b * c).simplify(assumptions: assumptions);
   if (det is Number && det.isZero) {
     final ratio = (a / c).simplify(assumptions: assumptions);
-    final constVal = Pow(
+    final constVal = Pow.of(
       ratio,
-      FractionNumber(Integer(frac!.p), Integer(frac!.q)),
+      RationalNumber(frac!.p, frac!.q),
     ).simplify(assumptions: assumptions);
     Expr replaceZeroDet(Expr node) {
       if (node == targetPow) return constVal;
@@ -676,17 +681,17 @@ Expr? tryFractionalLinearRadical(
 
   final uName = freshIntegrationVar('_fl', expr, variable, depth);
   final uVar = Variable(uName);
-  final uPowN = Pow(uVar, IntegerNumber.of(n));
+  final uPowN = Pow.of(uVar, IntegerNumber.of(n));
   final xOfU = ((d * uPowN - b) / (a - c * uPowN)).simplify();
   final dx =
       (IntegerNumber.of(n) *
               (a * d - b * c) *
-              Pow(uVar, IntegerNumber.of(n - 1)) /
-              Pow(a - c * uPowN, IntegerNumber.two))
+              Pow.of(uVar, IntegerNumber.of(n - 1)) /
+              Pow.of(a - c * uPowN, IntegerNumber.two))
           .simplify();
 
   Expr replaceNode(Expr node) {
-    if (node == targetPow) return Pow(uVar, IntegerNumber.of(frac!.p));
+    if (node == targetPow) return Pow.of(uVar, IntegerNumber.of(frac!.p));
     if (node is Variable && node.name == variable) return xOfU;
     return node.mapChildren(replaceNode);
   }
@@ -707,7 +712,7 @@ Expr? tryFractionalLinearRadical(
   );
   if (hasUnevaluatedIntegral(uInt, uName)) return null;
 
-  final backSub = Pow(targetPow!.base, FractionNumber(Integer.one, Integer(n)));
+  final backSub = Pow.of(targetPow!.base, RationalNumber(1, n));
   return uInt.substitute(uName, backSub).simplify(assumptions: assumptions);
 }
 
@@ -729,10 +734,10 @@ Expr? integratePolyOverSqrtQ(
   final leadCoeff = coeffs[deg]!;
   final m = deg;
   final xVar = Variable(variable);
-  final rad = Pow(quad, FractionNumber.half);
+  final rad = Pow.of(quad, FractionNumber.half);
   final term1 =
       (leadCoeff *
-              Pow(xVar, IntegerNumber.of(m - 1)) *
+              Pow.of(xVar, IntegerNumber.of(m - 1)) *
               rad /
               (IntegerNumber.of(m) * a))
           .simplify();
@@ -742,7 +747,7 @@ Expr? integratePolyOverSqrtQ(
               IntegerNumber.of(2 * m - 1) *
               b /
               (IntegerNumber.two * IntegerNumber.of(m) * a) *
-              Pow(xVar, IntegerNumber.of(m - 1)))
+              Pow.of(xVar, IntegerNumber.of(m - 1)))
           .simplify();
   final rem2 =
       (-leadCoeff *
@@ -751,10 +756,10 @@ Expr? integratePolyOverSqrtQ(
               (IntegerNumber.of(m) * a) *
               (m - 2 == 0
                   ? IntegerNumber.one
-                  : Pow(xVar, IntegerNumber.of(m - 2))))
+                  : Pow.of(xVar, IntegerNumber.of(m - 2))))
           .simplify();
   final lowerPoly =
-      (poly - leadCoeff * Pow(xVar, IntegerNumber.of(m)) + rem1 + rem2)
+      (poly - leadCoeff * Pow.of(xVar, IntegerNumber.of(m)) + rem1 + rem2)
           .expand()
           .simplify();
   final remInt = integratePolyOverSqrtQ(
@@ -800,8 +805,8 @@ Expr? tryTrigRadicalSubstitution(
   if (k == null || k.isEven || k.abs() > 7) return null;
 
   Expr bScale = IntegerNumber.one;
-  Tan? tanNode;
-  if (tanPow.base case final Tan t) {
+  Call? tanNode;
+  if (tanPow.base case Call(id: FunctionId.tan) && final Call t) {
     tanNode = t;
   } else if (tanPow.base case Mul(:final factors)) {
     final consts = <Expr>[];
@@ -813,16 +818,18 @@ Expr? tryTrigRadicalSubstitution(
         consts.add(f);
       }
     }
-    if (vars.length == 1 && vars.first is Tan) {
-      tanNode = vars.first as Tan;
+    if (vars.length == 1 &&
+        vars.first is Call &&
+        (vars.first as Call).id == FunctionId.tan) {
+      tanNode = vars.first as Call;
       if (consts.isNotEmpty) {
-        bScale = Mul(consts).simplify(assumptions: assumptions);
+        bScale = Mul.of(consts).simplify(assumptions: assumptions);
       }
     }
   }
   if (tanNode == null) return null;
 
-  final inner = tanNode.expr;
+  final inner = tanNode.args[0];
   final lin = inner.matchLinear(variable);
   if (lin == null) return null;
   final d = lin.a;
@@ -830,8 +837,9 @@ Expr? tryTrigRadicalSubstitution(
   final uName = freshIntegrationVar('_u', expr, variable, depth);
   final uVar = Variable(uName);
   final bSq = (bScale * bScale).simplify(assumptions: assumptions);
-  final quarticDen = (Pow(uVar, const IntegerNumber(Integer(4))) + bSq)
-      .simplify(assumptions: assumptions);
+  final quarticDen = (Pow.of(uVar, IntegerNumber.of(4)) + bSq).simplify(
+    assumptions: assumptions,
+  );
   final preFactor = (constScale * (IntegerNumber.two * bScale / d)).simplify(
     assumptions: assumptions,
   );
@@ -840,7 +848,7 @@ Expr? tryTrigRadicalSubstitution(
   if (k >= -1) {
     final numU = k + 1 == 0
         ? IntegerNumber.one
-        : Pow(uVar, IntegerNumber.of(k + 1));
+        : Pow.of(uVar, IntegerNumber.of(k + 1));
     final transformed = (preFactor * numU / quarticDen).simplify(
       assumptions: assumptions,
     );
@@ -860,7 +868,7 @@ Expr? tryTrigRadicalSubstitution(
       final laurentInt =
           (-coeff /
                   (IntegerNumber.of(m - 1) *
-                      Pow(uVar, IntegerNumber.of(m - 1))))
+                      Pow.of(uVar, IntegerNumber.of(m - 1))))
               .simplify(assumptions: assumptions);
       terms.add(laurentInt);
       remScale = (-coeff).simplify(assumptions: assumptions);
@@ -869,7 +877,7 @@ Expr? tryTrigRadicalSubstitution(
     final remPow = -m; // 0 or 2
     final remNum = remPow == 0
         ? remScale
-        : (remScale * Pow(uVar, IntegerNumber.of(remPow))).simplify(
+        : (remScale * Pow.of(uVar, IntegerNumber.of(remPow))).simplify(
             assumptions: assumptions,
           );
     final remInt = antiDerivative(
@@ -880,7 +888,9 @@ Expr? tryTrigRadicalSubstitution(
     );
     if (!hasUnevaluatedIntegral(remInt, uName)) {
       terms.add(remInt);
-      uAntideriv = (preFactor * Add(terms)).simplify(assumptions: assumptions);
+      uAntideriv = (preFactor * Add.of(terms)).simplify(
+        assumptions: assumptions,
+      );
     }
   }
 
@@ -888,7 +898,7 @@ Expr? tryTrigRadicalSubstitution(
     return null;
   }
   return uAntideriv
-      .substitute(uName, Pow(tanPow.base, FractionNumber.half))
+      .substitute(uName, Pow.of(tanPow.base, FractionNumber.half))
       .simplify(assumptions: assumptions);
 }
 
@@ -985,8 +995,8 @@ Expr? tryLinearBinomialProductSpecial(
     final n = u1Item.exp;
     if (m is RationalNumber && n is RationalNumber) {
       final sumExp = (m + n).simplify(assumptions: assumptions);
-      final q1 = m.denominator.asInt;
-      final q2 = n.denominator.asInt;
+      final q1 = m.denominator.isValidInt ? m.denominator.toInt() : null;
+      final q2 = n.denominator.isValidInt ? n.denominator.toInt() : null;
       if (sumExp is IntegerNumber &&
           sumExp.asInt != null &&
           q1 != null &&
@@ -1006,13 +1016,13 @@ Expr? tryLinearBinomialProductSpecial(
           final uName = freshIntegrationVar('_u', expr, variable, 0);
           final uVar = Variable(uName);
           final qExpr = IntegerNumber.of(q);
-          final uPowQ = Pow(uVar, qExpr);
+          final uPowQ = Pow.of(uVar, qExpr);
           final uIntegrand =
               (-scale *
                       qExpr *
-                      Pow(dets[0], IntegerNumber.of(k + 1)) *
-                      Pow(uVar, IntegerNumber.of(bigN.asInt! + q - 1)) *
-                      Pow(
+                      Pow.of(dets[0], IntegerNumber.of(k + 1)) *
+                      Pow.of(uVar, IntegerNumber.of(bigN.asInt! + q - 1)) *
+                      Pow.of(
                         u0Item.b * uPowQ - u1Item.b,
                         IntegerNumber.of(-(k + 2)),
                       ))
@@ -1025,9 +1035,10 @@ Expr? tryLinearBinomialProductSpecial(
               depth: 1,
             );
             if (!hasUnevaluatedIntegral(uRes, uName)) {
-              final invQ = FractionNumber(Integer.one, Integer(q));
-              final backSub = (Pow(u1Item.base, invQ) * Pow(u0Item.base, -invQ))
-                  .simplify(assumptions: assumptions);
+              final invQ = RationalNumber(1, q);
+              final backSub =
+                  (Pow.of(u1Item.base, invQ) * Pow.of(u0Item.base, -invQ))
+                      .simplify(assumptions: assumptions);
               return uRes
                   .substitute(uName, backSub)
                   .simplify(assumptions: assumptions);
@@ -1036,15 +1047,19 @@ Expr? tryLinearBinomialProductSpecial(
         }
       }
     }
-    final numFactor = (scale * Pow(u0Item.base, mPlus1) * Pow(u1Item.base, n))
-        .simplify(assumptions: assumptions);
-    final denFactor = (u0Item.b * mPlus1 * Pow(oneMinusArgs[0], n)).simplify(
+    final numFactor =
+        (scale * Pow.of(u0Item.base, mPlus1) * Pow.of(u1Item.base, n)).simplify(
+          assumptions: assumptions,
+        );
+    final denFactor = (u0Item.b * mPlus1 * Pow.of(oneMinusArgs[0], n)).simplify(
       assumptions: assumptions,
     );
     return (numFactor *
-            Hypergeometric(
-              [mPlus1, (-n).simplify(assumptions: assumptions)],
-              [(mPlus1 + IntegerNumber.one).simplify(assumptions: assumptions)],
+            Fn.hypergeometric(
+              Fn.tuple([mPlus1, (-n).simplify(assumptions: assumptions)]),
+              Fn.tuple([
+                (mPlus1 + IntegerNumber.one).simplify(assumptions: assumptions),
+              ]),
               args[0],
             ) /
             denFactor)
@@ -1067,8 +1082,8 @@ Expr? tryLinearBinomialProductSpecial(
       if (fa.exp case final RationalNumber mA) {
         if (fb.exp case final RationalNumber nB) {
           final sumExp = (mA + nB).simplify(assumptions: assumptions);
-          final q1 = mA.denominator.asInt;
-          final q2 = nB.denominator.asInt;
+          final q1 = mA.denominator.isValidInt ? mA.denominator.toInt() : null;
+          final q2 = nB.denominator.isValidInt ? nB.denominator.toInt() : null;
           if (sumExp is IntegerNumber &&
               sumExp.asInt != null &&
               q1 != null &&
@@ -1092,7 +1107,7 @@ Expr? tryLinearBinomialProductSpecial(
               final uName = freshIntegrationVar('_u', expr, variable, 0);
               final uVar = Variable(uName);
               final qExpr = IntegerNumber.of(q);
-              final uPowQ = Pow(uVar, qExpr);
+              final uPowQ = Pow.of(uVar, qExpr);
               final bigA2 = (intItem.b * fb.a - intItem.a * fb.b)
                   .expand()
                   .simplify(assumptions: assumptions);
@@ -1102,10 +1117,10 @@ Expr? tryLinearBinomialProductSpecial(
               final uIntegrand =
                   (-scale *
                           qExpr *
-                          Pow(detAB, IntegerNumber.of(k + 1)) *
-                          Pow(uVar, IntegerNumber.of(bigN.asInt! + q - 1)) *
-                          Pow(bigA2 + bigB2 * uPowQ, IntegerNumber.of(r)) *
-                          Pow(
+                          Pow.of(detAB, IntegerNumber.of(k + 1)) *
+                          Pow.of(uVar, IntegerNumber.of(bigN.asInt! + q - 1)) *
+                          Pow.of(bigA2 + bigB2 * uPowQ, IntegerNumber.of(r)) *
+                          Pow.of(
                             fa.b * uPowQ - fb.b,
                             IntegerNumber.of(-(k + r + 2)),
                           ))
@@ -1118,9 +1133,11 @@ Expr? tryLinearBinomialProductSpecial(
                   depth: 1,
                 );
                 if (!hasUnevaluatedIntegral(uRes, uName)) {
-                  final invQ = FractionNumber(Integer.one, Integer(q));
-                  final backSub = (Pow(fb.base, invQ) * Pow(fa.base, -invQ))
-                      .simplify(assumptions: assumptions);
+                  final invQ = RationalNumber(1, q);
+                  final backSub =
+                      (Pow.of(fb.base, invQ) * Pow.of(fa.base, -invQ)).simplify(
+                        assumptions: assumptions,
+                      );
                   return uRes
                       .substitute(uName, backSub)
                       .simplify(assumptions: assumptions);
@@ -1136,22 +1153,25 @@ Expr? tryLinearBinomialProductSpecial(
   final p = u2Item.exp;
   final numFactor =
       (scale *
-              Pow(u0Item.base, mPlus1) *
-              Pow(u1Item.base, n) *
-              Pow(u2Item.base, p))
+              Pow.of(u0Item.base, mPlus1) *
+              Pow.of(u1Item.base, n) *
+              Pow.of(u2Item.base, p))
           .simplify(assumptions: assumptions);
   final denFactor =
-      (u0Item.b * mPlus1 * Pow(oneMinusArgs[0], n) * Pow(oneMinusArgs[1], p))
+      (u0Item.b *
+              mPlus1 *
+              Pow.of(oneMinusArgs[0], n) *
+              Pow.of(oneMinusArgs[1], p))
           .simplify(assumptions: assumptions);
   return (numFactor *
-          AppellF1(
+          Fn.appellF1([
             mPlus1,
             (-n).simplify(assumptions: assumptions),
             (-p).simplify(assumptions: assumptions),
             (mPlus1 + IntegerNumber.one).simplify(assumptions: assumptions),
             args[0],
             args[1],
-          ) /
+          ]) /
           denFactor)
       .simplify(assumptions: assumptions);
 }

@@ -1,3 +1,5 @@
+import 'package:more/math.dart';
+
 import '../algebra/expand.dart';
 import '../algebra/helpers.dart';
 import '../algebra/rational.dart';
@@ -8,8 +10,8 @@ import '../algebra/simplify/transcendental.dart';
 import '../assumptions.dart';
 import '../ast.dart';
 import '../compiler.dart';
+import '../functions/fn.dart';
 import '../number/combinatorics.dart';
-import '../number/integer.dart';
 import 'limit.dart';
 import 'linear_form.dart';
 import 'summation.dart';
@@ -232,7 +234,7 @@ Expr? _matchTwoPoleDigammaSeries(
   final startExpr = IntegerNumber.of(startInt);
 
   bool isValidDigammaArg(Expr arg) {
-    if (arg is IntegerNumber) return arg.value > Integer.zero;
+    if (arg is IntegerNumber) return arg.value > BigInt.zero;
     if (arg is RationalNumber) return !arg.isNegative && !arg.isZero;
     if (arg is RealNumber) return arg.value.isFinite && arg.value > 0.0;
     return true;
@@ -268,11 +270,10 @@ Expr? _matchTwoPoleDigammaSeries(
         final argA = (startExpr + a).simplify(assumptions: assumptions);
         final argB = (startExpr + b).simplify(assumptions: assumptions);
         if (isValidDigammaArg(argA) && isValidDigammaArg(argB)) {
-          final totalDen = Mul([...constDen, p1.m, p2.m, diff])
+          final totalDen = Mul.of([...constDen, p1.m, p2.m, diff])
               .simplify(assumptions: assumptions);
-          return ((num / totalDen) * (Digamma(argB) - Digamma(argA))).simplify(
-            assumptions: assumptions,
-          );
+          return ((num / totalDen) * (Fn.digamma(argB) - Fn.digamma(argA)))
+              .simplify(assumptions: assumptions);
         }
       }
     }
@@ -305,7 +306,7 @@ Expr? _matchTwoPoleDigammaSeries(
       if (m == null || d == null) return null;
       final denConst = consts.isEmpty
           ? m
-          : Mul([...consts, m]).simplify(assumptions: assumptions);
+          : Mul.of([...consts, m]).simplify(assumptions: assumptions);
       return (
         coeff: (tn / denConst).simplify(assumptions: assumptions),
         shift: (d / m).simplify(assumptions: assumptions),
@@ -320,7 +321,7 @@ Expr? _matchTwoPoleDigammaSeries(
         final arg1 = (startExpr + p1.shift).simplify(assumptions: assumptions);
         final arg2 = (startExpr + p2.shift).simplify(assumptions: assumptions);
         if (isValidDigammaArg(arg1) && isValidDigammaArg(arg2)) {
-          return (p1.coeff * (Digamma(arg2) - Digamma(arg1))).simplify(
+          return (p1.coeff * (Fn.digamma(arg2) - Fn.digamma(arg1))).simplify(
             assumptions: assumptions,
           );
         }
@@ -347,9 +348,9 @@ Expr? _matchTwoPoleDigammaSeries(
     if (f case Pow(:final base, :final exponent)
         when !base.dependsOn(variable) && exponent.dependsOn(variable)) {
       if (exponent.matchLinear(variable) case (:final a, :final b)) {
-        ratios.add(Pow(base, a).simplify());
+        ratios.add(Pow.of(base, a).simplify());
         if (b != IntegerNumber.zero) {
-          scales.add(Pow(base, b).simplify());
+          scales.add(Pow.of(base, b).simplify());
         }
         continue;
       }
@@ -377,10 +378,13 @@ Expr? _matchFactorialSeries(
   final (num, den) = splitNumeratorDenominator(term);
   final denFactors = den is Mul ? den.factors : [den];
 
-  Factorial? factNode;
+  Call? factNode;
   final otherDen = <Expr>[];
   for (final f in denFactors) {
-    if (factNode == null && f is Factorial && f.expr.dependsOn(variable)) {
+    if (factNode == null &&
+        f is Call &&
+        f.id == FunctionId.factorial &&
+        f.args[0].dependsOn(variable)) {
       factNode = f;
     } else {
       otherDen.add(f);
@@ -389,7 +393,7 @@ Expr? _matchFactorialSeries(
   if (factNode == null) return null;
   if (otherDen.any((f) => f.dependsOn(variable))) return null;
 
-  final linFact = factNode.expr.matchLinear(variable);
+  final linFact = factNode.args[0].matchLinear(variable);
   if (linFact == null) return null;
   final mSlope = linFact.a;
   final cShift = linFact.b;
@@ -400,7 +404,7 @@ Expr? _matchFactorialSeries(
 
   final numFactors = <Expr>[
     ...(num is Mul ? num.factors : [num]),
-    for (final d in otherDen) Pow(d, IntegerNumber.negativeOne).simplify(),
+    for (final d in otherDen) Pow.of(d, IntegerNumber.negativeOne).simplify(),
   ];
 
   final (:ratio, :scale, :remaining) = _extractExponentialFactors(
@@ -442,7 +446,7 @@ Expr? _matchFactorialSeries(
       if (cj is Number && cj.isZero) continue;
       final rPow = j == 0
           ? IntegerNumber.one
-          : Pow(ratio, IntegerNumber.of(j)).simplify();
+          : Pow.of(ratio, IntegerNumber.of(j)).simplify();
       bellPolyTerms.add((cj * rPow).simplify());
     }
     final bellFactor = simplifyAdd(
@@ -451,8 +455,8 @@ Expr? _matchFactorialSeries(
     );
     final shiftScale = c == 0
         ? scale
-        : (scale * Pow(ratio, IntegerNumber.of(-c))).simplify();
-    final canonSum = (shiftScale * bellFactor * Pow(Constant.e, ratio))
+        : (scale * Pow.of(ratio, IntegerNumber.of(-c))).simplify();
+    final canonSum = (shiftScale * bellFactor * Pow.of(Constant.e, ratio))
         .simplify(assumptions: assumptions);
 
     return _adjustSeriesStart(
@@ -478,7 +482,7 @@ Expr? _matchFactorialSeries(
 
     if (c == 0) {
       // sum_{k=0..inf} ratio^k / (2k)! = cos(sqrt(-ratio)) or cosh(sqrt(ratio))
-      final canonVal = isAlternating ? Cos(xVal) : Cosh(xVal);
+      final canonVal = isAlternating ? Fn.cos(xVal) : Fn.cosh(xVal);
       final canonSum = (totalScale * canonVal).simplify(
         assumptions: assumptions,
       );
@@ -503,7 +507,9 @@ Expr? _matchFactorialSeries(
           assumptions: assumptions,
         );
       }
-      final canonVal = isAlternating ? (Sin(xVal) / xVal) : (Sinh(xVal) / xVal);
+      final canonVal = isAlternating
+          ? (Fn.sin(xVal) / xVal)
+          : (Fn.sinh(xVal) / xVal);
       final canonSum = (totalScale * canonVal).simplify(
         assumptions: assumptions,
       );
@@ -524,40 +530,44 @@ Expr? _matchFactorialSeries(
 Expr _extractEvenRoot(Expr expr) {
   if (expr case Pow(:final base, exponent: IntegerNumber(:final value))
       when value.isEven) {
-    final halfExp = value ~/ Integer.two;
-    return halfExp.isOne ? base : Pow(base, IntegerNumber(halfExp)).simplify();
+    final halfExp = value ~/ BigInt.two;
+    return halfExp == BigInt.one
+        ? base
+        : Pow.of(base, IntegerNumber(halfExp)).simplify();
   }
   if (expr is Mul) {
     final factors = <Expr>[];
     for (final factor in expr.factors) {
       if (factor case Pow(:final base, exponent: IntegerNumber(:final value))
           when value.isEven) {
-        final halfExp = value ~/ Integer.two;
+        final halfExp = value ~/ BigInt.two;
         factors.add(
-          halfExp.isOne ? base : Pow(base, IntegerNumber(halfExp)).simplify(),
+          halfExp == BigInt.one
+              ? base
+              : Pow.of(base, IntegerNumber(halfExp)).simplify(),
         );
       } else if (factor is RationalNumber && factor.sign > 0) {
-        final numSqrt = factor.numerator.isqrt();
-        final denSqrt = factor.denominator.isqrt();
+        final numSqrt = Number.exactIntegerRoot(factor.numerator, 2);
+        final denSqrt = Number.exactIntegerRoot(factor.denominator, 2);
         if (numSqrt != null && denSqrt != null) {
           factors.add(RationalNumber.of(numSqrt, denSqrt));
         } else {
-          factors.add(Pow(factor, FractionNumber.half).simplify());
+          factors.add(Pow.of(factor, FractionNumber.half).simplify());
         }
       } else {
-        factors.add(Pow(factor, FractionNumber.half).simplify());
+        factors.add(Pow.of(factor, FractionNumber.half).simplify());
       }
     }
     return simplifyMul(factors, assumptions: Assumptions.none);
   }
   if (expr is RationalNumber && expr.sign > 0) {
-    final numSqrt = expr.numerator.isqrt();
-    final denSqrt = expr.denominator.isqrt();
+    final numSqrt = Number.exactIntegerRoot(expr.numerator, 2);
+    final denSqrt = Number.exactIntegerRoot(expr.denominator, 2);
     if (numSqrt != null && denSqrt != null) {
       return RationalNumber.of(numSqrt, denSqrt);
     }
   }
-  return Pow(expr, FractionNumber.half).simplify();
+  return Pow.of(expr, FractionNumber.half).simplify();
 }
 
 /// Converts standard power basis polynomial coefficients `sum_{i=0}^d p_i k^i`
@@ -579,7 +589,7 @@ List<Expr>? _toFallingFactorialBasis(Map<int, Expr> polyCoeffs) {
     final pi = entry.value;
     for (var j = 0; j <= i; j++) {
       final s = stirling[i][j];
-      if (s.isZero) continue;
+      if (s == BigInt.zero) continue;
       c[j] = (c[j] + pi * IntegerNumber(s)).simplify();
     }
   }
@@ -609,7 +619,8 @@ Expr? _matchPowerDenominatorSeries(
 
   final combinedFactors = <Expr>[
     ...numFactors,
-    for (final df in denFactors) Pow(df, IntegerNumber.negativeOne).simplify(),
+    for (final df in denFactors)
+      Pow.of(df, IntegerNumber.negativeOne).simplify(),
   ];
 
   final (:ratio, :scale, :remaining) = _extractExponentialFactors(
@@ -654,7 +665,7 @@ Expr? _matchPowerDenominatorSeries(
     final denInt = IntegerNumber(mExpr.denominator);
     mExpr = IntegerNumber(mExpr.numerator);
     dExpr = (dExpr * denInt).simplify();
-    signFactor = (signFactor * Pow(denInt, IntegerNumber.of(p))).simplify();
+    signFactor = (signFactor * Pow.of(denInt, IntegerNumber.of(p))).simplify();
   }
   if (mExpr is! IntegerNumber || dExpr is! IntegerNumber) return null;
   final m = mExpr.asInt;
@@ -669,7 +680,7 @@ Expr? _matchPowerDenominatorSeries(
     final canonStart = 1 - d;
     final shiftRatioScale = d == 0
         ? IntegerNumber.one
-        : Pow(ratio, IntegerNumber.of(-d)).simplify();
+        : Pow.of(ratio, IntegerNumber.of(-d)).simplify();
     final totalPrefactor = (effectiveScale * shiftRatioScale).simplify();
 
     // 1a. ratio == 1: p-series sum_{n=1..inf} 1 / n^p
@@ -706,7 +717,7 @@ Expr? _matchPowerDenominatorSeries(
     if (ratio == IntegerNumber.negativeOne) {
       if (p == 1) {
         // sum_{n=1..inf} (-1)^n / n = -ln(2)
-        final canonSum = (-totalPrefactor * Ln(IntegerNumber.two)).simplify(
+        final canonSum = (-totalPrefactor * Fn.ln(IntegerNumber.two)).simplify(
           assumptions: assumptions,
         );
         return _adjustSeriesStart(
@@ -721,7 +732,7 @@ Expr? _matchPowerDenominatorSeries(
       if (p >= 2 && p.isEven && p <= 32) {
         // sum_{n=1..inf} (-1)^n / n^(2s) = -(1 - 2^(1 - p)) * zeta(p)
         final zetaVal = evenZetaValue(p);
-        final twoPow = Pow(
+        final twoPow = Pow.of(
           IntegerNumber.two,
           IntegerNumber.of(1 - p),
         ).simplify();
@@ -749,8 +760,8 @@ Expr? _matchPowerDenominatorSeries(
         final canonVal = switch (oneMinusR) {
           FractionNumber(:final numerator, :final denominator)
               when numerator < denominator =>
-            Ln(RationalNumber.of(denominator, numerator)),
-          _ => -Ln(oneMinusR),
+            Fn.ln(RationalNumber.of(denominator, numerator)),
+          _ => -Fn.ln(oneMinusR),
         };
         final canonSum = (totalPrefactor * canonVal).simplify(
           assumptions: assumptions,
@@ -767,9 +778,9 @@ Expr? _matchPowerDenominatorSeries(
       if (p == 2 && ratio == FractionNumber.half) {
         // Euler's dilogarithm identity: Li_2(1/2) = pi^2 / 12 - ln(2)^2 / 2
         final li2Half =
-            (Pow(Constant.pi, IntegerNumber.two) / IntegerNumber.of(12) -
+            (Pow.of(Constant.pi, IntegerNumber.two) / IntegerNumber.of(12) -
                     FractionNumber.half *
-                        Pow(Ln(IntegerNumber.two), IntegerNumber.two))
+                        Pow.of(Fn.ln(IntegerNumber.two), IntegerNumber.two))
                 .simplify();
         final canonSum = (totalPrefactor * li2Half).simplify(
           assumptions: assumptions,
@@ -795,7 +806,7 @@ Expr? _matchPowerDenominatorSeries(
     final canonStart = -s;
     final shiftRatioScale = s == 0
         ? IntegerNumber.one
-        : Pow(ratio, IntegerNumber.of(-s)).simplify();
+        : Pow.of(ratio, IntegerNumber.of(-s)).simplify();
     final totalPrefactor = (effectiveScale * shiftRatioScale).simplify();
 
     // 2a. ratio == 1: sum_{u=0..inf} 1 / (2u + 1)^p
@@ -813,7 +824,10 @@ Expr? _matchPowerDenominatorSeries(
       if (p >= 2 && p.isEven && p <= 32) {
         // sum_{u=0..inf} 1 / (2u + 1)^(2s) = (1 - 2^(-p)) * zeta(p)
         final zetaVal = evenZetaValue(p);
-        final twoPow = Pow(IntegerNumber.two, IntegerNumber.of(-p)).simplify();
+        final twoPow = Pow.of(
+          IntegerNumber.two,
+          IntegerNumber.of(-p),
+        ).simplify();
         final oddZeta = ((IntegerNumber.one - twoPow) * zetaVal).simplify();
         final canonSum = (totalPrefactor * oddZeta).simplify(
           assumptions: assumptions,
@@ -854,22 +868,22 @@ Expr? _matchPowerDenominatorSeries(
       final (posR, isNegR) = extractSign(ratio);
       final sqrtR = switch (posR) {
         FractionNumber(isOne: _, :final numerator, :final denominator)
-            when numerator == Integer.one =>
-          Pow(
+            when numerator == BigInt.one =>
+          Pow.of(
             IntegerNumber(denominator),
             FractionNumber.negativeHalf,
           ).simplify(),
-        _ => Pow(posR, FractionNumber.half).simplify(),
+        _ => Pow.of(posR, FractionNumber.half).simplify(),
       };
       final invSqrtR = switch (posR) {
         FractionNumber(:final numerator, :final denominator)
-            when numerator == Integer.one =>
-          Pow(IntegerNumber(denominator), FractionNumber.half).simplify(),
+            when numerator == BigInt.one =>
+          Pow.of(IntegerNumber(denominator), FractionNumber.half).simplify(),
         _ => (IntegerNumber.one / sqrtR).simplify(),
       };
       if (isNegR) {
         // sum_{u=0..inf} (-posR)^u / (2u + 1) = atan(sqrt(posR)) / sqrt(posR)
-        final canonVal = (invSqrtR * Atan(sqrtR)).simplify(
+        final canonVal = (invSqrtR * Fn.atan(sqrtR)).simplify(
           assumptions: assumptions,
         );
         final canonSum = (totalPrefactor * canonVal).simplify(
@@ -888,9 +902,8 @@ Expr? _matchPowerDenominatorSeries(
         final logArg =
             ((IntegerNumber.one + sqrtR) / (IntegerNumber.one - sqrtR))
                 .simplify(assumptions: assumptions);
-        final canonVal = (FractionNumber.half * invSqrtR * Ln(logArg)).simplify(
-          assumptions: assumptions,
-        );
+        final canonVal = (FractionNumber.half * invSqrtR * Fn.ln(logArg))
+            .simplify(assumptions: assumptions);
         final canonSum = (totalPrefactor * canonVal).simplify(
           assumptions: assumptions,
         );
@@ -909,12 +922,12 @@ Expr? _matchPowerDenominatorSeries(
   // Case 3: General even m = 2*q and d = 0 (or multiple of m): handled by factoring m^p
   if (d % m == 0) {
     final shift = d ~/ m;
-    final mPow = Pow(IntegerNumber.of(m), IntegerNumber.of(p)).simplify();
+    final mPow = Pow.of(IntegerNumber.of(m), IntegerNumber.of(p)).simplify();
     final kVar = Variable(variable);
     final reducedTerm =
         (term /
-                Pow(mExpr * kVar + dExpr, IntegerNumber.of(-p)) *
-                Pow(kVar + IntegerNumber.of(shift), IntegerNumber.of(-p)))
+                Pow.of(mExpr * kVar + dExpr, IntegerNumber.of(-p)) *
+                Pow.of(kVar + IntegerNumber.of(shift), IntegerNumber.of(-p)))
             .simplify();
     if (reducedTerm != term) {
       final subRes = _matchPowerDenominatorSeries(
@@ -961,20 +974,19 @@ Expr _oddDirichletBetaValue(int p) {
   final m = twoM ~/ 2;
   final euler = _eulerNumbers(m);
   final emAbs = euler[m].abs();
-  final denom =
-      Integer.big(BigInt.two.pow(twoM + 2)) * Integer.from(twoM).factorial();
+  final denom = BigInt.two.pow(twoM + 2) * BigInt.from(twoM).factorial();
   final coeff = RationalNumber.of(emAbs, denom);
-  return (coeff * Pow(Constant.pi, IntegerNumber.of(p))).simplify();
+  return (coeff * Pow.of(Constant.pi, IntegerNumber.of(p))).simplify();
 }
 
 /// Computes even-indexed Euler numbers `E_0, E_2, ..., E_2m` via
 /// `sum_{k=0}^n binomial(2n, 2k) E_2k = 0`.
-List<Integer> _eulerNumbers(int maxM) {
-  final e = <Integer>[Integer.one];
+List<BigInt> _eulerNumbers(int maxM) {
+  final e = <BigInt>[BigInt.one];
   for (var n = 1; n <= maxM; n++) {
-    var sum = Integer.zero;
+    var sum = BigInt.zero;
     for (var k = 0; k < n; k++) {
-      final binom = Integer.from(2 * n).binomial(Integer.from(2 * k));
+      final binom = BigInt.from((2 * n).binomial(2 * k));
       sum += binom * e[k];
     }
     e.add(-sum);

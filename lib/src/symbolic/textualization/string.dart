@@ -1,27 +1,16 @@
 import '../ast.dart';
-import '../number/integer.dart';
 import 'formatting.dart';
 
 /// Plain-text mathematical string serialization extension on [Expr].
 extension TextExtension on Expr {
   /// Formats this expression into a clean mathematical string representation
   /// with minimal parentheses based on operator precedence and associativity.
-  ///
-  /// Floating-point numbers are formatted with [decimalPlaces] (default 4).
-  ///
-  /// ```dart
-  /// final x = Variable('x');
-  /// final str = (x * x + 1).format(); // 'x ^ 2 + 1'
-  /// ```
   String format({int decimalPlaces = 4}) => _formatExpr(this, 0, decimalPlaces);
 }
 
-/// Returns the operator precedence level for the given [expr].
-///
-/// Higher values indicate tighter binding.
+/// Returns the operator precedence level for [expr].
 int precedence(Expr expr) => switch (expr) {
-  RelationalExpr() => 0,
-  Piecewise() => 0,
+  Relational() || Piecewise() => 0,
   Add() => 1,
   ComplexNumber(:final real, :final imaginary) =>
     !real.isZero
@@ -40,8 +29,8 @@ int precedence(Expr expr) => switch (expr) {
         : exponent == IntegerNumber.negativeOne
         ? 2
         : exponent is FractionNumber &&
-              exponent.numerator == Integer.one &&
-              exponent.denominator == Integer.two
+              exponent.numerator == BigInt.one &&
+              exponent.denominator == BigInt.two
         ? 5
         : 4,
   _ => 5,
@@ -51,27 +40,17 @@ String _formatExpr(Expr expr, int parentPrec, int decimalPlaces) {
   final prec = precedence(expr);
   final formatted = switch (expr) {
     Variable(:final name) => name,
-    VariableFunction(:final name, :final arguments) =>
-      '$name(${arguments.map((a) => _formatExpr(a, 0, decimalPlaces)).join(', ')})',
     Constant(:final name) => name,
     IntegerNumber(:final value) => '$value',
     FractionNumber(:final numerator, :final denominator) =>
       '$numerator/$denominator',
     RealNumber(:final value) => formatDouble(value, decimalPlaces),
     ComplexNumber() => _formatComplex(expr, decimalPlaces),
-    Sin(:final expr) => 'sin(${_formatExpr(expr, 0, decimalPlaces)})',
-    Cos(:final expr) => 'cos(${_formatExpr(expr, 0, decimalPlaces)})',
-    Tan(:final expr) => 'tan(${_formatExpr(expr, 0, decimalPlaces)})',
-    Asin(:final expr) => 'asin(${_formatExpr(expr, 0, decimalPlaces)})',
-    Acos(:final expr) => 'acos(${_formatExpr(expr, 0, decimalPlaces)})',
-    Atan(:final expr) => 'atan(${_formatExpr(expr, 0, decimalPlaces)})',
-    Atan2(:final left, :final right) =>
-      'atan2(${_formatExpr(left, 0, decimalPlaces)}, ${_formatExpr(right, 0, decimalPlaces)})',
-    Sinh(:final expr) => 'sinh(${_formatExpr(expr, 0, decimalPlaces)})',
-    Cosh(:final expr) => 'cosh(${_formatExpr(expr, 0, decimalPlaces)})',
-    Tanh(:final expr) => 'tanh(${_formatExpr(expr, 0, decimalPlaces)})',
-    Abs(:final expr) => 'abs(${_formatExpr(expr, 0, decimalPlaces)})',
-    Ln(:final expr) => 'ln(${_formatExpr(expr, 0, decimalPlaces)})',
+    Call(:final spec, :final args) => spec.formatText(
+      args,
+      decimalPlaces,
+      _formatExpr,
+    ),
     Pow(:final base, :final exponent) => _formatPow(
       base,
       exponent,
@@ -85,103 +64,8 @@ String _formatExpr(Expr expr, int parentPrec, int decimalPlaces) {
       point,
       decimalPlaces,
     ),
-    LambertW(:final expr, :final branch) =>
-      branch == 0
-          ? 'LambertW(${_formatExpr(expr, 0, decimalPlaces)})'
-          : 'LambertW(${_formatExpr(expr, 0, decimalPlaces)}, $branch)',
-    Erf(:final expr) => 'erf(${_formatExpr(expr, 0, decimalPlaces)})',
-    Erfc(:final expr) => 'erfc(${_formatExpr(expr, 0, decimalPlaces)})',
-    Gamma(:final expr) => 'gamma(${_formatExpr(expr, 0, decimalPlaces)})',
-    Zeta(:final expr, :final shift) =>
-      shift == null
-          ? 'zeta(${_formatExpr(expr, 0, decimalPlaces)})'
-          : 'zeta(${_formatExpr(expr, 0, decimalPlaces)}, ${_formatExpr(shift, 0, decimalPlaces)})',
-    Digamma(:final expr) => 'digamma(${_formatExpr(expr, 0, decimalPlaces)})',
-    LogGamma(:final expr) => 'loggamma(${_formatExpr(expr, 0, decimalPlaces)})',
-    Polygamma(:final left, :final right) =>
-      'polygamma(${_formatExpr(left, 0, decimalPlaces)}, ${_formatExpr(right, 0, decimalPlaces)})',
-    BesselJ(:final left, :final right) =>
-      'besselj(${_formatExpr(left, 0, decimalPlaces)}, ${_formatExpr(right, 0, decimalPlaces)})',
-    BesselY(:final left, :final right) =>
-      'bessely(${_formatExpr(left, 0, decimalPlaces)}, ${_formatExpr(right, 0, decimalPlaces)})',
-    BesselI(:final left, :final right) =>
-      'besseli(${_formatExpr(left, 0, decimalPlaces)}, ${_formatExpr(right, 0, decimalPlaces)})',
-    BesselK(:final left, :final right) =>
-      'besselk(${_formatExpr(left, 0, decimalPlaces)}, ${_formatExpr(right, 0, decimalPlaces)})',
-    EllipticK(:final expr) =>
-      'elliptick(${_formatExpr(expr, 0, decimalPlaces)})',
-    EllipticE(:final expr, :final amplitude) =>
-      amplitude == null
-          ? 'elliptice(${_formatExpr(expr, 0, decimalPlaces)})'
-          : 'elliptic_e(${_formatExpr(amplitude, 0, decimalPlaces)}, ${_formatExpr(expr, 0, decimalPlaces)})',
-    Erfi(:final expr) => 'erfi(${_formatExpr(expr, 0, decimalPlaces)})',
-    FresnelS(:final expr) => 'fresnels(${_formatExpr(expr, 0, decimalPlaces)})',
-    FresnelC(:final expr) => 'fresnelc(${_formatExpr(expr, 0, decimalPlaces)})',
-    ExpIntegral(:final expr) => 'Ei(${_formatExpr(expr, 0, decimalPlaces)})',
-    ExpIntegralE(:final left, :final right) =>
-      'expint(${_formatExpr(left, 0, decimalPlaces)}, ${_formatExpr(right, 0, decimalPlaces)})',
-    LogIntegral(:final expr) => 'li(${_formatExpr(expr, 0, decimalPlaces)})',
-    SinIntegral(:final expr) => 'Si(${_formatExpr(expr, 0, decimalPlaces)})',
-    CosIntegral(:final expr) => 'Ci(${_formatExpr(expr, 0, decimalPlaces)})',
-    SinhIntegral(:final expr) => 'Shi(${_formatExpr(expr, 0, decimalPlaces)})',
-    CoshIntegral(:final expr) => 'Chi(${_formatExpr(expr, 0, decimalPlaces)})',
-    UpperGamma(:final left, :final right) =>
-      'uppergamma(${_formatExpr(left, 0, decimalPlaces)}, ${_formatExpr(right, 0, decimalPlaces)})',
-    LowerGamma(:final left, :final right) =>
-      'lowergamma(${_formatExpr(left, 0, decimalPlaces)}, ${_formatExpr(right, 0, decimalPlaces)})',
-    Polylog(:final left, :final right) =>
-      'polylog(${_formatExpr(left, 0, decimalPlaces)}, ${_formatExpr(right, 0, decimalPlaces)})',
-    EllipticF(:final left, :final right) =>
-      'elliptic_f(${_formatExpr(left, 0, decimalPlaces)}, ${_formatExpr(right, 0, decimalPlaces)})',
-    EllipticPi(:final characteristic, :final amplitude, :final modulus) =>
-      'elliptic_pi(${_formatExpr(characteristic, 0, decimalPlaces)}, ${_formatExpr(amplitude, 0, decimalPlaces)}, ${_formatExpr(modulus, 0, decimalPlaces)})',
-    Hypergeometric(:final upper, :final lower, :final argument) =>
-      'hyper([${upper.map((e) => _formatExpr(e, 0, decimalPlaces)).join(', ')}], [${lower.map((e) => _formatExpr(e, 0, decimalPlaces)).join(', ')}], ${_formatExpr(argument, 0, decimalPlaces)})',
-    AppellF1(:final a, :final b1, :final b2, :final c, :final x, :final y) =>
-      'appellf1(${_formatExpr(a, 0, decimalPlaces)}, ${_formatExpr(b1, 0, decimalPlaces)}, ${_formatExpr(b2, 0, decimalPlaces)}, ${_formatExpr(c, 0, decimalPlaces)}, ${_formatExpr(x, 0, decimalPlaces)}, ${_formatExpr(y, 0, decimalPlaces)})',
-    Min(:final args) =>
-      'min(${args.map((e) => _formatExpr(e, 0, decimalPlaces)).join(', ')})',
-    Max(:final args) =>
-      'max(${args.map((e) => _formatExpr(e, 0, decimalPlaces)).join(', ')})',
-    Gcd(:final args) =>
-      'gcd(${args.map((e) => _formatExpr(e, 0, decimalPlaces)).join(', ')})',
-    Lcm(:final args) =>
-      'lcm(${args.map((e) => _formatExpr(e, 0, decimalPlaces)).join(', ')})',
-    Tuple(:final args) =>
-      '[${args.map((e) => _formatExpr(e, 0, decimalPlaces)).join(', ')}]',
-    Beta(:final left, :final right) =>
-      'beta(${_formatExpr(left, 0, decimalPlaces)}, ${_formatExpr(right, 0, decimalPlaces)})',
-    Factorial(:final expr) =>
-      expr is Factorial
-          ? '(${_formatExpr(expr, 0, decimalPlaces)})!'
-          : '${_formatExpr(expr, 5, decimalPlaces)}!',
-    Binomial(:final left, :final right) =>
-      'binomial(${_formatExpr(left, 0, decimalPlaces)}, ${_formatExpr(right, 0, decimalPlaces)})',
-    Floor(:final expr) => 'floor(${_formatExpr(expr, 0, decimalPlaces)})',
-    Ceil(:final expr) => 'ceil(${_formatExpr(expr, 0, decimalPlaces)})',
-    Round(:final expr) => 'round(${_formatExpr(expr, 0, decimalPlaces)})',
-    Sign(:final expr) => 'sign(${_formatExpr(expr, 0, decimalPlaces)})',
-    Mod(:final left, :final right) =>
-      'mod(${_formatExpr(left, 0, decimalPlaces)}, ${_formatExpr(right, 0, decimalPlaces)})',
-    Re(:final expr) => 're(${_formatExpr(expr, 0, decimalPlaces)})',
-    Im(:final expr) => 'im(${_formatExpr(expr, 0, decimalPlaces)})',
-    Arg(:final expr) => 'arg(${_formatExpr(expr, 0, decimalPlaces)})',
-    Conjugate(:final expr) => 'conj(${_formatExpr(expr, 0, decimalPlaces)})',
-    Asinh(:final expr) => 'asinh(${_formatExpr(expr, 0, decimalPlaces)})',
-    Acosh(:final expr) => 'acosh(${_formatExpr(expr, 0, decimalPlaces)})',
-    Atanh(:final expr) => 'atanh(${_formatExpr(expr, 0, decimalPlaces)})',
-    LessThan(:final left, :final right) =>
-      '${_formatExpr(left, 1, decimalPlaces)} < ${_formatExpr(right, 1, decimalPlaces)}',
-    LessEqual(:final left, :final right) =>
-      '${_formatExpr(left, 1, decimalPlaces)} <= ${_formatExpr(right, 1, decimalPlaces)}',
-    GreaterThan(:final left, :final right) =>
-      '${_formatExpr(left, 1, decimalPlaces)} > ${_formatExpr(right, 1, decimalPlaces)}',
-    GreaterEqual(:final left, :final right) =>
-      '${_formatExpr(left, 1, decimalPlaces)} >= ${_formatExpr(right, 1, decimalPlaces)}',
-    Equal(:final left, :final right) =>
-      '${_formatExpr(left, 1, decimalPlaces)} == ${_formatExpr(right, 1, decimalPlaces)}',
-    NotEqual(:final left, :final right) =>
-      '${_formatExpr(left, 1, decimalPlaces)} != ${_formatExpr(right, 1, decimalPlaces)}',
+    Relational(:final op, :final left, :final right) =>
+      '${_formatExpr(left, 1, decimalPlaces)} ${op.symbol} ${_formatExpr(right, 1, decimalPlaces)}',
     Piecewise(:final branches, :final otherwise) =>
       'piecewise(${[
         for (final (:relation, :expr) in branches) ...[_formatExpr(relation, 0, decimalPlaces), _formatExpr(expr, 0, decimalPlaces)],
@@ -241,7 +125,7 @@ String _formatPow(Expr base, Expr exponent, int decimalPlaces) => switch ((
   (_, IntegerNumber(isNegativeOne: true)) =>
     '1 / ${_formatExpr(base, 3, decimalPlaces)}',
   (_, FractionNumber(:final numerator, :final denominator))
-      when numerator == Integer.one && denominator == Integer.two =>
+      when numerator == BigInt.one && denominator == BigInt.two =>
     'sqrt(${_formatExpr(base, 0, decimalPlaces)})',
   _ =>
     '${_formatExpr(base, 5, decimalPlaces)} ^ ${_formatExpr(exponent, 4, decimalPlaces)}',
@@ -286,7 +170,7 @@ String _formatMul(List<Expr> factors, int decimalPlaces) {
       for (final f in factors) {
         if (f case Pow(:final base, exponent: final IntegerNumber exp)
             when exp.isNegative) {
-          denFactors.add(exp.isNegativeOne ? base : Pow(base, exp.neg()));
+          denFactors.add(exp.isNegativeOne ? base : Pow.raw(base, exp.neg()));
         } else {
           numFactors.add(f);
         }
@@ -331,13 +215,7 @@ String _formatMulNumerator(
         final f = factors[i];
         if (i > 0 && f == IntegerNumber.negativeOne && i + 1 < factors.length) {
           final next = factors[i + 1];
-          parts.add(
-            _formatExpr(
-              Mul([IntegerNumber.negativeOne, next]),
-              2,
-              decimalPlaces,
-            ),
-          );
+          parts.add(_formatExpr(-next, 2, decimalPlaces));
           i++;
         } else {
           final reqPrec = (i > 0 && f is FractionNumber)

@@ -59,7 +59,7 @@ List<Expr> solveQuadratic(
         assumptions: assumptions,
       );
     case _:
-      final sqrtDisc = Pow(
+      final sqrtDisc = Pow.of(
         disc,
         FractionNumber.half,
       ).simplify(assumptions: assumptions);
@@ -101,13 +101,13 @@ List<Expr> solveBiquadratic(
     uVar = '_$uVar';
   }
   final uVarExpr = Variable(uVar);
-  final uEq = ((a * Pow(uVarExpr, IntegerNumber.two)) + (b * uVarExpr) + c)
+  final uEq = ((a * Pow.of(uVarExpr, IntegerNumber.two)) + (b * uVarExpr) + c)
       .simplify(assumptions: assumptions);
   final uRoots = solveEquation(uEq, uVar, assumptions: assumptions);
   final x = Variable(variable);
   final allRoots = <Expr>[];
   for (final u in uRoots) {
-    final xEq = (Pow(x, IntegerNumber.two) - u).simplify(
+    final xEq = (Pow.of(x, IntegerNumber.two) - u).simplify(
       assumptions: assumptions,
     );
     allRoots.addAll(solveEquation(xEq, variable, assumptions: assumptions));
@@ -116,17 +116,18 @@ List<Expr> solveBiquadratic(
 }
 
 /// Computes the exact square root of rational constant [c] if reducible.
-Expr sqrtConstant(RationalNumber c) => Pow(c, FractionNumber.half).simplify();
+Expr sqrtConstant(RationalNumber c) =>
+    Pow.of(c, FractionNumber.half).simplify();
 
 /// Computes nth root of constant [c].
 Expr rootConstant(Expr c, int n) {
   if (n.isOdd && c is RationalNumber && c.isNegative) {
-    return (-Pow(c.neg(), RationalNumber(1, n)).simplify()).simplify();
+    return (-Pow.of(c.neg(), RationalNumber(1, n)).simplify()).simplify();
   }
   if (n.isOdd && c is RealNumber && c.value < 0) {
     return RealNumber(-math.pow(-c.value, 1.0 / n).toDouble());
   }
-  return Pow(c, RationalNumber(1, n)).simplify();
+  return Pow.of(c, RationalNumber(1, n)).simplify();
 }
 
 bool _isZero(Expr expr) => isZeroExpr(expr);

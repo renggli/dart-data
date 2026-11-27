@@ -96,11 +96,11 @@ void main() {
       final paramDef = (y * x).integrate('x', from: 0, to: 2);
       check(paramDef).equals((IntegerNumber.two * y).simplify());
 
-      final symConstDef = Pow(Constant.e, x).integrate('x', from: 0, to: 1);
+      final symConstDef = Pow.of(Constant.e, x).integrate('x', from: 0, to: 1);
       check(symConstDef)
           .equals((IntegerNumber.negativeOne + Constant.e).simplify());
 
-      check(Sin(x).integrate('x', from: 0, to: Constant.pi))
+      check(Fn.sin(x).integrate('x', from: 0, to: Constant.pi))
           .equals(IntegerNumber.two);
       check(
         Expr.parse('1/(2 + cos(x))')
@@ -112,9 +112,9 @@ void main() {
       check(
         x.integrate('x', from: const Variable('a'), to: const Variable('b')),
       ).equals(
-        (FractionNumber.half * Pow(const Variable('b'), IntegerNumber.two) -
+        (FractionNumber.half * Pow.of(const Variable('b'), IntegerNumber.two) -
                 FractionNumber.half *
-                    Pow(const Variable('a'), IntegerNumber.two))
+                    Pow.of(const Variable('a'), IntegerNumber.two))
             .simplify(),
       );
       check(x.integrate('x', from: BigInt.zero, to: BigInt.two))
@@ -159,7 +159,8 @@ void main() {
       final unevaluated = Expr.parse('sin(x^3)').integrate('x', from: 0, to: 1);
       check(unevaluated).isA<Integral>();
 
-      final oscImproper = Cos(x).integrate('x', from: 0, to: double.infinity);
+      final oscImproper = Fn.cos(x)
+          .integrate('x', from: 0, to: double.infinity);
       check(oscImproper).isA<Integral>();
 
       // Interior singularity pole detection:
@@ -183,13 +184,13 @@ void main() {
       check(shiftedPole).equals(Constant.infinity);
 
       // Interior singularity pole detection for Tan(u) and Ln(u):
-      final tanSquarePole = Pow(
-        Tan(x),
+      final tanSquarePole = Pow.of(
+        Fn.tan(x),
         IntegerNumber.two,
       ).integrate('x', from: IntegerNumber.zero, to: Constant.pi);
       check(tanSquarePole).equals(Constant.infinity);
 
-      final tanSquareNoPole = Pow(Tan(x), IntegerNumber.two).integrate(
+      final tanSquareNoPole = Pow.of(Fn.tan(x), IntegerNumber.two).integrate(
         'x',
         from: IntegerNumber.zero,
         to: (Constant.pi / IntegerNumber.of(4)).simplify(),
@@ -198,7 +199,7 @@ void main() {
         (IntegerNumber.one - Constant.pi / IntegerNumber.of(4)).simplify(),
       );
 
-      final lnCrossingZero = Ln(x).integrate('x', from: -1, to: 1);
+      final lnCrossingZero = Fn.ln(x).integrate('x', from: -1, to: 1);
       check(lnCrossingZero).isA<Integral>();
 
       // Non-overlapping interval with pole outside [1, 2] evaluates cleanly:
@@ -207,7 +208,7 @@ void main() {
 
       // Negative bounds for logarithmic antiderivatives:
       final negBoundsLog = Expr.parse('1/x').integrate('x', from: -2, to: -1);
-      check(negBoundsLog).equals(-Ln(IntegerNumber.two));
+      check(negBoundsLog).equals(-Fn.ln(IntegerNumber.two));
 
       // Domain assumptions preserved during antiderivative construction:
       const posAssumptions = Assumptions(
@@ -215,7 +216,8 @@ void main() {
       );
       final sqrtSqInt = Expr.parse('sqrt(x^2)')
           .integrate('x', assumptions: posAssumptions);
-      check(sqrtSqInt).equals(FractionNumber.half * Pow(x, IntegerNumber.two));
+      check(sqrtSqInt)
+          .equals(FractionNumber.half * Pow.of(x, IntegerNumber.two));
 
       final posDefInt = (IntegerNumber.one / x).integrate(
         'x',
@@ -223,7 +225,7 @@ void main() {
         to: 2,
         assumptions: posAssumptions,
       );
-      check(posDefInt).equals(Ln(IntegerNumber.two));
+      check(posDefInt).equals(Fn.ln(IntegerNumber.two));
     });
   });
 
@@ -343,9 +345,9 @@ void main() {
       check(Expr.parse('ln(1 - x) / x').integrate('x', from: 0, to: 1))
           .equals(Expr.parse('-pi^2 / 6').simplify());
       check(Expr.parse('x * (1 - x)').integrate('x', from: 0, to: 1))
-          .equals(RationalNumber.of(const Integer(1), const Integer(6)));
+          .equals(RationalNumber.of(BigInt.from(1), BigInt.from(6)));
       check(Expr.parse('x^2 * (1 - x)^3').integrate('x', from: 0, to: 1))
-          .equals(RationalNumber.of(const Integer(1), const Integer(60)));
+          .equals(RationalNumber.of(BigInt.from(1), BigInt.from(60)));
 
       // Non-elementary Beta/Wallis integrals and odd integrand pole checks
       check(
@@ -365,9 +367,8 @@ void main() {
       ).isNotNull();
       check(Expr.parse('sin(x^3) / (x^2 - 4)').integrate('x', from: -1, to: 1))
           .equals(IntegerNumber.zero);
-      check(Expr.parse('sin(x^3) / x').integrate('x', from: -1, to: 1)).equals(
-        (RationalNumber(2, 3) * SinIntegral(IntegerNumber.one)).simplify(),
-      );
+      check(Expr.parse('sin(x^3) / x').integrate('x', from: -1, to: 1))
+          .equals((RationalNumber(2, 3) * Fn.si(IntegerNumber.one)).simplify());
       check(Expr.parse('1 / (x - 1)^2').integrate('x', from: 0, to: 2))
           .equals(Constant.infinity);
       check(Expr.parse('((x - 1)^2)^(-1/3)').integrate('x', from: 0, to: 2))
@@ -458,8 +459,8 @@ void main() {
         check(divSym).isA<Integral>();
 
         // Even-power fractional interior singularity at x = 1 splits across [0, 2]
-        final split = Pow(
-          Pow(x - IntegerNumber.one, IntegerNumber.two),
+        final split = Pow.of(
+          Pow.of(x - IntegerNumber.one, IntegerNumber.two),
           RationalNumber(-1, 3),
         ).integrate('x', from: 0, to: 2);
         check(split).equals(IntegerNumber.of(6));
@@ -476,13 +477,13 @@ void main() {
       ).equals(IntegerNumber.negativeOne);
 
       // Even-power radical interval splitting
-      check(Abs(x).integrate('x', from: -2, to: 3))
+      check(Fn.abs(x).integrate('x', from: -2, to: 3))
           .equals(RationalNumber(13, 2));
-      check(Abs(x - IntegerNumber.one).integrate('x', from: 0, to: 3))
+      check(Fn.abs(x - IntegerNumber.one).integrate('x', from: 0, to: 3))
           .equals(RationalNumber(5, 2));
       check(
-        Pow(
-          Pow(x, IntegerNumber.two),
+        Pow.of(
+          Pow.of(x, IntegerNumber.two),
           RationalNumber(-1, 3),
         ).integrate('x', from: -1, to: 8),
       ).equals(IntegerNumber.of(9));
@@ -499,37 +500,44 @@ void main() {
       check(
         Expr.parse('5 * exp(-x^2)')
             .integrate('x', from: 0, to: Constant.infinity),
-      ).equals(RationalNumber(5, 2) * Pow(Constant.pi, FractionNumber.half));
+      ).equals(RationalNumber(5, 2) * Pow.of(Constant.pi, FractionNumber.half));
 
       // Euler Beta [0, 1] table case and non-linear Weierstrass argument
       const s = Variable('s');
       const t = Variable('t');
-      final eulerBeta = (Pow(x, s) * Pow(IntegerNumber.one - x, t)).integrate(
-        'x',
-        from: 0,
-        to: 1,
-        assumptions: const Assumptions(
-          domains: {'s': VariableDomain.positive, 't': VariableDomain.positive},
-        ),
-      );
-      check(eulerBeta).isA<Beta>();
+      final eulerBeta = (Pow.of(x, s) * Pow.of(IntegerNumber.one - x, t))
+          .integrate(
+            'x',
+            from: 0,
+            to: 1,
+            assumptions: const Assumptions(
+              domains: {
+                's': VariableDomain.positive,
+                't': VariableDomain.positive,
+              },
+            ),
+          );
+      check(eulerBeta)
+          .isA<Call>()
+          .has('id', (Call c) => c.id)
+          .equals(FunctionId.beta);
       final nonLinTan = Expr.parse('1 / (2 + cos(x^2))')
           .integrate('x', from: 0, to: 1);
       check(nonLinTan).isNotNull();
 
       // Generalized Frullani / log-quotient on [0, 1]
       check(Expr.parse('(x^7 - 1) / ln(x)').integrate('x', from: 0, to: 1))
-          .equals(IntegerNumber.of(3) * Ln(IntegerNumber.two));
+          .equals(IntegerNumber.of(3) * Fn.ln(IntegerNumber.two));
       check(Expr.parse('(x^3 - x) / ln(x)').integrate('x', from: 0, to: 1))
-          .equals(Ln(IntegerNumber.two));
+          .equals(Fn.ln(IntegerNumber.two));
 
       // Piecewise floor / ceil definite integral via periodic unit summation
-      final floorDef = (Expr.parse('x') - Floor(Expr.parse('x')))
+      final floorDef = (Expr.parse('x') - Fn.floor(Expr.parse('x')))
           .pow(2)
           .integrate('x', from: 0, to: 256);
       check(floorDef).equals(RationalNumber(256, 3));
       // Unintegrable non-monotone floor keeps unevaluated Integral
-      final nonMonFloor = Floor(Sin(Expr.parse('x^2')))
+      final nonMonFloor = Fn.floor(Fn.sin(Expr.parse('x^2')))
           .integrate('x', from: 0, to: 2);
       check(nonMonFloor.anyNode((n) => n is Integral)).isTrue;
 
@@ -598,16 +606,16 @@ void main() {
             .integrate('x', from: 0, to: Expr.parse('2 * pi')),
       ).equals(Expr.parse('2 * pi / 3 + 4 * sqrt(3)').simplify());
       check(
-        (Floor(Expr.parse('x')) * Expr.parse('x') * Ceil(Expr.parse('x')))
+        (Fn.floor(Expr.parse('x')) * Expr.parse('x') * Fn.ceil(Expr.parse('x')))
             .integrate('x', from: 0, to: 100),
       ).equals(IntegerNumber.of(24997500));
       check(
-        Floor(Expr.parse('ln(x) / ln(2)')).integrate('x', from: 50, to: 100),
+        Fn.floor(Expr.parse('ln(x) / ln(2)')).integrate('x', from: 50, to: 100),
       ).equals(IntegerNumber.of(286));
       check(
         Expr.parse('exp(-2 * x) * sin(3 * x) / x')
             .integrate('x', from: 0, to: Constant.infinity),
-      ).equals(Atan(RationalNumber(3, 2)));
+      ).equals(Fn.atan(RationalNumber(3, 2)));
       check(
         Expr.parse('x * (exp(-x) + 1) / (exp(x) - 1)')
             .integrate('x', from: 0, to: Constant.infinity),

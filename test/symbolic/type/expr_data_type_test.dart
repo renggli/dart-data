@@ -62,7 +62,7 @@ void main() {
       ).isTrue;
       check(eq.isClose(Constant.pi, const RealNumber(math.pi), 1e-12)).isTrue;
       // Closed expression throwing on evaluateComplex returns false
-      check(eq.isClose(Gamma(ComplexNumber.i), IntegerNumber.zero, 1e-3))
+      check(eq.isClose(Fn.gamma(ComplexNumber.i), IntegerNumber.zero, 1e-3))
           .isFalse;
       // Distinct symbolic expressions with free variables return false
       check(eq.isClose(const Variable('x'), const Variable('y'), 1e-3)).isFalse;
@@ -114,12 +114,12 @@ void main() {
         f.conjugate(
           x +
               ComplexNumber(IntegerNumber.two, IntegerNumber.of(3)) +
-              const OrderTerm('x', 2),
+              OrderTerm('x', 2),
         ),
       ).equals(
-        (Conjugate(x) +
+        (Fn.conj(x) +
                 ComplexNumber(IntegerNumber.two, IntegerNumber.of(-3)) +
-                const OrderTerm('x', 2))
+                OrderTerm('x', 2))
             .simplify(),
       );
 
@@ -144,7 +144,8 @@ void main() {
         const eq = ExprEquality();
         const x = Variable('x');
         const y = Variable('y');
-        check(eq.isEqual(x + IntegerNumber.zero, x)).isFalse;
+        check(eq.isEqual(x + IntegerNumber.zero, x)).isTrue;
+        check(eq.isEqual(x + IntegerNumber.one, x)).isFalse;
         check(eq.isEqual(x + IntegerNumber.one, x + IntegerNumber.one)).isTrue;
         check(eq.hash(x + IntegerNumber.one))
             .equals(eq.hash(x + IntegerNumber.one));

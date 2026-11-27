@@ -1,10 +1,12 @@
+import 'package:more/math.dart';
+
 import '../../algebra/expand.dart';
 import '../../algebra/helpers.dart';
 import '../../algebra/rational.dart';
 import '../../algebra/simplify.dart';
 import '../../assumptions.dart';
 import '../../ast.dart';
-import '../../number/integer.dart';
+import '../../functions/fn.dart';
 import '../linear_form.dart';
 import 'definite.dart';
 import 'integration.dart';
@@ -14,9 +16,9 @@ import 'trigonometric.dart';
 
 Expr integrateCotPower(int n, Expr inner, Expr a, String variable) {
   if (n == 0) return Variable(variable);
-  if (n == 1) return (Ln(Abs(Sin(inner))) / a).simplify();
+  if (n == 1) return (Fn.ln(Fn.abs(Fn.sin(inner))) / a).simplify();
   final nMinus1 = IntegerNumber.of(n - 1);
-  final cotTerm = Pow(Cos(inner) / Sin(inner), nMinus1);
+  final cotTerm = Pow.of(Fn.cos(inner) / Fn.sin(inner), nMinus1);
   final term1 = (-cotTerm / (nMinus1 * a)).simplify();
   final rem = integrateCotPower(n - 2, inner, a, variable);
   return (term1 - rem).simplify();
@@ -33,29 +35,31 @@ Expr? reduceTrigPower(Expr factor, String variable) {
     Expr u5(Expr inner) => (IntegerNumber.of(5) * inner).simplify();
     Expr u6(Expr inner) => (IntegerNumber.of(6) * inner).simplify();
 
-    if (base case Sinh(:final expr) when expr.matchLinear(variable) != null) {
+    if (base case Call(id: FunctionId.sinh, args: [final expr])
+        when expr.matchLinear(variable) != null) {
       return switch (n) {
-        2 => (Cosh(u2(expr)) - IntegerNumber.one) / IntegerNumber.two,
+        2 => (Fn.cosh(u2(expr)) - IntegerNumber.one) / IntegerNumber.two,
         3 =>
-          (Sinh(u3(expr)) - IntegerNumber.of(3) * Sinh(expr)) /
+          (Fn.sinh(u3(expr)) - IntegerNumber.of(3) * Fn.sinh(expr)) /
               IntegerNumber.of(4),
         4 =>
-          (Cosh(u4(expr)) -
-                  IntegerNumber.of(4) * Cosh(u2(expr)) +
+          (Fn.cosh(u4(expr)) -
+                  IntegerNumber.of(4) * Fn.cosh(u2(expr)) +
                   IntegerNumber.of(3)) /
               IntegerNumber.of(8),
         _ => null,
       };
     }
-    if (base case Cosh(:final expr) when expr.matchLinear(variable) != null) {
+    if (base case Call(id: FunctionId.cosh, args: [final expr])
+        when expr.matchLinear(variable) != null) {
       return switch (n) {
-        2 => (Cosh(u2(expr)) + IntegerNumber.one) / IntegerNumber.two,
+        2 => (Fn.cosh(u2(expr)) + IntegerNumber.one) / IntegerNumber.two,
         3 =>
-          (Cosh(u3(expr)) + IntegerNumber.of(3) * Cosh(expr)) /
+          (Fn.cosh(u3(expr)) + IntegerNumber.of(3) * Fn.cosh(expr)) /
               IntegerNumber.of(4),
         4 =>
-          (Cosh(u4(expr)) +
-                  IntegerNumber.of(4) * Cosh(u2(expr)) +
+          (Fn.cosh(u4(expr)) +
+                  IntegerNumber.of(4) * Fn.cosh(u2(expr)) +
                   IntegerNumber.of(3)) /
               IntegerNumber.of(8),
         _ => null,
@@ -64,10 +68,11 @@ Expr? reduceTrigPower(Expr factor, String variable) {
 
     final Expr inner;
     final bool isSin;
-    if (base case Sin(:final expr) when expr.matchLinear(variable) != null) {
+    if (base case Call(id: FunctionId.sin, args: [final expr])
+        when expr.matchLinear(variable) != null) {
       inner = expr;
       isSin = true;
-    } else if (base case Cos(:final expr)
+    } else if (base case Call(id: FunctionId.cos, args: [final expr])
         when expr.matchLinear(variable) != null) {
       inner = expr;
       isSin = false;
@@ -75,45 +80,45 @@ Expr? reduceTrigPower(Expr factor, String variable) {
       return null;
     }
     return switch ((isSin, n)) {
-      (true, 2) => (IntegerNumber.one - Cos(u2(inner))) / IntegerNumber.two,
-      (false, 2) => (IntegerNumber.one + Cos(u2(inner))) / IntegerNumber.two,
+      (true, 2) => (IntegerNumber.one - Fn.cos(u2(inner))) / IntegerNumber.two,
+      (false, 2) => (IntegerNumber.one + Fn.cos(u2(inner))) / IntegerNumber.two,
       (true, 3) =>
-        (IntegerNumber.of(3) * Sin(inner) - Sin(u3(inner))) /
+        (IntegerNumber.of(3) * Fn.sin(inner) - Fn.sin(u3(inner))) /
             IntegerNumber.of(4),
       (false, 3) =>
-        (IntegerNumber.of(3) * Cos(inner) + Cos(u3(inner))) /
+        (IntegerNumber.of(3) * Fn.cos(inner) + Fn.cos(u3(inner))) /
             IntegerNumber.of(4),
       (true, 4) =>
         (IntegerNumber.of(3) -
-                IntegerNumber.of(4) * Cos(u2(inner)) +
-                Cos(u4(inner))) /
+                IntegerNumber.of(4) * Fn.cos(u2(inner)) +
+                Fn.cos(u4(inner))) /
             IntegerNumber.of(8),
       (false, 4) =>
         (IntegerNumber.of(3) +
-                IntegerNumber.of(4) * Cos(u2(inner)) +
-                Cos(u4(inner))) /
+                IntegerNumber.of(4) * Fn.cos(u2(inner)) +
+                Fn.cos(u4(inner))) /
             IntegerNumber.of(8),
       (true, 5) =>
-        (IntegerNumber.of(10) * Sin(inner) -
-                IntegerNumber.of(5) * Sin(u3(inner)) +
-                Sin(u5(inner))) /
+        (IntegerNumber.of(10) * Fn.sin(inner) -
+                IntegerNumber.of(5) * Fn.sin(u3(inner)) +
+                Fn.sin(u5(inner))) /
             IntegerNumber.of(16),
       (false, 5) =>
-        (IntegerNumber.of(10) * Cos(inner) +
-                IntegerNumber.of(5) * Cos(u3(inner)) +
-                Cos(u5(inner))) /
+        (IntegerNumber.of(10) * Fn.cos(inner) +
+                IntegerNumber.of(5) * Fn.cos(u3(inner)) +
+                Fn.cos(u5(inner))) /
             IntegerNumber.of(16),
       (true, 6) =>
         (IntegerNumber.of(10) -
-                IntegerNumber.of(15) * Cos(u2(inner)) +
-                IntegerNumber.of(6) * Cos(u4(inner)) -
-                Cos(u6(inner))) /
+                IntegerNumber.of(15) * Fn.cos(u2(inner)) +
+                IntegerNumber.of(6) * Fn.cos(u4(inner)) -
+                Fn.cos(u6(inner))) /
             IntegerNumber.of(32),
       (false, 6) =>
         (IntegerNumber.of(10) +
-                IntegerNumber.of(15) * Cos(u2(inner)) +
-                IntegerNumber.of(6) * Cos(u4(inner)) +
-                Cos(u6(inner))) /
+                IntegerNumber.of(15) * Fn.cos(u2(inner)) +
+                IntegerNumber.of(6) * Fn.cos(u4(inner)) +
+                Fn.cos(u6(inner))) /
             IntegerNumber.of(32),
       _ => null,
     };
@@ -145,18 +150,18 @@ Expr? reduceTrigPower(Expr factor, String variable) {
       coeff = switch (constFactors) {
         [] => IntegerNumber.one,
         [final single] => single,
-        _ => Mul(constFactors).simplify(),
+        _ => Mul.of(constFactors).simplify(),
       };
     }
     switch (varPart) {
-      case Sin(expr: final arg):
+      case Call(id: FunctionId.sin, args: [final arg]):
         if (inner == null) {
           inner = arg;
         } else if (inner != arg) {
           return null;
         }
         aSin = (aSin + coeff).simplify();
-      case Cos(expr: final arg):
+      case Call(id: FunctionId.cos, args: [final arg]):
         if (inner == null) {
           inner = arg;
         } else if (inner != arg) {
@@ -177,7 +182,10 @@ Expr? collectAffineTrigInner(Expr node, String variable) {
   void scan(Expr n) {
     if (!valid || !n.dependsOn(variable)) return;
     switch (n) {
-      case Sin(:final expr) || Cos(:final expr) || Tan(:final expr):
+      case Call(
+        id: FunctionId.sin || FunctionId.cos || FunctionId.tan,
+        args: [final expr],
+      ):
         if (expr.matchLinear(variable) == null) {
           valid = false;
           return;
@@ -208,39 +216,43 @@ Expr? collectAffineTrigInner(Expr node, String variable) {
 }
 
 Expr replaceTrigWithWeierstrass(Expr node, Expr inner, Variable tVar) {
-  if (node is Sin && node.expr == inner) {
-    return (IntegerNumber.two * tVar) / (IntegerNumber.one + tVar * tVar);
-  }
-  if (node is Cos && node.expr == inner) {
-    return (IntegerNumber.one - tVar * tVar) /
-        (IntegerNumber.one + tVar * tVar);
-  }
-  if (node is Tan && node.expr == inner) {
-    return (IntegerNumber.two * tVar) / (IntegerNumber.one - tVar * tVar);
+  if (node is Call && node.args[0] == inner) {
+    if (node.id == FunctionId.sin) {
+      return (IntegerNumber.two * tVar) / (IntegerNumber.one + tVar * tVar);
+    }
+    if (node.id == FunctionId.cos) {
+      return (IntegerNumber.one - tVar * tVar) /
+          (IntegerNumber.one + tVar * tVar);
+    }
+    if (node.id == FunctionId.tan) {
+      return (IntegerNumber.two * tVar) / (IntegerNumber.one - tVar * tVar);
+    }
   }
   return node.mapChildren((c) => replaceTrigWithWeierstrass(c, inner, tVar));
 }
 
 Expr replaceTrigWithTan(Expr node, Expr inner, Variable tVar) {
-  if (node is Tan && node.expr == inner) return tVar;
+  if (node is Call && node.id == FunctionId.tan && node.args[0] == inner) {
+    return tVar;
+  }
   if (node
       case Pow(
-        base: Sin(expr: final arg),
+        base: Call(id: FunctionId.sin, args: [final arg]),
         exponent: IntegerNumber(asInt: final n?),
       )
       when arg == inner && n.isEven) {
-    return Pow(
+    return Pow.of(
       (tVar * tVar) / (IntegerNumber.one + tVar * tVar),
       IntegerNumber.of(n ~/ 2),
     );
   }
   if (node
       case Pow(
-        base: Cos(expr: final arg),
+        base: Call(id: FunctionId.cos, args: [final arg]),
         exponent: IntegerNumber(asInt: final n?),
       )
       when arg == inner && n.isEven) {
-    return Pow(
+    return Pow.of(
       IntegerNumber.one / (IntegerNumber.one + tVar * tVar),
       IntegerNumber.of(n ~/ 2),
     );
@@ -251,15 +263,15 @@ Expr replaceTrigWithTan(Expr node, Expr inner, Variable tVar) {
     final otherFactors = <Expr>[];
     final sinCosFactors = <Expr>[];
     for (final f in node.factors) {
-      if (f is Sin && f.expr == inner) {
+      if (f is Call && f.id == FunctionId.sin && f.args[0] == inner) {
         p += 1;
         sinCosFactors.add(f);
-      } else if (f is Cos && f.expr == inner) {
+      } else if (f is Call && f.id == FunctionId.cos && f.args[0] == inner) {
         q += 1;
         sinCosFactors.add(f);
       } else if (f
           case Pow(
-            base: Sin(expr: final arg),
+            base: Call(id: FunctionId.sin, args: [final arg]),
             exponent: IntegerNumber(asInt: final n?),
           )
           when arg == inner) {
@@ -267,7 +279,7 @@ Expr replaceTrigWithTan(Expr node, Expr inner, Variable tVar) {
         sinCosFactors.add(f);
       } else if (f
           case Pow(
-            base: Cos(expr: final arg),
+            base: Call(id: FunctionId.cos, args: [final arg]),
             exponent: IntegerNumber(asInt: final n?),
           )
           when arg == inner) {
@@ -278,16 +290,18 @@ Expr replaceTrigWithTan(Expr node, Expr inner, Variable tVar) {
       }
     }
     if ((p != 0 || q != 0) && (p + q).isEven) {
-      final tPart = p == 0 ? IntegerNumber.one : Pow(tVar, IntegerNumber.of(p));
+      final tPart = p == 0
+          ? IntegerNumber.one
+          : Pow.of(tVar, IntegerNumber.of(p));
       final secPart = -(p + q) ~/ 2 == 0
           ? IntegerNumber.one
-          : Pow(
+          : Pow.of(
               IntegerNumber.one + tVar * tVar,
               IntegerNumber.of(-(p + q) ~/ 2),
             );
-      return Mul([tPart, secPart, ...otherFactors]).simplify();
+      return Mul.of([tPart, secPart, ...otherFactors]).simplify();
     }
-    return Mul([
+    return Mul.of([
       for (final f in sinCosFactors) replaceTrigWithTan(f, inner, tVar),
       ...otherFactors,
     ]).simplify();
@@ -298,23 +312,25 @@ Expr replaceTrigWithTan(Expr node, Expr inner, Variable tVar) {
 /// Rewrites even-degree hyperbolic expressions in [inner] as rational
 /// functions of `tVar = tanh(inner)`.
 Expr replaceHypWithTanh(Expr node, Expr inner, Variable tVar) {
-  if (node is Tanh && node.expr == inner) return tVar;
+  if (node is Call && node.id == FunctionId.tanh && node.args[0] == inner) {
+    return tVar;
+  }
   final oneMT2 = (IntegerNumber.one - tVar * tVar).simplify();
   if (node
       case Pow(
-        base: Sinh(expr: final arg),
+        base: Call(id: FunctionId.sinh, args: [final arg]),
         exponent: IntegerNumber(asInt: final n?),
       )
       when arg == inner && n.isEven) {
-    return Pow((tVar * tVar) / oneMT2, IntegerNumber.of(n ~/ 2));
+    return Pow.of((tVar * tVar) / oneMT2, IntegerNumber.of(n ~/ 2));
   }
   if (node
       case Pow(
-        base: Cosh(expr: final arg),
+        base: Call(id: FunctionId.cosh, args: [final arg]),
         exponent: IntegerNumber(asInt: final n?),
       )
       when arg == inner && n.isEven) {
-    return Pow(IntegerNumber.one / oneMT2, IntegerNumber.of(n ~/ 2));
+    return Pow.of(IntegerNumber.one / oneMT2, IntegerNumber.of(n ~/ 2));
   }
   if (node is Mul) {
     var p = 0;
@@ -322,15 +338,15 @@ Expr replaceHypWithTanh(Expr node, Expr inner, Variable tVar) {
     final otherFactors = <Expr>[];
     final hypFactors = <Expr>[];
     for (final f in node.factors) {
-      if (f is Sinh && f.expr == inner) {
+      if (f is Call && f.id == FunctionId.sinh && f.args[0] == inner) {
         p += 1;
         hypFactors.add(f);
-      } else if (f is Cosh && f.expr == inner) {
+      } else if (f is Call && f.id == FunctionId.cosh && f.args[0] == inner) {
         q += 1;
         hypFactors.add(f);
       } else if (f
           case Pow(
-            base: Sinh(expr: final arg),
+            base: Call(id: FunctionId.sinh, args: [final arg]),
             exponent: IntegerNumber(asInt: final n?),
           )
           when arg == inner) {
@@ -338,7 +354,7 @@ Expr replaceHypWithTanh(Expr node, Expr inner, Variable tVar) {
         hypFactors.add(f);
       } else if (f
           case Pow(
-            base: Cosh(expr: final arg),
+            base: Call(id: FunctionId.cosh, args: [final arg]),
             exponent: IntegerNumber(asInt: final n?),
           )
           when arg == inner) {
@@ -349,13 +365,15 @@ Expr replaceHypWithTanh(Expr node, Expr inner, Variable tVar) {
       }
     }
     if ((p != 0 || q != 0) && (p + q).isEven) {
-      final tPart = p == 0 ? IntegerNumber.one : Pow(tVar, IntegerNumber.of(p));
+      final tPart = p == 0
+          ? IntegerNumber.one
+          : Pow.of(tVar, IntegerNumber.of(p));
       final coshPart = -(p + q) ~/ 2 == 0
           ? IntegerNumber.one
-          : Pow(oneMT2, IntegerNumber.of(-(p + q) ~/ 2));
-      return Mul([tPart, coshPart, ...otherFactors]).simplify();
+          : Pow.of(oneMT2, IntegerNumber.of(-(p + q) ~/ 2));
+      return Mul.of([tPart, coshPart, ...otherFactors]).simplify();
     }
-    return Mul([
+    return Mul.of([
       for (final f in hypFactors) replaceHypWithTanh(f, inner, tVar),
       ...otherFactors,
     ]).simplify();
@@ -370,7 +388,10 @@ Expr? collectAffineHypInner(Expr node, String variable) {
   void scan(Expr n) {
     if (!valid || !n.dependsOn(variable)) return;
     switch (n) {
-      case Sinh(:final expr) || Cosh(:final expr) || Tanh(:final expr):
+      case Call(
+        id: FunctionId.sinh || FunctionId.cosh || FunctionId.tanh,
+        args: [final expr],
+      ):
         if (expr.matchLinear(variable) == null) {
           valid = false;
           return;
@@ -418,15 +439,17 @@ Expr? collectAffineHypInner(Expr node, String variable) {
 }
 
 Expr replaceHypWithExp(Expr node, Expr inner, Variable wVar) {
-  if (node is Sinh && node.expr == inner) {
-    return (wVar - IntegerNumber.one / wVar) / IntegerNumber.two;
-  }
-  if (node is Cosh && node.expr == inner) {
-    return (wVar + IntegerNumber.one / wVar) / IntegerNumber.two;
-  }
-  if (node is Tanh && node.expr == inner) {
-    return (wVar * wVar - IntegerNumber.one) /
-        (wVar * wVar + IntegerNumber.one);
+  if (node is Call && node.args[0] == inner) {
+    if (node.id == FunctionId.sinh) {
+      return (wVar - IntegerNumber.one / wVar) / IntegerNumber.two;
+    }
+    if (node.id == FunctionId.cosh) {
+      return (wVar + IntegerNumber.one / wVar) / IntegerNumber.two;
+    }
+    if (node.id == FunctionId.tanh) {
+      return (wVar * wVar - IntegerNumber.one) /
+          (wVar * wVar + IntegerNumber.one);
+    }
   }
   if (node case Pow(base: Constant.e, :final exponent)) {
     final vName = inner.freeVariables.length == 1
@@ -440,10 +463,10 @@ Expr replaceHypWithExp(Expr node, Expr inner, Variable wVar) {
         final kExpr = (linExp.a / linInner.a).simplify();
         if (kExpr is IntegerNumber) {
           final shift = (linExp.b - kExpr * linInner.b).simplify();
-          final wPow = Pow(wVar, kExpr);
+          final wPow = Pow.of(wVar, kExpr);
           return (shift is Number && shift.isZero)
               ? wPow
-              : (Pow(Constant.e, shift) * wPow);
+              : (Pow.of(Constant.e, shift) * wPow);
         }
       }
     }
@@ -458,16 +481,16 @@ Expr? tryDirichletKernel(
 }) {
   if (expr is! Mul) return null;
   var scale = IntegerNumber.one as Expr;
-  Sin? numSin;
-  Sin? denSin;
+  Call? numSin;
+  Call? denSin;
   for (final f in expr.factors) {
     if (!f.dependsOn(variable)) {
       scale = (scale * f).simplify(assumptions: assumptions);
-    } else if (f is Sin && numSin == null) {
+    } else if (f is Call && f.id == FunctionId.sin && numSin == null) {
       numSin = f;
     } else if (f
         case Pow(
-          base: final Sin s,
+          base: final Call s && Call(id: FunctionId.sin),
           exponent: IntegerNumber(isNegativeOne: true),
         )
         when denSin == null) {
@@ -477,8 +500,8 @@ Expr? tryDirichletKernel(
     }
   }
   if (numSin == null || denSin == null) return null;
-  final linDen = denSin.expr.matchLinear(variable);
-  final linNum = numSin.expr.matchLinear(variable);
+  final linDen = denSin.args[0].matchLinear(variable);
+  final linNum = numSin.args[0].matchLinear(variable);
   if (linDen == null || linNum == null) return null;
   final nExpr = (linNum.a / linDen.a).simplify(assumptions: assumptions);
   if (nExpr is! IntegerNumber || nExpr.asInt == null) return null;
@@ -490,7 +513,7 @@ Expr? tryDirichletKernel(
     return null;
   }
 
-  final u = denSin.expr;
+  final u = denSin.args[0];
   final a = linDen.a;
   final terms = <Expr>[];
   if (n.isOdd) {
@@ -498,17 +521,17 @@ Expr? tryDirichletKernel(
     final m = (n - 1) ~/ 2;
     for (var j = 1; j <= m; j++) {
       terms.add(
-        Sin((IntegerNumber.of(2 * j) * u).simplify()) / IntegerNumber.of(j),
+        Fn.sin((IntegerNumber.of(2 * j) * u).simplify()) / IntegerNumber.of(j),
       );
     }
   } else {
     final m = n ~/ 2;
     for (var j = 1; j <= m; j++) {
       final coeff = IntegerNumber.of(2 * j - 1);
-      terms.add((IntegerNumber.two * Sin((coeff * u).simplify())) / coeff);
+      terms.add((IntegerNumber.two * Fn.sin((coeff * u).simplify())) / coeff);
     }
   }
-  return (scale * Add(terms) / a).simplify(assumptions: assumptions);
+  return (scale * Add.of(terms) / a).simplify(assumptions: assumptions);
 }
 
 bool hasMultipleAngleTrig(Expr node, String variable) {
@@ -517,7 +540,10 @@ bool hasMultipleAngleTrig(Expr node, String variable) {
   void scan(Expr n) {
     if (!valid || !n.dependsOn(variable)) return;
     switch (n) {
-      case Sin(:final expr) || Cos(:final expr) || Tan(:final expr):
+      case Call(
+        id: FunctionId.sin || FunctionId.cos || FunctionId.tan,
+        args: [final expr],
+      ):
         if (expr.matchLinear(variable) == null) {
           valid = false;
           return;
@@ -575,30 +601,42 @@ Expr? tryTrigPolyDivision(
   const sName = '_s';
   const sVar = Variable(sName);
 
-  Expr replaceAtom(Expr node, Expr atom) {
-    if (node == atom) return sVar;
-    return node.mapChildren((c) => replaceAtom(c, atom));
-  }
-
   Expr replaceRecipAtom(Expr node, Expr trigAtom) {
     if (node == trigAtom) return IntegerNumber.one / sVar;
     if (node case Pow(base: final b, exponent: IntegerNumber(asInt: final k?))
         when b == trigAtom) {
-      return Pow(sVar, IntegerNumber.of(-k));
+      return Pow.of(sVar, IntegerNumber.of(-k));
     }
     return node.mapChildren((c) => replaceRecipAtom(c, trigAtom));
   }
 
+  Expr replaceWithPythagorean(Expr node, Expr mainAtom, Expr pythAtom) {
+    if (node == mainAtom) return sVar;
+    if (node case Pow(base: final b, exponent: IntegerNumber(asInt: final k?))
+        when b == pythAtom && k.isEven) {
+      final halfK = k ~/ 2;
+      final oneMinusS2 = IntegerNumber.one - sVar * sVar;
+      return halfK == 1
+          ? oneMinusS2
+          : Pow.of(oneMinusS2, IntegerNumber.of(halfK));
+    }
+    return node.mapChildren(
+      (c) => replaceWithPythagorean(c, mainAtom, pythAtom),
+    );
+  }
+
+  final sinInner = Fn.sin(inner);
+  final cosInner = Fn.cos(inner);
   final candidates = <(Expr atom, Expr Function(Expr) replacer)>[
-    (Sin(inner), (e) => replaceAtom(e, Sin(inner))),
-    (Cos(inner), (e) => replaceAtom(e, Cos(inner))),
+    (sinInner, (e) => replaceWithPythagorean(e, sinInner, cosInner)),
+    (cosInner, (e) => replaceWithPythagorean(e, cosInner, sinInner)),
     (
-      Pow(Cos(inner), IntegerNumber.negativeOne),
-      (e) => replaceRecipAtom(e, Cos(inner)),
+      Pow.of(cosInner, IntegerNumber.negativeOne),
+      (e) => replaceRecipAtom(e, cosInner),
     ),
     (
-      Pow(Sin(inner), IntegerNumber.negativeOne),
-      (e) => replaceRecipAtom(e, Sin(inner)),
+      Pow.of(sinInner, IntegerNumber.negativeOne),
+      (e) => replaceRecipAtom(e, sinInner),
     ),
   ];
 
@@ -686,12 +724,23 @@ Expr? trySymbolicTrigPowerProduct(
 
   if (varFactors.length != 2) return null;
 
-  bool isTrigOrHyp(Expr e) => e is Sin || e is Cos || e is Sinh || e is Cosh;
+  bool isTrigOrHyp(Expr e) =>
+      e is Call &&
+      const {
+        FunctionId.sin,
+        FunctionId.cos,
+        FunctionId.sinh,
+        FunctionId.cosh,
+      }.contains(e.id);
   Expr? innerOf(Expr e) => switch (e) {
-    Sin(:final expr) => expr,
-    Cos(:final expr) => expr,
-    Sinh(:final expr) => expr,
-    Cosh(:final expr) => expr,
+    Call(
+      id: FunctionId.sin ||
+          FunctionId.cos ||
+          FunctionId.sinh ||
+          FunctionId.cosh,
+      args: [final expr],
+    ) =>
+      expr,
     _ => null,
   };
 
@@ -721,8 +770,8 @@ Expr? trySymbolicTrigPowerProduct(
     return null;
   }
 
-  final fBase = fPair.base;
-  final gBase = gPair.base;
+  final fBase = fPair.base as Call;
+  final gBase = gPair.base as Call;
   final n = fPair.exp;
   final k = ((gPair.exp as IntegerNumber).asInt! - 1) ~/ 2;
 
@@ -730,16 +779,16 @@ Expr? trySymbolicTrigPowerProduct(
   // signMode: 0 -> all +1 (Sinh/Cosh), 1 -> (-1)^j (Sin/Cos, Cos/Sin), 2 -> (-1)^(k-j) (Cosh/Sinh)
   final Expr prefactor;
   final int signMode;
-  if (fBase is Sin && gBase is Cos) {
+  if (fBase.id == FunctionId.sin && gBase.id == FunctionId.cos) {
     prefactor = (scale / slope).simplify(assumptions: assumptions);
     signMode = 1;
-  } else if (fBase is Cos && gBase is Sin) {
+  } else if (fBase.id == FunctionId.cos && gBase.id == FunctionId.sin) {
     prefactor = (-scale / slope).simplify(assumptions: assumptions);
     signMode = 1;
-  } else if (fBase is Sinh && gBase is Cosh) {
+  } else if (fBase.id == FunctionId.sinh && gBase.id == FunctionId.cosh) {
     prefactor = (scale / slope).simplify(assumptions: assumptions);
     signMode = 0;
-  } else if (fBase is Cosh && gBase is Sinh) {
+  } else if (fBase.id == FunctionId.cosh && gBase.id == FunctionId.sinh) {
     prefactor = (scale / slope).simplify(assumptions: assumptions);
     signMode = 2;
   } else {
@@ -748,7 +797,7 @@ Expr? trySymbolicTrigPowerProduct(
 
   final terms = <Expr>[];
   for (var j = 0; j <= k; j++) {
-    final binom = IntegerNumber(Integer.from(k).binomial(Integer.from(j)));
+    final binom = IntegerNumber.of(k.binomial(j));
     final isNeg = switch (signMode) {
       1 => j.isOdd,
       2 => (k - j).isOdd,
@@ -761,9 +810,9 @@ Expr? trySymbolicTrigPowerProduct(
     if (exp is Number && exp.isZero) {
       terms.add(coeff * logAntiderivative(fBase, assumptions));
     } else {
-      terms.add(coeff * Pow(fBase, exp) / exp);
+      terms.add(coeff * Pow.of(fBase, exp) / exp);
     }
   }
 
-  return (prefactor * Add(terms)).simplify(assumptions: assumptions);
+  return (prefactor * Add.of(terms)).simplify(assumptions: assumptions);
 }

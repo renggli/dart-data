@@ -33,7 +33,7 @@ void main() {
       check(Expr.parse('cos(2 * x)').expandTrig().toString())
           .equals('cos(x) ^ 2 - sin(x) ^ 2');
       check(Expr.parse('sin(3 * x)').expandTrig().toString())
-          .equals('-sin(x) ^ 3 + 3 * cos(x) ^ 2 * sin(x)');
+          .equals('-sin(x) ^ 3 + 3 * sin(x) * cos(x) ^ 2');
       check(Expr.parse('tan(2 * x)').expandTrig().toString())
           .equals('2 * tan(x) / (1 - tan(x) ^ 2)');
       check(Expr.parse('sinh(2 * x)').expandTrig().toString())
@@ -121,11 +121,11 @@ void main() {
 
       final expComplex = Expr.parse('exp(a + i * b)');
       check(expComplex.rewrite(RewriteTarget.trig).toString())
-          .equals('exp(a) * cos(b) + i * exp(a) * sin(b)');
+          .equals('cos(b) * exp(a) + i * sin(b) * exp(a)');
 
       final tanSum = Expr.parse('tan(x) + tanh(y)');
       check(tanSum.rewrite(RewriteTarget.sinCos).toString())
-          .equals('sinh(y) / cosh(y) + sin(x) / cos(x)');
+          .equals('sin(x) / cos(x) + sinh(y) / cosh(y)');
 
       final tanExp = Expr.parse('tan(x)').rewrite(RewriteTarget.exp);
       check(tanExp.rewrite(RewriteTarget.trig).simplifyTrig().toString())
@@ -142,7 +142,7 @@ void main() {
       check(Expr.parse('sin(x)^2 * cos(y)').simplifyTrig().toString())
           .equals('cos(y) * sin(x) ^ 2');
       check(Expr.parse('sinh(x)^2 * cosh(y)').simplifyTrig().toString())
-          .equals('sinh(x) ^ 2 * cosh(y)');
+          .equals('cosh(y) * sinh(x) ^ 2');
 
       // Assumptions propagation in expandTrig, simplifyTrig, rewrite
       check(
@@ -168,13 +168,13 @@ void main() {
       // Reverse structural order in product-to-sum contractions (cos(y)*cos(x), sin(y)*sin(x), cosh(y)*cosh(x), sinh(y)*sinh(x))
       const xVar = Variable('x');
       const yVar = Variable('y');
-      check(Mul([Cos(yVar), Cos(xVar)]).simplifyTrig().toString())
+      check(Mul.of([Fn.cos(yVar), Fn.cos(xVar)]).simplifyTrig().toString())
           .contains('cos');
-      check(Mul([Sin(yVar), Sin(xVar)]).simplifyTrig().toString())
+      check(Mul.of([Fn.sin(yVar), Fn.sin(xVar)]).simplifyTrig().toString())
           .contains('cos');
-      check(Mul([Cosh(yVar), Cosh(xVar)]).simplifyTrig().toString())
+      check(Mul.of([Fn.cosh(yVar), Fn.cosh(xVar)]).simplifyTrig().toString())
           .contains('cosh');
-      check(Mul([Sinh(yVar), Sinh(xVar)]).simplifyTrig().toString())
+      check(Mul.of([Fn.sinh(yVar), Fn.sinh(xVar)]).simplifyTrig().toString())
           .contains('cosh');
     });
   });

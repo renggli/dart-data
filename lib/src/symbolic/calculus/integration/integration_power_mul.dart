@@ -6,7 +6,7 @@ import '../../algebra/simplify/domain.dart';
 import '../../algebra/trig.dart';
 import '../../assumptions.dart';
 import '../../ast.dart';
-import '../../number/integer.dart';
+import '../../functions/fn.dart';
 import '../differentiation.dart';
 import '../linear_form.dart';
 import 'definite.dart';
@@ -39,7 +39,7 @@ Expr antiDerivPow(
       }
       final nPlus1 = (exponent + IntegerNumber.one).simplify();
       final denom = (a * nPlus1).simplify();
-      final numer = Pow(base, nPlus1).simplify();
+      final numer = Pow.of(base, nPlus1).simplify();
       return (numer / denom).simplify();
     }
     if (tryMonomialPowerProduct(original, variable, assumptions: assumptions)
@@ -49,18 +49,18 @@ Expr antiDerivPow(
     // Standard trig powers: sin^2, cos^2, tan^2, sinh^2, cosh^2, tanh^2
     if (exponent == IntegerNumber.two ||
         (exponent is RealNumber && exponent.value == 2.0)) {
-      if (base case Sin(expr: final inner)) {
+      if (base case Call(id: FunctionId.sin, args: [final inner])) {
         if (inner.matchLinear(variable) case (:final a, b: _)) {
           final xVar = Variable(variable);
           final twoInner = (IntegerNumber.two * inner).simplify();
           return (xVar / IntegerNumber.two -
-                  Sin(twoInner) / (const IntegerNumber(Integer(4)) * a))
+                  Fn.sin(twoInner) / (IntegerNumber.of(4) * a))
               .simplify();
         }
         if (matchScaledSquare(inner, variable) != null) {
-          const half = FractionNumber.half;
+          final half = FractionNumber.half;
           final reduced =
-              (half * (IntegerNumber.one - Cos(IntegerNumber.two * inner)))
+              (half * (IntegerNumber.one - Fn.cos(IntegerNumber.two * inner)))
                   .simplify(assumptions: assumptions);
           return antiDerivative(
             reduced,
@@ -70,18 +70,18 @@ Expr antiDerivPow(
           );
         }
       }
-      if (base case Cos(expr: final inner)) {
+      if (base case Call(id: FunctionId.cos, args: [final inner])) {
         if (inner.matchLinear(variable) case (:final a, b: _)) {
           final xVar = Variable(variable);
           final twoInner = (IntegerNumber.two * inner).simplify();
           return (xVar / IntegerNumber.two +
-                  Sin(twoInner) / (const IntegerNumber(Integer(4)) * a))
+                  Fn.sin(twoInner) / (IntegerNumber.of(4) * a))
               .simplify();
         }
         if (matchScaledSquare(inner, variable) != null) {
-          const half = FractionNumber.half;
+          final half = FractionNumber.half;
           final reduced =
-              (half * (IntegerNumber.one + Cos(IntegerNumber.two * inner)))
+              (half * (IntegerNumber.one + Fn.cos(IntegerNumber.two * inner)))
                   .simplify(assumptions: assumptions);
           return antiDerivative(
             reduced,
@@ -91,48 +91,49 @@ Expr antiDerivPow(
           );
         }
       }
-      if (base case Tan(expr: final inner)) {
+      if (base case Call(id: FunctionId.tan, args: [final inner])) {
         if (inner.matchLinear(variable) case (:final a, b: _)) {
           final xVar = Variable(variable);
-          return (Tan(inner) / a - xVar).simplify();
+          return (Fn.tan(inner) / a - xVar).simplify();
         }
       }
-      if (base case Sinh(expr: final inner)) {
+      if (base case Call(id: FunctionId.sinh, args: [final inner])) {
         if (inner.matchLinear(variable) case (:final a, b: _)) {
           final xVar = Variable(variable);
           final twoInner = (IntegerNumber.two * inner).simplify();
-          return (Sinh(twoInner) / (const IntegerNumber(Integer(4)) * a) -
+          return (Fn.sinh(twoInner) / (IntegerNumber.of(4) * a) -
                   xVar / IntegerNumber.two)
               .simplify();
         }
       }
-      if (base case Cosh(expr: final inner)) {
+      if (base case Call(id: FunctionId.cosh, args: [final inner])) {
         if (inner.matchLinear(variable) case (:final a, b: _)) {
           final xVar = Variable(variable);
           final twoInner = (IntegerNumber.two * inner).simplify();
-          return (Sinh(twoInner) / (const IntegerNumber(Integer(4)) * a) +
+          return (Fn.sinh(twoInner) / (IntegerNumber.of(4) * a) +
                   xVar / IntegerNumber.two)
               .simplify();
         }
       }
-      if (base case Tanh(expr: final inner)) {
+      if (base case Call(id: FunctionId.tanh, args: [final inner])) {
         if (inner.matchLinear(variable) case (:final a, b: _)) {
           final xVar = Variable(variable);
-          return (xVar - Tanh(inner) / a).simplify();
+          return (xVar - Fn.tanh(inner) / a).simplify();
         }
       }
     }
     // Higher trig/hyperbolic integer powers: sin^n, cos^n, sinh^n, cosh^n (3 <= n <= 10)
     if (exponent case IntegerNumber(asInt: final n?) when n >= 3 && n <= 10) {
-      if (base case Sin(expr: final inner)) {
+      if (base case Call(id: FunctionId.sin, args: [final inner])) {
         if (inner.matchLinear(variable) case (:final a, b: _)) {
           final nExpr = IntegerNumber.of(n);
           final nMinus1 = IntegerNumber.of(n - 1);
           final nMinus2 = IntegerNumber.of(n - 2);
-          final term1 = (-Pow(Sin(inner), nMinus1) * Cos(inner) / (nExpr * a))
-              .simplify();
+          final term1 =
+              (-Pow.of(Fn.sin(inner), nMinus1) * Fn.cos(inner) / (nExpr * a))
+                  .simplify();
           final rem = antiDerivative(
-            Pow(Sin(inner), nMinus2).simplify(assumptions: assumptions),
+            Pow.of(Fn.sin(inner), nMinus2).simplify(assumptions: assumptions),
             variable,
             assumptions: assumptions,
           );
@@ -143,15 +144,16 @@ Expr antiDerivPow(
           }
         }
       }
-      if (base case Cos(expr: final inner)) {
+      if (base case Call(id: FunctionId.cos, args: [final inner])) {
         if (inner.matchLinear(variable) case (:final a, b: _)) {
           final nExpr = IntegerNumber.of(n);
           final nMinus1 = IntegerNumber.of(n - 1);
           final nMinus2 = IntegerNumber.of(n - 2);
-          final term1 = (Pow(Cos(inner), nMinus1) * Sin(inner) / (nExpr * a))
-              .simplify(assumptions: assumptions);
+          final term1 =
+              (Pow.of(Fn.cos(inner), nMinus1) * Fn.sin(inner) / (nExpr * a))
+                  .simplify(assumptions: assumptions);
           final rem = antiDerivative(
-            Pow(Cos(inner), nMinus2).simplify(assumptions: assumptions),
+            Pow.of(Fn.cos(inner), nMinus2).simplify(assumptions: assumptions),
             variable,
             assumptions: assumptions,
           );
@@ -162,15 +164,16 @@ Expr antiDerivPow(
           }
         }
       }
-      if (base case Sinh(expr: final inner)) {
+      if (base case Call(id: FunctionId.sinh, args: [final inner])) {
         if (inner.matchLinear(variable) case (:final a, b: _)) {
           final nExpr = IntegerNumber.of(n);
           final nMinus1 = IntegerNumber.of(n - 1);
           final nMinus2 = IntegerNumber.of(n - 2);
-          final term1 = (Pow(Sinh(inner), nMinus1) * Cosh(inner) / (nExpr * a))
-              .simplify(assumptions: assumptions);
+          final term1 =
+              (Pow.of(Fn.sinh(inner), nMinus1) * Fn.cosh(inner) / (nExpr * a))
+                  .simplify(assumptions: assumptions);
           final rem = antiDerivative(
-            Pow(Sinh(inner), nMinus2).simplify(assumptions: assumptions),
+            Pow.of(Fn.sinh(inner), nMinus2).simplify(assumptions: assumptions),
             variable,
             assumptions: assumptions,
           );
@@ -181,15 +184,16 @@ Expr antiDerivPow(
           }
         }
       }
-      if (base case Cosh(expr: final inner)) {
+      if (base case Call(id: FunctionId.cosh, args: [final inner])) {
         if (inner.matchLinear(variable) case (:final a, b: _)) {
           final nExpr = IntegerNumber.of(n);
           final nMinus1 = IntegerNumber.of(n - 1);
           final nMinus2 = IntegerNumber.of(n - 2);
-          final term1 = (Pow(Cosh(inner), nMinus1) * Sinh(inner) / (nExpr * a))
-              .simplify(assumptions: assumptions);
+          final term1 =
+              (Pow.of(Fn.cosh(inner), nMinus1) * Fn.sinh(inner) / (nExpr * a))
+                  .simplify(assumptions: assumptions);
           final rem = antiDerivative(
-            Pow(Cosh(inner), nMinus2).simplify(assumptions: assumptions),
+            Pow.of(Fn.cosh(inner), nMinus2).simplify(assumptions: assumptions),
             variable,
             assumptions: assumptions,
           );
@@ -200,15 +204,14 @@ Expr antiDerivPow(
           }
         }
       }
-      if (base case Tan(expr: final inner)) {
+      if (base case Call(id: FunctionId.tan, args: [final inner])) {
         if (inner.matchLinear(variable) case (:final a, b: _)) {
           final nMinus1 = IntegerNumber.of(n - 1);
           final nMinus2 = IntegerNumber.of(n - 2);
-          final term1 = (Pow(Tan(inner), nMinus1) / (nMinus1 * a)).simplify(
-            assumptions: assumptions,
-          );
+          final term1 = (Pow.of(Fn.tan(inner), nMinus1) / (nMinus1 * a))
+              .simplify(assumptions: assumptions);
           final rem = antiDerivative(
-            Pow(Tan(inner), nMinus2).simplify(assumptions: assumptions),
+            Pow.of(Fn.tan(inner), nMinus2).simplify(assumptions: assumptions),
             variable,
             assumptions: assumptions,
           );
@@ -217,15 +220,14 @@ Expr antiDerivPow(
           }
         }
       }
-      if (base case Tanh(expr: final inner)) {
+      if (base case Call(id: FunctionId.tanh, args: [final inner])) {
         if (inner.matchLinear(variable) case (:final a, b: _)) {
           final nMinus1 = IntegerNumber.of(n - 1);
           final nMinus2 = IntegerNumber.of(n - 2);
-          final term1 = (-Pow(Tanh(inner), nMinus1) / (nMinus1 * a)).simplify(
-            assumptions: assumptions,
-          );
+          final term1 = (-Pow.of(Fn.tanh(inner), nMinus1) / (nMinus1 * a))
+              .simplify(assumptions: assumptions);
           final rem = antiDerivative(
-            Pow(Tanh(inner), nMinus2).simplify(assumptions: assumptions),
+            Pow.of(Fn.tanh(inner), nMinus2).simplify(assumptions: assumptions),
             variable,
             assumptions: assumptions,
           );
@@ -241,12 +243,12 @@ Expr antiDerivPow(
       final k = -negK;
       final km1 = IntegerNumber.of(k - 1);
       final km2 = IntegerNumber.of(k - 2);
-      if (base case Cos(expr: final inner)) {
+      if (base case Call(id: FunctionId.cos, args: [final inner])) {
         if (inner.matchLinear(variable) case (:final a, b: _)) {
-          final term1 = (Sin(inner) / (km1 * a * Pow(Cos(inner), km1)))
+          final term1 = (Fn.sin(inner) / (km1 * a * Pow.of(Fn.cos(inner), km1)))
               .simplify(assumptions: assumptions);
           final rem = antiDerivative(
-            Pow(Cos(inner), -km2).simplify(assumptions: assumptions),
+            Pow.of(Fn.cos(inner), -km2).simplify(assumptions: assumptions),
             variable,
             assumptions: assumptions,
           );
@@ -257,12 +259,13 @@ Expr antiDerivPow(
           }
         }
       }
-      if (base case Sin(expr: final inner)) {
+      if (base case Call(id: FunctionId.sin, args: [final inner])) {
         if (inner.matchLinear(variable) case (:final a, b: _)) {
-          final term1 = (-Cos(inner) / (km1 * a * Pow(Sin(inner), km1)))
-              .simplify(assumptions: assumptions);
+          final term1 =
+              (-Fn.cos(inner) / (km1 * a * Pow.of(Fn.sin(inner), km1)))
+                  .simplify(assumptions: assumptions);
           final rem = antiDerivative(
-            Pow(Sin(inner), -km2).simplify(assumptions: assumptions),
+            Pow.of(Fn.sin(inner), -km2).simplify(assumptions: assumptions),
             variable,
             assumptions: assumptions,
           );
@@ -286,7 +289,7 @@ Expr antiDerivPow(
             assumptions: assumptions,
           );
           final rem = antiDerivative(
-            Pow(
+            Pow.of(
               base,
               IntegerNumber.of(k - 1),
             ).simplify(assumptions: assumptions),
@@ -311,23 +314,21 @@ Expr antiDerivPow(
           );
           final scale =
               (linBase /
-                      (linSlope * effB * Pow(logArg, p)) *
-                      Pow(Constant.e, (-p * aConst / bConst).simplify()))
+                      (linSlope * effB * Pow.of(logArg, p)) *
+                      Pow.of(Constant.e, (-p * aConst / bConst).simplify()))
                   .simplify(assumptions: assumptions);
           return (scale *
-                  ExpIntegral(
-                    (p * base / bConst).simplify(assumptions: assumptions),
-                  ))
+                  Fn.ei((p * base / bConst).simplify(assumptions: assumptions)))
               .simplify(assumptions: assumptions);
         }
         if (exponent case IntegerNumber(asInt: final negK?)
             when negK <= -2 && negK >= -6) {
           final k = -negK;
           final km1 = IntegerNumber.of(k - 1);
-          final term1 = (-linBase / (linSlope * effB * km1 * Pow(base, km1)))
+          final term1 = (-linBase / (linSlope * effB * km1 * Pow.of(base, km1)))
               .simplify(assumptions: assumptions);
           final rem = antiDerivative(
-            Pow(
+            Pow.of(
               base,
               IntegerNumber.of(-(k - 1)),
             ).simplify(assumptions: assumptions),
@@ -348,12 +349,7 @@ Expr antiDerivPow(
         exponent == IntegerNumber.of(3) ||
         (exponent is RealNumber &&
             (exponent.value == 2.0 || exponent.value == 3.0))) {
-      if (base is Asin ||
-          base is Acos ||
-          base is Atan ||
-          base is Asinh ||
-          base is Acosh ||
-          base is Atanh) {
+      if (base is Call && _inverseTrigHypIds.contains(base.id)) {
         final ibp = tryIntegrationByParts(
           IntegerNumber.one,
           original,
@@ -372,7 +368,7 @@ Expr antiDerivPow(
     if (exponent is FractionNumber) {
       final combinedBase = base.together(assumptions: assumptions);
       if (combinedBase != base) {
-        final combPow = Pow(
+        final combPow = Pow.of(
           combinedBase,
           exponent,
         ).simplify(assumptions: assumptions);
@@ -395,7 +391,7 @@ Expr antiDerivPow(
       );
       if (quadRad != null) return quadRad;
     }
-    if (exponent is IntegerNumber && exponent.value > Integer.one) {
+    if (exponent is IntegerNumber && exponent.value > BigInt.one) {
       final expanded = original.expand().simplify(assumptions: assumptions);
       if (expanded != original && depth < 4) {
         return antiDerivative(
@@ -414,7 +410,7 @@ Expr antiDerivPow(
     };
     if (isNegExp) {
       final posExp = (-exponent).simplify();
-      final den = posExp == IntegerNumber.one ? base : Pow(base, posExp);
+      final den = posExp == IntegerNumber.one ? base : Pow.of(base, posExp);
       final divRes = tryAntiDerivDiv(
         IntegerNumber.one,
         den,
@@ -433,7 +429,7 @@ Expr antiDerivPow(
         return (original / a).simplify();
       }
       if (isValidExponentialBase(base)) {
-        final denom = (a * Ln(base)).simplify();
+        final denom = (a * Fn.ln(base)).simplify();
         return (original / denom).simplify();
       }
     }
@@ -444,23 +440,24 @@ Expr antiDerivPow(
       // e^(e^(a*x + b)) -> Ei(e^(a*x + b)) / a
       if (exponent case Pow(base: Constant.e, exponent: final innerExp)) {
         if (innerExp.matchLinear(variable) case (:final a, b: _)) {
-          return (ExpIntegral(exponent) / a).simplify(assumptions: assumptions);
+          return (Fn.ei(exponent) / a).simplify(assumptions: assumptions);
         }
       }
 
       // e^(a/x) -> x * e^(a/x) - a * Ei(a/x)
       final prod = (exponent * Variable(variable)).simplify();
       if (!prod.dependsOn(variable)) {
-        return (Variable(variable) * original - prod * ExpIntegral(exponent))
+        return (Variable(variable) * original - prod * Fn.ei(exponent))
             .simplify();
       }
     }
     // b^ln(x) -> x^ln(b)
     if (isValidExponentialBase(base)) {
-      if (exponent case Ln(expr: Variable(:final name)) when name == variable) {
-        final lnB = Ln(base).simplify(assumptions: assumptions);
+      if (exponent case Call(id: FunctionId.ln, args: [Variable(:final name)])
+          when name == variable) {
+        final lnB = Fn.ln(base).simplify(assumptions: assumptions);
         return antiDerivative(
-          Pow(Variable(variable), lnB),
+          Pow.of(Variable(variable), lnB),
           variable,
           assumptions: assumptions,
         );
@@ -489,7 +486,9 @@ Expr antiDerivMul(
                 ))) &&
         denExpr.anyNode(
           (n) =>
-              (n is Ln && n.expr.dependsOn(variable)) ||
+              (n is Call &&
+                  n.id == FunctionId.ln &&
+                  n.args[0].dependsOn(variable)) ||
               (n is Pow &&
                   n.base == Constant.e &&
                   n.exponent.dependsOn(variable)),
@@ -507,19 +506,7 @@ Expr antiDerivMul(
     }
     if (depth < 2 &&
         !original.anyNode(
-          (n) =>
-              n is Sin ||
-              n is Cos ||
-              n is Tan ||
-              n is Sinh ||
-              n is Cosh ||
-              n is Tanh ||
-              n is Asin ||
-              n is Acos ||
-              n is Atan ||
-              n is Asinh ||
-              n is Acosh ||
-              n is Atanh,
+          (n) => n is Call && _trigAndInverseTrigHypIds.contains(n.id),
         )) {
       final expTerms = <Expr>[];
       final otherFactors = <Expr>[];
@@ -534,12 +521,12 @@ Expr antiDerivMul(
       if (expTerms.isNotEmpty) {
         final g = expTerms.length == 1
             ? expTerms.first
-            : Add(expTerms).simplify(assumptions: assumptions);
+            : Add.of(expTerms).simplify(assumptions: assumptions);
         final cofactor = otherFactors.isEmpty
             ? IntegerNumber.one
             : (otherFactors.length == 1
                   ? otherFactors.first
-                  : Mul(otherFactors).simplify(assumptions: assumptions));
+                  : Mul.of(otherFactors).simplify(assumptions: assumptions));
         if (tryExpRischOde(cofactor, g, variable, assumptions: assumptions)
             case final odeRes?) {
           return odeRes;
@@ -565,10 +552,10 @@ Expr antiDerivMul(
   if (constFactors.isNotEmpty) {
     final constPart = constFactors.length == 1
         ? constFactors.first
-        : Mul(constFactors).simplify(assumptions: assumptions);
+        : Mul.of(constFactors).simplify(assumptions: assumptions);
     final varPart = varFactors.length == 1
         ? varFactors.first
-        : Mul(varFactors).simplify(assumptions: assumptions);
+        : Mul.of(varFactors).simplify(assumptions: assumptions);
     return antiDerivative(
       varPart,
       variable,
@@ -588,7 +575,7 @@ Expr antiDerivMul(
         (f) =>
             f is Pow &&
             f.exponent is IntegerNumber &&
-            (f.exponent as IntegerNumber).value > const Integer(8) &&
+            (f.exponent as IntegerNumber).value > BigInt.from(8) &&
             f.base.matchLinear(variable) != null,
       )) {
     final binomRes = trySymbolicBinomialAffine(
@@ -616,7 +603,7 @@ Expr antiDerivMul(
       ];
       final restExpr = restFactors.length == 1
           ? restFactors.first
-          : Mul(restFactors).simplify(assumptions: assumptions);
+          : Mul.of(restFactors).simplify(assumptions: assumptions);
       final deg = polynomialDegree(restExpr, variable);
       if (deg != null && deg <= 16) {
         final expandedPoly = restExpr.expand().simplify(
@@ -624,7 +611,7 @@ Expr antiDerivMul(
         );
         final terms = expandedPoly is Add ? expandedPoly.terms : [expandedPoly];
         if (terms.length > 1) {
-          return Add([
+          return Add.of([
             for (final t in terms)
               antiDerivative(
                 (powFactor * t).simplify(assumptions: assumptions),
@@ -650,7 +637,7 @@ Expr antiDerivMul(
     ];
     final otherExpr = others.length == 1
         ? others.first
-        : Mul(others).simplify();
+        : Mul.of(others).simplify();
     if (tryChainRule(candidate, otherExpr, variable, assumptions: assumptions)
         case final subRes?) {
       return subRes;
@@ -661,7 +648,7 @@ Expr antiDerivMul(
     )) {
       final uPrime = innerU.derivative(variable).simplify();
       if (otherExpr.matchScalarMultiple(uPrime, variable) case final k?) {
-        return (k * ExpIntegral(Pow(Constant.e, innerU))).simplify(
+        return (k * Fn.ei(Pow.of(Constant.e, innerU))).simplify(
           assumptions: assumptions,
         );
       }
@@ -694,32 +681,32 @@ Expr antiDerivMul(
         !xPow.exponent.dependsOn(variable)) {
       if (expPow.exponent.matchLinear(variable) case (:final a, :final b)) {
         final s = xPow.exponent;
-        return (-Pow(Constant.e, b) *
-                Pow(Variable(variable), s + IntegerNumber.one) *
-                ExpIntegralE(-s, -a * Variable(variable)))
+        return (-Pow.of(Constant.e, b) *
+                Pow.of(Variable(variable), s + IntegerNumber.one) *
+                Fn.expIntegralE(-s, -a * Variable(variable)))
             .simplify(assumptions: assumptions);
       }
     }
   }
   // Mixed hyperbolic-trigonometric products: rewrite sinh/cosh as exponentials
+  bool isSinOrCos(Expr n) =>
+      n is Call && (n.id == FunctionId.sin || n.id == FunctionId.cos);
+  bool isSinhOrCosh(Expr n) =>
+      n is Call && (n.id == FunctionId.sinh || n.id == FunctionId.cosh);
   final hasTrig = varFactors.any(
-    (f) =>
-        f is Sin || f is Cos || (f is Pow && (f.base is Sin || f.base is Cos)),
+    (f) => isSinOrCos(f) || (f is Pow && isSinOrCos(f.base)),
   );
   final hasHyp = varFactors.any(
-    (f) =>
-        f is Sinh ||
-        f is Cosh ||
-        (f is Pow && (f.base is Sinh || f.base is Cosh)),
+    (f) => isSinhOrCosh(f) || (f is Pow && isSinhOrCosh(f.base)),
   );
   if (depth < 2 && hasTrig && hasHyp) {
     Expr hypToExp(Expr e) {
-      if (e case Sinh(:final expr)) {
-        return (Pow(Constant.e, expr) - Pow(Constant.e, -expr)) /
+      if (e case Call(id: FunctionId.sinh, args: [final expr])) {
+        return (Pow.of(Constant.e, expr) - Pow.of(Constant.e, -expr)) /
             IntegerNumber.two;
       }
-      if (e case Cosh(:final expr)) {
-        return (Pow(Constant.e, expr) + Pow(Constant.e, -expr)) /
+      if (e case Call(id: FunctionId.cosh, args: [final expr])) {
+        return (Pow.of(Constant.e, expr) + Pow.of(Constant.e, -expr)) /
             IntegerNumber.two;
       }
       return e.mapChildren(hypToExp);
@@ -787,7 +774,7 @@ Expr antiDerivMul(
         ];
         final otherExpr = others.length == 1
             ? others.first
-            : Mul(others).simplify();
+            : Mul.of(others).simplify();
         if (tryQuadraticRadical(otherExpr, base, halfExp, variable)
             case final quadRes?) {
           return quadRes;
@@ -855,7 +842,7 @@ Expr antiDerivMul(
         for (var j = 0; j < varFactors.length; j++)
           if (i != j) varFactors[j],
       ];
-      final otherExpr = Mul(others).simplify(assumptions: assumptions);
+      final otherExpr = Mul.of(others).simplify(assumptions: assumptions);
       if (tryIntegrationByParts(
             candidate,
             otherExpr,
@@ -882,13 +869,10 @@ Expr antiDerivMul(
   // 4b. Expand powered Add factors (2 <= m <= 4) when combined with inverse trig/hyperbolic or log functions:
   if (depth < 2) {
     bool isInvTrigOrHyp(Expr n) =>
-        n is Asin ||
-        n is Acos ||
-        n is Atan ||
-        n is Asinh ||
-        n is Acosh ||
-        n is Atanh ||
-        n is Ln;
+        n is Call &&
+        (_inverseTrigHypIds.contains(n.id) || n.id == FunctionId.ln);
+    bool hasLnNode(Expr e) =>
+        e.anyNode((n) => n is Call && n.id == FunctionId.ln);
     final hasPoweredAdd = varFactors.any(
       (f) =>
           f is Pow &&
@@ -896,18 +880,19 @@ Expr antiDerivMul(
           f.exponent is IntegerNumber &&
           ((f.exponent as IntegerNumber).asInt ?? 0) >= 2 &&
           ((f.exponent as IntegerNumber).asInt ?? 0) <= 4 &&
-          !f.base.anyNode((n) => n is Ln),
+          !hasLnNode(f.base),
     );
     if (hasPoweredAdd && varFactors.any((f) => f.anyNode(isInvTrigOrHyp))) {
       final expandedFactors = <Expr>[
         for (final f in varFactors)
           if (f case Pow(base: Add(), exponent: IntegerNumber(asInt: final m?))
-              when m >= 2 && m <= 4 && !f.base.anyNode((n) => n is Ln))
+              when m >= 2 && m <= 4 && !hasLnNode(f.base))
             f.expand(assumptions: assumptions)
           else
             f,
       ];
-      final rewritten = Mul(expandedFactors).simplify(assumptions: assumptions);
+      final rewritten = Mul.of(expandedFactors)
+          .simplify(assumptions: assumptions);
       final res = antiDerivative(
         rewritten,
         variable,
@@ -925,13 +910,7 @@ Expr antiDerivMul(
           when k >= 1 && k <= 4) {
         core = base;
       }
-      if (core is Asin ||
-          core is Acos ||
-          core is Atan ||
-          core is Asinh ||
-          core is Acosh ||
-          core is Atanh ||
-          core is Ln) {
+      if (isInvTrigOrHyp(core)) {
         return true;
       }
       if (core case Add(:final terms) when terms.length == 2) {
@@ -941,13 +920,7 @@ Expr antiDerivMul(
         ];
         if (vTerms.length != 1) return false;
         final vt = vTerms.first;
-        if (vt is Asin ||
-            vt is Acos ||
-            vt is Atan ||
-            vt is Asinh ||
-            vt is Acosh ||
-            vt is Atanh ||
-            vt is Ln) {
+        if (isInvTrigOrHyp(vt)) {
           return true;
         }
         if (vt case Mul(:final factors)) {
@@ -956,14 +929,7 @@ Expr antiDerivMul(
               if (mf.dependsOn(variable)) mf,
           ];
           if (vfs.length == 1) {
-            final f0 = vfs.first;
-            return f0 is Asin ||
-                f0 is Acos ||
-                f0 is Atan ||
-                f0 is Asinh ||
-                f0 is Acosh ||
-                f0 is Atanh ||
-                f0 is Ln;
+            return isInvTrigOrHyp(vfs.first);
           }
         }
       }
@@ -981,7 +947,7 @@ Expr antiDerivMul(
       if (rest.isEmpty) continue;
       final rationalCofactor = rest.length == 1
           ? rest.first
-          : Mul(rest).simplify(assumptions: assumptions);
+          : Mul.of(rest).simplify(assumptions: assumptions);
       final (rNum, rDen) = splitNumeratorDenominator(rationalCofactor);
       if (!rDen.dependsOn(variable)) continue;
       final rNumExp = rNum.expand().simplify(assumptions: assumptions);
@@ -1007,7 +973,7 @@ Expr antiDerivMul(
             partTerms.add(tInt);
           }
           if (allOk) {
-            return Add(partTerms).simplify(assumptions: assumptions);
+            return Add.of(partTerms).simplify(assumptions: assumptions);
           }
         }
       }
@@ -1043,7 +1009,7 @@ Expr antiDerivMul(
       ];
       final otherExpr = others.length == 1
           ? others.first
-          : Mul(others).simplify(assumptions: assumptions);
+          : Mul.of(others).simplify(assumptions: assumptions);
       final (_, otherDen) = splitNumeratorDenominator(otherExpr);
       final hasVarDen = otherDen.dependsOn(variable);
       if (hasVarDen && terms.length > 12 && exceedsNodeBudget(otherExpr, 120)) {
@@ -1064,12 +1030,12 @@ Expr antiDerivMul(
           ),
         );
       }
-      final distSum = Add(distTerms).simplify(assumptions: assumptions);
+      final distSum = Add.of(distTerms).simplify(assumptions: assumptions);
       if (!hasVarDen || !hasUnevaluatedIntegral(distSum, variable)) {
         return distSum;
       }
       if (depth == 0) {
-        final distAdd = Add([
+        final distAdd = Add.of([
           for (final t in terms)
             (t * otherExpr).simplify(assumptions: assumptions),
         ]);
@@ -1121,15 +1087,15 @@ Expr? tryAdditiveProductRule(
     final factors = term is Mul ? term.factors : [term];
     for (final f in factors) {
       addCandidate(f);
-      if (f case Sin(:final expr)) {
-        addCandidate(Cos(expr));
-      } else if (f case Cos(:final expr)) {
-        addCandidate(Sin(expr));
+      if (f case Call(id: FunctionId.sin, args: [final expr])) {
+        addCandidate(Fn.cos(expr));
+      } else if (f case Call(id: FunctionId.cos, args: [final expr])) {
+        addCandidate(Fn.sin(expr));
       } else if (f case Pow(:final base, exponent: IntegerNumber(:final asInt?))
           when asInt < 0) {
-        addCandidate(Pow(base, IntegerNumber.negativeOne));
+        addCandidate(Pow.of(base, IntegerNumber.negativeOne));
         if (asInt < -1) {
-          addCandidate(Pow(base, IntegerNumber.of(asInt + 1)));
+          addCandidate(Pow.of(base, IntegerNumber.of(asInt + 1)));
         }
       }
     }
@@ -1178,25 +1144,26 @@ bool mayBeComplexExpr(Expr expr) => expr.anyNode(
           (node.exponent as FractionNumber).denominator.isEven &&
           (isSyntacticallyNegative(node.base) ||
               isNegativeConstant(node.base))) ||
-      (node is Ln &&
-          (isSyntacticallyNegative(node.expr) ||
-              isNegativeConstant(node.expr))),
+      (node is Call &&
+          node.id == FunctionId.ln &&
+          (isSyntacticallyNegative(node.args[0]) ||
+              isNegativeConstant(node.args[0]))),
 );
 
 Expr stripAbs(Expr expr) => switch (expr) {
-  Abs(:final expr) => stripAbs(expr),
+  Call(id: FunctionId.abs, args: [final expr]) => stripAbs(expr),
   _ => expr.mapChildren(stripAbs),
 };
 
 Expr stripAbsInLn(Expr expr) => switch (expr) {
-  Ln(:final expr) => Ln(stripAbs(expr)),
+  Call(id: FunctionId.ln, args: [final expr]) => Fn.ln(stripAbs(expr)),
   _ => expr.mapChildren(stripAbsInLn),
 };
 
 Expr rewriteTanToSinCos(Expr node, String variable) {
   if (!node.dependsOn(variable)) return node;
-  if (node case Tan(:final expr)) {
-    return Sin(expr) * Pow(Cos(expr), IntegerNumber.negativeOne);
+  if (node case Call(id: FunctionId.tan, args: [final expr])) {
+    return Fn.sin(expr) * Pow.of(Fn.cos(expr), IntegerNumber.negativeOne);
   }
   return node.mapChildren((c) => rewriteTanToSinCos(c, variable));
 }
@@ -1206,16 +1173,16 @@ Expr? tryExpandTrigAtan(
   String variable, {
   required Assumptions assumptions,
 }) {
-  final Expr inner;
-  if (node case Sin(:final expr)) {
-    inner = expr;
-  } else if (node case Cos(:final expr)) {
-    inner = expr;
-  } else {
-    return null;
-  }
+  if (node is! Call || node.args.length != 1) return null;
+  if (node.id != FunctionId.sin && node.id != FunctionId.cos) return null;
+  final inner = node.args[0];
   if (inner
-      case Mul(factors: [IntegerNumber(asInt: final k?), Atan(expr: final u)])
+      case Mul(
+        factors: [
+          IntegerNumber(asInt: final k?),
+          Call(id: FunctionId.atan, args: [final u]),
+        ],
+      )
       when k >= 2 && k <= 6 && u.matchLinear(variable) != null) {
     return node
         .expandTrig(assumptions: assumptions)
@@ -1236,8 +1203,9 @@ Expr rewritePowerLogIdentities(
   if (mapped case Pow(:final base, :final exponent)) {
     // 1. u^(c / ln(u)) -> e^c
     final (expNum, expDen) = splitNumeratorDenominator(exponent);
-    if (expDen case Ln(expr: final lnBase) when lnBase == base) {
-      return Pow(Constant.e, expNum);
+    if (expDen case Call(id: FunctionId.ln, args: [final lnBase])
+        when lnBase == base) {
+      return Pow.of(Constant.e, expNum);
     }
     // 2. Nested variable power: (c * x^a)^b -> c^b * x^(a*b) when sound
     if (!exponent.dependsOn(variable)) {
@@ -1253,8 +1221,8 @@ Expr rewritePowerLogIdentities(
                         Variable(variable),
                         assumptions: assumptions,
                       )))) {
-        return (Pow(scale, exponent) *
-                Pow(Variable(variable), (power * exponent).simplify()))
+        return (Pow.of(scale, exponent) *
+                Pow.of(Variable(variable), (power * exponent).simplify()))
             .simplify();
       }
     }
@@ -1290,10 +1258,16 @@ Expr? tryRewriteExpInverseTrigHyp(
       }
       if (varTerms.length == 1) {
         var coeff = IntegerNumber.one as Expr;
-        Expr? fnNode;
+        Call? fnNode;
         final vt = varTerms.first;
-        if (vt is Atanh || vt is Atan || vt is Asinh || vt is Acosh) {
-          fnNode = vt;
+        bool isExpInvFn(Expr e) =>
+            e is Call &&
+            (e.id == FunctionId.atanh ||
+                e.id == FunctionId.atan ||
+                e.id == FunctionId.asinh ||
+                e.id == FunctionId.acosh);
+        if (isExpInvFn(vt)) {
+          fnNode = vt as Call;
         } else if (vt is Mul) {
           final cParts = <Expr>[];
           final vParts = <Expr>[];
@@ -1306,31 +1280,32 @@ Expr? tryRewriteExpInverseTrigHyp(
           }
           if (vParts.length == 1) {
             final vf = vParts.first;
-            if (vf is Atanh || vf is Atan || vf is Asinh || vf is Acosh) {
-              fnNode = vf;
+            if (isExpInvFn(vf)) {
+              fnNode = vf as Call;
               coeff = cParts.isEmpty
                   ? IntegerNumber.one
-                  : Mul(cParts).simplify(assumptions: assumptions);
+                  : Mul.of(cParts).simplify(assumptions: assumptions);
             }
           }
         }
         if (fnNode != null) {
           final shiftExp = constTerms.isEmpty
               ? IntegerNumber.one
-              : Pow(
+              : Pow.of(
                   Constant.e,
-                  Add(constTerms).simplify(assumptions: assumptions),
+                  Add.of(constTerms).simplify(assumptions: assumptions),
                 );
           switch (fnNode) {
-            case Atanh(expr: final u) when u.dependsOn(variable):
+            case Call(id: FunctionId.atanh, args: [final u])
+                when u.dependsOn(variable):
               changed = true;
               final halfC = (coeff / IntegerNumber.two).simplify(
                 assumptions: assumptions,
               );
               if (u.matchLinear(variable) != null) {
                 return (shiftExp *
-                        Pow(IntegerNumber.one + u, halfC) *
-                        Pow(
+                        Pow.of(IntegerNumber.one + u, halfC) *
+                        Pow.of(
                           IntegerNumber.one - u,
                           (-halfC).simplify(assumptions: assumptions),
                         ))
@@ -1339,10 +1314,11 @@ Expr? tryRewriteExpInverseTrigHyp(
               final ratio = ((IntegerNumber.one + u) / (IntegerNumber.one - u))
                   .together(assumptions: assumptions)
                   .cancel(assumptions: assumptions);
-              return (shiftExp * Pow(ratio, halfC)).simplify(
+              return (shiftExp * Pow.of(ratio, halfC)).simplify(
                 assumptions: assumptions,
               );
-            case Atan(expr: final u) when u.dependsOn(variable):
+            case Call(id: FunctionId.atan, args: [final u])
+                when u.dependsOn(variable):
               final alpha = (-ComplexNumber.i * coeff / IntegerNumber.two)
                   .simplify(assumptions: assumptions);
               if (!alpha.anyNode((n) => n is ComplexNumber)) {
@@ -1350,8 +1326,8 @@ Expr? tryRewriteExpInverseTrigHyp(
                 final iU = ComplexNumber.i * u;
                 if (u.matchLinear(variable) != null) {
                   return (shiftExp *
-                          Pow(IntegerNumber.one + iU, alpha) *
-                          Pow(
+                          Pow.of(IntegerNumber.one + iU, alpha) *
+                          Pow.of(
                             IntegerNumber.one - iU,
                             (-alpha).simplify(assumptions: assumptions),
                           ))
@@ -1361,30 +1337,35 @@ Expr? tryRewriteExpInverseTrigHyp(
                     ((IntegerNumber.one + iU) / (IntegerNumber.one - iU))
                         .together(assumptions: assumptions)
                         .cancel(assumptions: assumptions);
-                return (shiftExp * Pow(ratio, alpha)).simplify(
+                return (shiftExp * Pow.of(ratio, alpha)).simplify(
                   assumptions: assumptions,
                 );
               }
-            case Asinh(expr: final u) when u.dependsOn(variable):
+            case Call(id: FunctionId.asinh, args: [final u])
+                when u.dependsOn(variable):
               changed = true;
               final inner =
                   (u +
-                          Pow(
-                            IntegerNumber.one + Pow(u, IntegerNumber.two),
+                          Pow.of(
+                            IntegerNumber.one + Pow.of(u, IntegerNumber.two),
                             FractionNumber.half,
                           ))
                       .simplify(assumptions: assumptions);
-              return (shiftExp * Pow(inner, coeff)).simplify(
+              return (shiftExp * Pow.of(inner, coeff)).simplify(
                 assumptions: assumptions,
               );
-            case Acosh(expr: final u) when u.dependsOn(variable):
+            case Call(id: FunctionId.acosh, args: [final u])
+                when u.dependsOn(variable):
               changed = true;
               final inner =
                   (u +
-                          Pow(u - IntegerNumber.one, FractionNumber.half) *
-                              Pow(u + IntegerNumber.one, FractionNumber.half))
+                          Pow.of(u - IntegerNumber.one, FractionNumber.half) *
+                              Pow.of(
+                                u + IntegerNumber.one,
+                                FractionNumber.half,
+                              ))
                       .simplify(assumptions: assumptions);
-              return (shiftExp * Pow(inner, coeff)).simplify(
+              return (shiftExp * Pow.of(inner, coeff)).simplify(
                 assumptions: assumptions,
               );
             default:
@@ -1496,9 +1477,9 @@ Expr? tryMonomialPowerProduct(
 _matchAffineLogPowerBase(Expr expr, String variable) {
   Expr aConst = IntegerNumber.zero;
   Expr bConst = IntegerNumber.one;
-  Ln? lnNode;
+  Call? lnNode;
 
-  if (expr is Ln) {
+  if (expr is Call && expr.id == FunctionId.ln) {
     lnNode = expr;
   } else if (expr is Add) {
     final constTerms = <Expr>[];
@@ -1515,9 +1496,9 @@ _matchAffineLogPowerBase(Expr expr, String variable) {
         ? IntegerNumber.zero
         : (constTerms.length == 1
               ? constTerms.first
-              : Add(constTerms).simplify());
+              : Add.of(constTerms).simplify());
     final vt = varTerms.first;
-    if (vt is Ln) {
+    if (vt is Call && vt.id == FunctionId.ln) {
       lnNode = vt;
     } else if (vt is Mul) {
       final cFs = <Expr>[];
@@ -1529,16 +1510,20 @@ _matchAffineLogPowerBase(Expr expr, String variable) {
           vFs.add(f);
         }
       }
-      if (vFs.length != 1 || vFs.first is! Ln) return null;
-      lnNode = vFs.first as Ln;
+      if (vFs.length != 1 ||
+          vFs.first is! Call ||
+          (vFs.first as Call).id != FunctionId.ln) {
+        return null;
+      }
+      lnNode = vFs.first as Call;
       bConst = cFs.isEmpty
           ? IntegerNumber.one
-          : (cFs.length == 1 ? cFs.first : Mul(cFs).simplify());
+          : (cFs.length == 1 ? cFs.first : Mul.of(cFs).simplify());
     }
   }
   if (lnNode == null) return null;
 
-  final arg = lnNode.expr;
+  final arg = lnNode.args[0];
   // Match c * (a*x + b)^n inside ln(...):
   final argFactors = arg is Mul ? arg.factors : [arg];
   final vFactors = [
@@ -1612,7 +1597,7 @@ Expr? _tryIntegrateLinearPowTimesAffineLogPow(
   if (linDiff != IntegerNumber.zero) return null;
   final outerScale = (ratio == IntegerNumber.one)
       ? IntegerNumber.one
-      : Pow(ratio, mExp).simplify(assumptions: assumptions);
+      : Pow.of(ratio, mExp).simplify(assumptions: assumptions);
 
   final effB = (bConst * nExp).simplify(assumptions: assumptions);
   if (effB is Number && effB.isZero) return null;
@@ -1629,7 +1614,7 @@ Expr? _tryIntegrateLinearPowTimesAffineLogPow(
     }
     final kp1 = (kExp + IntegerNumber.one).simplify(assumptions: assumptions);
     if (kp1 is Number && kp1.isZero) return null;
-    return (outerScale * Pow(logBaseExpr, kp1) / (linSlope * effB * kp1))
+    return (outerScale * Pow.of(logBaseExpr, kp1) / (linSlope * effB * kp1))
         .simplify(assumptions: assumptions);
   }
 
@@ -1679,12 +1664,12 @@ Expr? _integrateLinBasePowTimesAffineLog(
     final p = (mPlus1 / nExp).simplify(assumptions: assumptions);
     final pre =
         (outerScale *
-                Pow(linBase, mPlus1) /
-                (linSlope * effB * Pow(logArg, p)) *
-                Pow(Constant.e, (-p * aConst / bConst).simplify()))
+                Pow.of(linBase, mPlus1) /
+                (linSlope * effB * Pow.of(logArg, p)) *
+                Pow.of(Constant.e, (-p * aConst / bConst).simplify()))
             .simplify(assumptions: assumptions);
     return (pre *
-            ExpIntegral(
+            Fn.ei(
               (p * logBaseExpr / bConst).simplify(assumptions: assumptions),
             ))
         .simplify(assumptions: assumptions);
@@ -1695,8 +1680,8 @@ Expr? _integrateLinBasePowTimesAffineLog(
       when negK <= -2 && negK >= -6) {
     final absKm1 = IntegerNumber.of(-negK - 1);
     final term1 =
-        (-Pow(linBase, mPlus1) /
-                (linSlope * effB * absKm1 * Pow(logBaseExpr, absKm1)))
+        (-Pow.of(linBase, mPlus1) /
+                (linSlope * effB * absKm1 * Pow.of(logBaseExpr, absKm1)))
             .simplify(assumptions: assumptions);
     final rem = _integrateLinBasePowTimesAffineLog(
       IntegerNumber.one,
@@ -1722,17 +1707,17 @@ Expr? _integrateLinBasePowTimesAffineLog(
 
   // Positive integer k in [1, 5]: step-down recurrence to k - 1.
   if (kExp case IntegerNumber(asInt: final k?) when k >= 1 && k <= 6) {
-    final basePow = (Pow(linBase, mPlus1) / (linSlope * mPlus1)).simplify(
+    final basePow = (Pow.of(linBase, mPlus1) / (linSlope * mPlus1)).simplify(
       assumptions: assumptions,
     );
-    final term1 = (basePow * Pow(logBaseExpr, kExp)).simplify(
+    final term1 = (basePow * Pow.of(logBaseExpr, kExp)).simplify(
       assumptions: assumptions,
     );
     final rem = k == 1
         ? (mExp == IntegerNumber.zero
               ? (linBase / linSlope).simplify(assumptions: assumptions)
               : antiDerivative(
-                  Pow(linBase, mExp).simplify(assumptions: assumptions),
+                  Pow.of(linBase, mExp).simplify(assumptions: assumptions),
                   variable,
                   assumptions: assumptions,
                   depth: depth + 1,
@@ -1764,3 +1749,27 @@ Expr? _integrateLinBasePowTimesAffineLog(
 
   return null;
 }
+
+const _inverseTrigHypIds = {
+  FunctionId.asin,
+  FunctionId.acos,
+  FunctionId.atan,
+  FunctionId.asinh,
+  FunctionId.acosh,
+  FunctionId.atanh,
+};
+
+const _trigAndInverseTrigHypIds = {
+  FunctionId.sin,
+  FunctionId.cos,
+  FunctionId.tan,
+  FunctionId.sinh,
+  FunctionId.cosh,
+  FunctionId.tanh,
+  FunctionId.asin,
+  FunctionId.acos,
+  FunctionId.atan,
+  FunctionId.asinh,
+  FunctionId.acosh,
+  FunctionId.atanh,
+};

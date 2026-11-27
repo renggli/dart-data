@@ -12,7 +12,7 @@ final List<Command> complexCommands = [
     doc: 'Extracts the real part of a complex expression.',
     examples: ['re(3 + 4*i)', 're(exp(i*x))'],
     run: (args, ctx) =>
-        ExprValue(Re(args.expr('z')).simplify(assumptions: ctx.assumptions)),
+        ExprValue(Fn.re(args.expr('z')).simplify(assumptions: ctx.assumptions)),
   ),
   Command(
     name: 'im',
@@ -21,7 +21,7 @@ final List<Command> complexCommands = [
     doc: 'Extracts the imaginary part of a complex expression.',
     examples: ['im(3 + 4*i)'],
     run: (args, ctx) =>
-        ExprValue(Im(args.expr('z')).simplify(assumptions: ctx.assumptions)),
+        ExprValue(Fn.im(args.expr('z')).simplify(assumptions: ctx.assumptions)),
   ),
   Command(
     name: 'conj',
@@ -31,7 +31,7 @@ final List<Command> complexCommands = [
     doc: 'Computes the complex conjugate.',
     examples: ['conj(3 + 4*i)'],
     run: (args, ctx) => ExprValue(
-      Conjugate(args.expr('z')).simplify(assumptions: ctx.assumptions),
+      Fn.conj(args.expr('z')).simplify(assumptions: ctx.assumptions),
     ),
   ),
   Command(
@@ -40,8 +40,9 @@ final List<Command> complexCommands = [
     signature: const FunctionSignature(positional: [ParamSpec.positional('z')]),
     doc: 'Computes the principal argument (phase angle) in (-pi, pi].',
     examples: ['arg(1 + i)'],
-    run: (args, ctx) =>
-        ExprValue(Arg(args.expr('z')).simplify(assumptions: ctx.assumptions)),
+    run: (args, ctx) => ExprValue(
+      Fn.arg(args.expr('z')).simplify(assumptions: ctx.assumptions),
+    ),
   ),
   Command(
     name: 'abs',
@@ -49,8 +50,9 @@ final List<Command> complexCommands = [
     signature: const FunctionSignature(positional: [ParamSpec.positional('z')]),
     doc: 'Computes the absolute value or complex modulus.',
     examples: ['abs(3 + 4*i)'],
-    run: (args, ctx) =>
-        ExprValue(Abs(args.expr('z')).simplify(assumptions: ctx.assumptions)),
+    run: (args, ctx) => ExprValue(
+      Fn.abs(args.expr('z')).simplify(assumptions: ctx.assumptions),
+    ),
   ),
   Command(
     name: 'polar',
@@ -60,8 +62,8 @@ final List<Command> complexCommands = [
     examples: ['polar(1 + i)'],
     run: (args, ctx) {
       final z = args.expr('z');
-      final r = Abs(z).simplify(assumptions: ctx.assumptions);
-      final theta = Arg(z).simplify(assumptions: ctx.assumptions);
+      final r = Fn.abs(z).simplify(assumptions: ctx.assumptions);
+      final theta = Fn.arg(z).simplify(assumptions: ctx.assumptions);
       return ListValue([ExprValue(r), ExprValue(theta)]);
     },
   ),
@@ -76,7 +78,7 @@ final List<Command> complexCommands = [
     run: (args, ctx) {
       final r = args.expr('r');
       final theta = args.expr('theta');
-      final expr = r * (Cos(theta) + ComplexNumber.i * Sin(theta));
+      final expr = r * (Fn.cos(theta) + ComplexNumber.i * Fn.sin(theta));
       return ExprValue(expr.simplify(assumptions: ctx.assumptions));
     },
   ),

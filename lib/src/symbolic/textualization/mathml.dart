@@ -1,27 +1,10 @@
 import '../ast.dart';
 import '../calculus/series.dart';
-import '../number/integer.dart';
 import 'formatting.dart';
 
 /// MathML serialization extension on [Expr].
 extension MathMlExtension on Expr {
   /// Formats this expression into W3C MathML markup.
-  ///
-  /// MathML (Mathematical Markup Language) is an XML standard for encoding
-  /// mathematical notation, natively rendered by modern web browsers and
-  /// document processing tools.
-  ///
-  /// If [display] is `true`, produces `<math display="block">` for block-level
-  /// rendering; otherwise produces inline `<math>`. If [root] is `false`,
-  /// returns only the inner MathML elements without the enclosing `<math>` tag.
-  ///
-  /// Floating-point numbers are formatted with [decimalPlaces] (default 4).
-  ///
-  /// ```dart
-  /// final x = Variable('x');
-  /// final mathml = (x / (x + 1)).toMathMl();
-  /// // '<math><mfrac><mi>x</mi><mrow><mi>x</mi><mo>+</mo><mn>1</mn></mrow></mfrac></math>'
-  /// ```
   String toMathMl({
     bool display = false,
     bool root = true,
@@ -37,10 +20,6 @@ extension MathMlExtension on Expr {
 /// MathML serialization extension on [PowerSeries].
 extension PowerSeriesMathMlExtension on PowerSeries {
   /// Formats this power series into W3C MathML markup.
-  ///
-  /// Converts the series to its symbolic [Expr] form (with or without the
-  /// asymptotic [OrderTerm] controlled by [includeOrder]) and delegates to
-  /// [MathMlExtension.toMathMl].
   String toMathMl({
     bool display = false,
     bool root = true,
@@ -53,8 +32,6 @@ extension PowerSeriesMathMlExtension on PowerSeries {
 
 String _toMathMl(Expr expr, int decimalPlaces) => switch (expr) {
   Variable(:final name) => _formatVariableMathMl(name),
-  VariableFunction(:final name, :final arguments) =>
-    '<mrow><mi>${_escapeXml(name)}</mi><mo>(</mo>${arguments.map((a) => _toMathMl(a, decimalPlaces)).join('<mo>,</mo>')}<mo>)</mo></mrow>',
   Constant(:final name, :final mathMl) =>
     mathMl == '<mi>$name</mi>' ? '<mi>${_escapeXml(name)}</mi>' : mathMl,
   IntegerNumber(:final value) =>
@@ -79,166 +56,28 @@ String _toMathMl(Expr expr, int decimalPlaces) => switch (expr) {
     exponent,
     decimalPlaces,
   ),
-  Sin(:final expr) =>
-    '<mrow><mi>sin</mi><mo>(</mo>${_toMathMl(expr, decimalPlaces)}<mo>)</mo></mrow>',
-  Cos(:final expr) =>
-    '<mrow><mi>cos</mi><mo>(</mo>${_toMathMl(expr, decimalPlaces)}<mo>)</mo></mrow>',
-  Tan(:final expr) =>
-    '<mrow><mi>tan</mi><mo>(</mo>${_toMathMl(expr, decimalPlaces)}<mo>)</mo></mrow>',
-  Asin(:final expr) =>
-    '<mrow><mi>arcsin</mi><mo>(</mo>${_toMathMl(expr, decimalPlaces)}<mo>)</mo></mrow>',
-  Acos(:final expr) =>
-    '<mrow><mi>arccos</mi><mo>(</mo>${_toMathMl(expr, decimalPlaces)}<mo>)</mo></mrow>',
-  Atan(:final expr) =>
-    '<mrow><mi>arctan</mi><mo>(</mo>${_toMathMl(expr, decimalPlaces)}<mo>)</mo></mrow>',
-  Atan2(:final left, :final right) =>
-    '<mrow><mi>atan2</mi><mo>(</mo>${_toMathMl(left, decimalPlaces)}<mo>,</mo>${_toMathMl(right, decimalPlaces)}<mo>)</mo></mrow>',
-  Sinh(:final expr) =>
-    '<mrow><mi>sinh</mi><mo>(</mo>${_toMathMl(expr, decimalPlaces)}<mo>)</mo></mrow>',
-  Cosh(:final expr) =>
-    '<mrow><mi>cosh</mi><mo>(</mo>${_toMathMl(expr, decimalPlaces)}<mo>)</mo></mrow>',
-  Tanh(:final expr) =>
-    '<mrow><mi>tanh</mi><mo>(</mo>${_toMathMl(expr, decimalPlaces)}<mo>)</mo></mrow>',
-  Abs(:final expr) =>
-    '<mrow><mo>|</mo>${_toMathMl(expr, decimalPlaces)}<mo>|</mo></mrow>',
-  Ln(:final expr) =>
-    '<mrow><mi>ln</mi><mo>(</mo>${_toMathMl(expr, decimalPlaces)}<mo>)</mo></mrow>',
+  Call(:final spec, :final args) =>
+    spec is SymbolicFunctionSpec
+        ? '<mrow><mi>${_escapeXml(spec.name)}</mi><mo>(</mo>${args.map((a) => _toMathMl(a, decimalPlaces)).join('<mo>,</mo>')}<mo>)</mo></mrow>'
+        : spec.formatMathMl(args, decimalPlaces, _toMathMl, _formatPowBase),
   OrderTerm(:final variable, :final order, :final point) =>
     _formatOrderTermMathMl(variable, order, point, decimalPlaces),
-  LambertW(:final expr, :final branch) =>
-    branch == 0
-        ? '<mrow><mi>W</mi><mo>(</mo>${_toMathMl(expr, decimalPlaces)}<mo>)</mo></mrow>'
-        : '<mrow><msub><mi>W</mi>${_toMathMl(IntegerNumber.of(branch), decimalPlaces)}</msub><mo>(</mo>${_toMathMl(expr, decimalPlaces)}<mo>)</mo></mrow>',
-  Erf(:final expr) =>
-    '<mrow><mi>erf</mi><mo>(</mo>${_toMathMl(expr, decimalPlaces)}<mo>)</mo></mrow>',
-  Erfc(:final expr) =>
-    '<mrow><mi>erfc</mi><mo>(</mo>${_toMathMl(expr, decimalPlaces)}<mo>)</mo></mrow>',
-  Gamma(:final expr) =>
-    '<mrow><mi>Γ</mi><mo>(</mo>${_toMathMl(expr, decimalPlaces)}<mo>)</mo></mrow>',
-  Zeta(:final expr, :final shift) =>
-    shift == null
-        ? '<mrow><mi>ζ</mi><mo>(</mo>${_toMathMl(expr, decimalPlaces)}<mo>)</mo></mrow>'
-        : '<mrow><mi>ζ</mi><mo>(</mo>${_toMathMl(expr, decimalPlaces)}<mo>,</mo>${_toMathMl(shift, decimalPlaces)}<mo>)</mo></mrow>',
-  Digamma(:final expr) =>
-    '<mrow><mi>ψ</mi><mo>(</mo>${_toMathMl(expr, decimalPlaces)}<mo>)</mo></mrow>',
-  LogGamma(:final expr) =>
-    '<mrow><mi>ln</mi><mo>&#x2061;</mo><mi>Γ</mi><mo>(</mo>${_toMathMl(expr, decimalPlaces)}<mo>)</mo></mrow>',
-  Polygamma(:final left, :final right) =>
-    '<mrow><msup><mi>ψ</mi><mrow><mo>(</mo>${_toMathMl(left, decimalPlaces)}<mo>)</mo></mrow></msup><mo>(</mo>${_toMathMl(right, decimalPlaces)}<mo>)</mo></mrow>',
-  BesselJ(:final left, :final right) =>
-    '<mrow><msub><mi>J</mi>${_toMathMl(left, decimalPlaces)}</msub><mo>(</mo>${_toMathMl(right, decimalPlaces)}<mo>)</mo></mrow>',
-  BesselY(:final left, :final right) =>
-    '<mrow><msub><mi>Y</mi>${_toMathMl(left, decimalPlaces)}</msub><mo>(</mo>${_toMathMl(right, decimalPlaces)}<mo>)</mo></mrow>',
-  BesselI(:final left, :final right) =>
-    '<mrow><msub><mi>I</mi>${_toMathMl(left, decimalPlaces)}</msub><mo>(</mo>${_toMathMl(right, decimalPlaces)}<mo>)</mo></mrow>',
-  BesselK(:final left, :final right) =>
-    '<mrow><msub><mi>K</mi>${_toMathMl(left, decimalPlaces)}</msub><mo>(</mo>${_toMathMl(right, decimalPlaces)}<mo>)</mo></mrow>',
-  EllipticK(:final expr) =>
-    '<mrow><mi>K</mi><mo>(</mo>${_toMathMl(expr, decimalPlaces)}<mo>)</mo></mrow>',
-  EllipticE(:final expr, :final amplitude) =>
-    amplitude == null
-        ? '<mrow><mi>E</mi><mo>(</mo>${_toMathMl(expr, decimalPlaces)}<mo>)</mo></mrow>'
-        : '<mrow><mi>E</mi><mo>(</mo>${_toMathMl(amplitude, decimalPlaces)}<mo>,</mo>${_toMathMl(expr, decimalPlaces)}<mo>)</mo></mrow>',
-  Erfi(:final expr) =>
-    '<mrow><mi>erfi</mi><mo>(</mo>${_toMathMl(expr, decimalPlaces)}<mo>)</mo></mrow>',
-  FresnelS(:final expr) =>
-    '<mrow><mi>S</mi><mo>(</mo>${_toMathMl(expr, decimalPlaces)}<mo>)</mo></mrow>',
-  FresnelC(:final expr) =>
-    '<mrow><mi>C</mi><mo>(</mo>${_toMathMl(expr, decimalPlaces)}<mo>)</mo></mrow>',
-  ExpIntegral(:final expr) =>
-    '<mrow><mi>Ei</mi><mo>(</mo>${_toMathMl(expr, decimalPlaces)}<mo>)</mo></mrow>',
-  ExpIntegralE(:final left, :final right) =>
-    '<mrow><msub><mi>E</mi>${_toMathMl(left, decimalPlaces)}</msub><mo>(</mo>${_toMathMl(right, decimalPlaces)}<mo>)</mo></mrow>',
-  LogIntegral(:final expr) =>
-    '<mrow><mi>li</mi><mo>(</mo>${_toMathMl(expr, decimalPlaces)}<mo>)</mo></mrow>',
-  SinIntegral(:final expr) =>
-    '<mrow><mi>Si</mi><mo>(</mo>${_toMathMl(expr, decimalPlaces)}<mo>)</mo></mrow>',
-  CosIntegral(:final expr) =>
-    '<mrow><mi>Ci</mi><mo>(</mo>${_toMathMl(expr, decimalPlaces)}<mo>)</mo></mrow>',
-  SinhIntegral(:final expr) =>
-    '<mrow><mi>Shi</mi><mo>(</mo>${_toMathMl(expr, decimalPlaces)}<mo>)</mo></mrow>',
-  CoshIntegral(:final expr) =>
-    '<mrow><mi>Chi</mi><mo>(</mo>${_toMathMl(expr, decimalPlaces)}<mo>)</mo></mrow>',
-  UpperGamma(:final left, :final right) =>
-    '<mrow><mi>Γ</mi><mo>(</mo>${_toMathMl(left, decimalPlaces)}<mo>,</mo>${_toMathMl(right, decimalPlaces)}<mo>)</mo></mrow>',
-  LowerGamma(:final left, :final right) =>
-    '<mrow><mi>γ</mi><mo>(</mo>${_toMathMl(left, decimalPlaces)}<mo>,</mo>${_toMathMl(right, decimalPlaces)}<mo>)</mo></mrow>',
-  Polylog(:final left, :final right) =>
-    '<mrow><msub><mi>Li</mi>${_toMathMl(left, decimalPlaces)}</msub><mo>(</mo>${_toMathMl(right, decimalPlaces)}<mo>)</mo></mrow>',
-  EllipticF(:final left, :final right) =>
-    '<mrow><mi>F</mi><mo>(</mo>${_toMathMl(left, decimalPlaces)}<mo>,</mo>${_toMathMl(right, decimalPlaces)}<mo>)</mo></mrow>',
-  EllipticPi(:final characteristic, :final amplitude, :final modulus) =>
-    '<mrow><mi>Π</mi><mo>(</mo>${_toMathMl(characteristic, decimalPlaces)}<mo>;</mo>${_toMathMl(amplitude, decimalPlaces)}<mo>|</mo>${_toMathMl(modulus, decimalPlaces)}<mo>)</mo></mrow>',
-  Hypergeometric(:final upper, :final lower, :final argument) =>
-    '<mrow><mmultiscripts><mi>F</mi><mn>${lower.length}</mn><none/><mprescripts/><mn>${upper.length}</mn><none/></mmultiscripts><mo>(</mo>${upper.map((e) => _toMathMl(e, decimalPlaces)).join('<mo>,</mo>')}<mo>;</mo>${lower.map((e) => _toMathMl(e, decimalPlaces)).join('<mo>,</mo>')}<mo>;</mo>${_toMathMl(argument, decimalPlaces)}<mo>)</mo></mrow>',
-  AppellF1(:final a, :final b1, :final b2, :final c, :final x, :final y) =>
-    '<mrow><msub><mi>F</mi><mn>1</mn></msub><mo>(</mo>${_toMathMl(a, decimalPlaces)}<mo>;</mo>${_toMathMl(b1, decimalPlaces)}<mo>,</mo>${_toMathMl(b2, decimalPlaces)}<mo>;</mo>${_toMathMl(c, decimalPlaces)}<mo>;</mo>${_toMathMl(x, decimalPlaces)}<mo>,</mo>${_toMathMl(y, decimalPlaces)}<mo>)</mo></mrow>',
-  Min(:final args) =>
-    '<mrow><mi>min</mi><mo>(</mo>${args.map((e) => _toMathMl(e, decimalPlaces)).join('<mo>,</mo>')}<mo>)</mo></mrow>',
-  Max(:final args) =>
-    '<mrow><mi>max</mi><mo>(</mo>${args.map((e) => _toMathMl(e, decimalPlaces)).join('<mo>,</mo>')}<mo>)</mo></mrow>',
-  Gcd(:final args) =>
-    '<mrow><mi>gcd</mi><mo>(</mo>${args.map((e) => _toMathMl(e, decimalPlaces)).join('<mo>,</mo>')}<mo>)</mo></mrow>',
-  Lcm(:final args) =>
-    '<mrow><mi>lcm</mi><mo>(</mo>${args.map((e) => _toMathMl(e, decimalPlaces)).join('<mo>,</mo>')}<mo>)</mo></mrow>',
-  Tuple(:final args) =>
-    '<mrow><mo>[</mo>${args.map((e) => _toMathMl(e, decimalPlaces)).join('<mo>,</mo>')}<mo>]</mo></mrow>',
-  Beta(:final left, :final right) =>
-    '<mrow><mi>B</mi><mo>(</mo>${_toMathMl(left, decimalPlaces)}<mo>,</mo>${_toMathMl(right, decimalPlaces)}<mo>)</mo></mrow>',
-  Factorial(:final expr) =>
-    '<mrow>${_formatPowBase(expr, decimalPlaces)}<mo>!</mo></mrow>',
-  Binomial(:final left, :final right) =>
-    '<mrow><mo>(</mo><mfrac linethickness="0">${_toMathMl(left, decimalPlaces)}${_toMathMl(right, decimalPlaces)}</mfrac><mo>)</mo></mrow>',
-  Floor(:final expr) =>
-    '<mrow><mo>&#x230A;</mo>${_toMathMl(expr, decimalPlaces)}<mo>&#x230B;</mo></mrow>',
-  Ceil(:final expr) =>
-    '<mrow><mo>&#x2308;</mo>${_toMathMl(expr, decimalPlaces)}<mo>&#x2309;</mo></mrow>',
-  Round(:final expr) =>
-    '<mrow><mi>round</mi><mo>(</mo>${_toMathMl(expr, decimalPlaces)}<mo>)</mo></mrow>',
-  Sign(:final expr) =>
-    '<mrow><mi>sgn</mi><mo>(</mo>${_toMathMl(expr, decimalPlaces)}<mo>)</mo></mrow>',
-  Mod(:final left, :final right) =>
-    '<mrow>${_formatMulLeft(left, decimalPlaces)}<mo>mod</mo>${_formatMulRight(right, decimalPlaces)}</mrow>',
-  Re(:final expr) =>
-    '<mrow><mi>Re</mi><mo>(</mo>${_toMathMl(expr, decimalPlaces)}<mo>)</mo></mrow>',
-  Im(:final expr) =>
-    '<mrow><mi>Im</mi><mo>(</mo>${_toMathMl(expr, decimalPlaces)}<mo>)</mo></mrow>',
-  Arg(:final expr) =>
-    '<mrow><mi>arg</mi><mo>(</mo>${_toMathMl(expr, decimalPlaces)}<mo>)</mo></mrow>',
-  Conjugate(:final expr) =>
-    '<mover><mrow>${_toMathMl(expr, decimalPlaces)}</mrow><mo>&#x00AF;</mo></mover>',
-  Asinh(:final expr) =>
-    '<mrow><mi>arsinh</mi><mo>(</mo>${_toMathMl(expr, decimalPlaces)}<mo>)</mo></mrow>',
-  Acosh(:final expr) =>
-    '<mrow><mi>arcosh</mi><mo>(</mo>${_toMathMl(expr, decimalPlaces)}<mo>)</mo></mrow>',
-  Atanh(:final expr) =>
-    '<mrow><mi>artanh</mi><mo>(</mo>${_toMathMl(expr, decimalPlaces)}<mo>)</mo></mrow>',
-  LessThan(:final left, :final right) =>
-    '<mrow>${_toMathMl(left, decimalPlaces)}<mo>&lt;</mo>${_toMathMl(right, decimalPlaces)}</mrow>',
-  LessEqual(:final left, :final right) =>
-    '<mrow>${_toMathMl(left, decimalPlaces)}<mo>&#x2264;</mo>${_toMathMl(right, decimalPlaces)}</mrow>',
-  GreaterThan(:final left, :final right) =>
-    '<mrow>${_toMathMl(left, decimalPlaces)}<mo>&gt;</mo>${_toMathMl(right, decimalPlaces)}</mrow>',
-  GreaterEqual(:final left, :final right) =>
-    '<mrow>${_toMathMl(left, decimalPlaces)}<mo>&#x2265;</mo>${_toMathMl(right, decimalPlaces)}</mrow>',
-  Equal(:final left, :final right) =>
-    '<mrow>${_toMathMl(left, decimalPlaces)}<mo>=</mo>${_toMathMl(right, decimalPlaces)}</mrow>',
-  NotEqual(:final left, :final right) =>
-    '<mrow>${_toMathMl(left, decimalPlaces)}<mo>&#x2260;</mo>${_toMathMl(right, decimalPlaces)}</mrow>',
+  Relational(:final op, :final left, :final right) =>
+    '<mrow>${_toMathMl(left, decimalPlaces)}<mo>${op.mathMlSymbol}</mo>${_toMathMl(right, decimalPlaces)}</mrow>',
   Piecewise(:final branches, :final otherwise) =>
     '<mrow><mo>{</mo><mtable>'
         '${branches.map((b) => '<mtr><mtd>${_toMathMl(b.expr, decimalPlaces)}</mtd><mtd><mtext>if&#x00a0;</mtext>${_toMathMl(b.relation, decimalPlaces)}</mtd></mtr>').join()}'
         '${otherwise != null ? '<mtr><mtd>${_toMathMl(otherwise, decimalPlaces)}</mtd><mtd><mtext>otherwise</mtext></mtd></mtr>' : ''}'
         '</mtable></mrow>',
   Integral(:final integrand, :final variable, :final lower, :final upper) => () {
-    final vMathMl = _toMathMl(Variable(variable), decimalPlaces);
+    final vMathMl = _formatVariableMathMl(variable);
     final body = _formatMulRight(integrand, decimalPlaces);
     return lower != null && upper != null
         ? '<mrow><msubsup><mo>&#x222B;</mo>${_toMathMl(lower, decimalPlaces)}${_toMathMl(upper, decimalPlaces)}</msubsup>$body<mspace width="thinmathspace"/><mi>d</mi>$vMathMl</mrow>'
         : '<mrow><mo>&#x222B;</mo>$body<mspace width="thinmathspace"/><mi>d</mi>$vMathMl</mrow>';
   }(),
   Derivative(:final expr, :final variable, :final order, :final point) => () {
-    final vMathMl = _toMathMl(Variable(variable), decimalPlaces);
+    final vMathMl = _formatVariableMathMl(variable);
     final diffOp = order == 1
         ? '<mfrac><mi>d</mi><mrow><mi>d</mi>$vMathMl</mrow></mfrac>'
         : '<mfrac><msup><mi>d</mi><mn>$order</mn></msup><mrow><mi>d</mi><msup>$vMathMl<mn>$order</mn></msup></mrow></mfrac>';
@@ -249,7 +88,7 @@ String _toMathMl(Expr expr, int decimalPlaces) => switch (expr) {
     return base;
   }(),
   Limit(:final expr, :final variable, :final point, :final direction) => () {
-    final vMathMl = _toMathMl(Variable(variable), decimalPlaces);
+    final vMathMl = _formatVariableMathMl(variable);
     final ptMathMl = switch (direction) {
       LimitDirection.both => _toMathMl(point, decimalPlaces),
       LimitDirection.fromAbove =>
@@ -260,11 +99,11 @@ String _toMathMl(Expr expr, int decimalPlaces) => switch (expr) {
     return '<mrow><munder><mo movablelimits="false">lim</mo><mrow>$vMathMl<mo>&#x2192;</mo>$ptMathMl</mrow></munder>${_formatMulRight(expr, decimalPlaces)}</mrow>';
   }(),
   Sum(:final expr, :final variable, :final lower, :final upper) =>
-    '<mrow><munderover><mo movablelimits="false">&#x2211;</mo><mrow>${_toMathMl(Variable(variable), decimalPlaces)}<mo>=</mo>${_toMathMl(lower, decimalPlaces)}</mrow>${_toMathMl(upper, decimalPlaces)}</munderover>${_formatMulRight(expr, decimalPlaces)}</mrow>',
+    '<mrow><munderover><mo movablelimits="false">&#x2211;</mo><mrow>${_formatVariableMathMl(variable)}<mo>=</mo>${_toMathMl(lower, decimalPlaces)}</mrow>${_toMathMl(upper, decimalPlaces)}</munderover>${_formatMulRight(expr, decimalPlaces)}</mrow>',
   Product(:final expr, :final variable, :final lower, :final upper) =>
-    '<mrow><munderover><mo movablelimits="false">&#x220F;</mo><mrow>${_toMathMl(Variable(variable), decimalPlaces)}<mo>=</mo>${_toMathMl(lower, decimalPlaces)}</mrow>${_toMathMl(upper, decimalPlaces)}</munderover>${_formatMulRight(expr, decimalPlaces)}</mrow>',
+    '<mrow><munderover><mo movablelimits="false">&#x220F;</mo><mrow>${_formatVariableMathMl(variable)}<mo>=</mo>${_toMathMl(lower, decimalPlaces)}</mrow>${_toMathMl(upper, decimalPlaces)}</munderover>${_formatMulRight(expr, decimalPlaces)}</mrow>',
   RootSum(:final polynomial, :final variable, :final body) =>
-    '<mrow><munder><mo movablelimits="false">&#x2211;</mo><mrow>${_toMathMl(Variable(variable), decimalPlaces)}<mo>:</mo>${_toMathMl(polynomial, decimalPlaces)}<mo>=</mo><mn>0</mn></mrow></munder>${_formatMulRight(body, decimalPlaces)}</mrow>',
+    '<mrow><munder><mo movablelimits="false">&#x2211;</mo><mrow>${_formatVariableMathMl(variable)}<mo>:</mo>${_toMathMl(polynomial, decimalPlaces)}<mo>=</mo><mn>0</mn></mrow></munder>${_formatMulRight(body, decimalPlaces)}</mrow>',
 };
 
 String _formatComplexMathMl(ComplexNumber c, int decimalPlaces) {
@@ -319,7 +158,7 @@ String _formatAddMathMl(List<Expr> terms, int decimalPlaces) {
 }
 
 String _formatAddTermMathMl(Expr term, int decimalPlaces) =>
-    term is Mod || term is RelationalExpr
+    isModCall(term) || term is Relational
     ? '<mrow><mo>(</mo>${_toMathMl(term, decimalPlaces)}<mo>)</mo></mrow>'
     : _toMathMl(term, decimalPlaces);
 
@@ -356,7 +195,7 @@ String _formatMulProductMathMl(List<Expr> factors, int decimalPlaces) {
     case [IntegerNumber(isNegativeOne: true), ...final rest]:
       final operand = switch (rest) {
         [final single] => single,
-        _ => Mul(rest),
+        _ => Mul.of(rest),
       };
       return '<mrow><mo form="prefix">&#x2212;</mo>${_formatNegOperand(operand, decimalPlaces)}</mrow>';
     default:
@@ -416,10 +255,10 @@ String _formatPow(Expr base, Expr exponent, int decimalPlaces) {
     return '<mfrac><mn>1</mn>${_toMathMl(base, decimalPlaces)}</mfrac>';
   }
   if (exponent case RationalNumber(:final numerator, :final denominator)
-      when numerator == Integer.one) {
-    if (denominator == Integer.two) {
+      when numerator == BigInt.one) {
+    if (denominator == BigInt.two) {
       return '<msqrt><mrow>${_toMathMl(base, decimalPlaces)}</mrow></msqrt>';
-    } else if (denominator > Integer.two) {
+    } else if (denominator > BigInt.two) {
       return '<mroot><mrow>${_toMathMl(base, decimalPlaces)}</mrow><mn>$denominator</mn></mroot>';
     }
   }

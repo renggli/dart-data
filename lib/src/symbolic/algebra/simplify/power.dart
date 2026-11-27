@@ -1,8 +1,10 @@
 import 'dart:math' as math;
 
+import 'package:more/math.dart';
+
 import '../../assumptions.dart';
 import '../../ast.dart';
-import '../../number/integer.dart';
+import '../../number/combinatorics.dart';
 import 'additive.dart';
 import 'complex.dart';
 import 'domain.dart';
@@ -44,7 +46,7 @@ Expr simplifyPow(Expr base, Expr exponent, {required Assumptions assumptions}) {
           ? const RealNumber(0.0)
           : IntegerNumber.zero;
     }
-    return Pow(base, exponent, isSimplified: true);
+    return Pow.of(base, exponent);
   }
   if (base is Number && base.isOne) {
     if (exponent.anyNode((n) => n == Constant.infinity)) {
@@ -71,13 +73,18 @@ Expr simplifyPow(Expr base, Expr exponent, {required Assumptions assumptions}) {
     if (exponent is ComplexNumber && isFloatComplex(exponent)) {
       return complexToExpr(exponent.toComplex().exp());
     }
-    if (exponent is Ln) {
-      return exponent.expr;
+    if (exponent case Call(id: FunctionId.ln, args: [final inner])) {
+      return inner;
     }
     if (exponent is Mul) {
-      final lnIdx = exponent.factors.indexWhere((f) => f is Ln);
+      final lnIdx = exponent.factors.indexWhere(
+        (f) => f is Call && f.id == FunctionId.ln,
+      );
       if (lnIdx != -1) {
-        if (exponent.factors[lnIdx] case Ln(:final expr)) {
+        if (exponent.factors[lnIdx] case Call(
+          id: FunctionId.ln,
+          args: [final inner],
+        )) {
           final otherFactors = <Expr>[
             for (var i = 0; i < exponent.factors.length; i++)
               if (i != lnIdx) exponent.factors[i],
@@ -85,7 +92,7 @@ Expr simplifyPow(Expr base, Expr exponent, {required Assumptions assumptions}) {
           final k = otherFactors.length == 1
               ? otherFactors.first
               : simplifyMul(otherFactors, assumptions: assumptions);
-          return simplifyPow(expr, k, assumptions: assumptions);
+          return simplifyPow(inner, k, assumptions: assumptions);
         }
       }
 
@@ -126,7 +133,7 @@ Expr simplifyPow(Expr base, Expr exponent, {required Assumptions assumptions}) {
     }
     final invHyp = _simplifyExpInvHyperbolic(exponent, assumptions);
     if (invHyp != null) return invHyp;
-    return Pow(Constant.e, exponent, isSimplified: true);
+    return Pow.of(Constant.e, exponent);
   }
 
   // 4. Numeric base and numeric exponent
@@ -163,10 +170,10 @@ Expr simplifyPow(Expr base, Expr exponent, {required Assumptions assumptions}) {
           }
           if (assumptions.defaultDomain == VariableDomain.complex) {
             if (base == IntegerNumber.negativeOne) {
-              return Pow(base, exponent, isSimplified: true);
+              return Pow.of(base, exponent);
             }
             return simplifyMul([
-              Pow(IntegerNumber.negativeOne, exponent, isSimplified: true),
+              Pow.of(IntegerNumber.negativeOne, exponent),
               simplifyPow(base.neg(), exponent, assumptions: assumptions),
             ], assumptions: assumptions);
           }
@@ -180,13 +187,13 @@ Expr simplifyPow(Expr base, Expr exponent, {required Assumptions assumptions}) {
         );
         if (extracted != null) return extracted;
       }
-      return Pow(base, exponent, isSimplified: true);
+      return Pow.of(base, exponent);
     }
     if (base is ComplexNumber) {
       final folded = base.powNumber(exponent);
       if (folded != null) return folded;
     }
-    return Pow(base, exponent, isSimplified: true);
+    return Pow.of(base, exponent);
   }
 
   // 4b. (-1)^k = 1 for even integer expression k
@@ -206,9 +213,9 @@ Expr simplifyPow(Expr base, Expr exponent, {required Assumptions assumptions}) {
   if (base
       case Pow(base: final innerBase, exponent: IntegerNumber(value: final p))
       when isProvenReal(innerBase, assumptions) &&
-          p > Integer.zero &&
+          p > BigInt.zero &&
           p.isEven &&
-          exponent == RationalNumber.of(Integer.one, p)) {
+          exponent == RationalNumber.of(BigInt.one, p)) {
     return simplifyAbs(innerBase, assumptions: assumptions);
   }
 
@@ -253,7 +260,7 @@ Expr simplifyPow(Expr base, Expr exponent, {required Assumptions assumptions}) {
             assumptions: assumptions,
           );
         }
-        return Pow(base, exponent, isSimplified: true);
+        return Pow.of(base, exponent);
       }
       if (innerExp is FractionNumber &&
           innerExp.numerator.isEven &&
@@ -270,7 +277,7 @@ Expr simplifyPow(Expr base, Expr exponent, {required Assumptions assumptions}) {
         return simplifyPow(innerBase, prod, assumptions: assumptions);
       }
       if (innerExp is FractionNumber &&
-          innerExp.numerator == Integer.one &&
+          innerExp.numerator == BigInt.one &&
           exponent is FractionNumber &&
           exponent.numerator.abs() <= innerExp.denominator) {
         return simplifyPow(
@@ -279,7 +286,7 @@ Expr simplifyPow(Expr base, Expr exponent, {required Assumptions assumptions}) {
           assumptions: assumptions,
         );
       }
-      return Pow(base, exponent, isSimplified: true);
+      return Pow.of(base, exponent);
     }
   }
 
@@ -337,7 +344,7 @@ Expr simplifyPow(Expr base, Expr exponent, {required Assumptions assumptions}) {
             base: final innerBase,
             exponent: IntegerNumber(value: final m),
           )
-          when m.abs().gcd(q) > Integer.one &&
+          when m.abs().gcd(q) > BigInt.one &&
               ((m.isEven && isProvenReal(innerBase, assumptions)) ||
                   isNonNegativeExpr(innerBase, assumptions: assumptions))) {
         extractedFactors.add(
@@ -379,8 +386,9 @@ Expr simplifyPow(Expr base, Expr exponent, {required Assumptions assumptions}) {
   }
 
   // 8. |u|^2 => u^2 for real u
-  if (base is Abs && _isTwo(exponent) && isProvenReal(base.expr, assumptions)) {
-    return simplifyPow(base.expr, exponent, assumptions: assumptions);
+  if (base case Call(id: FunctionId.abs, args: [final inner])
+      when _isTwo(exponent) && isProvenReal(inner, assumptions)) {
+    return simplifyPow(inner, exponent, assumptions: assumptions);
   }
 
   // 9. OrderTerm^k for positive integer k
@@ -393,7 +401,7 @@ Expr simplifyPow(Expr base, Expr exponent, {required Assumptions assumptions}) {
     return OrderTerm(variable, order * k, point: point);
   }
 
-  return Pow(base, exponent, isSimplified: true);
+  return Pow.of(base, exponent);
 }
 
 bool _isTwo(Expr expr) => expr == IntegerNumber.two;
@@ -418,14 +426,16 @@ Expr? _extractRationalRadical(
         ? simplifyNeg(posExtracted, assumptions: assumptions)
         : posExtracted;
   }
-  final p = exponent.numerator.asInt;
-  final q = exponent.denominator.asInt;
+  final p = exponent.numerator.isValidInt ? exponent.numerator.toInt() : null;
+  final q = exponent.denominator.isValidInt
+      ? exponent.denominator.toInt()
+      : null;
   if (p == null || q == null || q <= 1 || q > 1024 || p.abs() > 1024) {
     return null;
   }
 
   // Split rational base u / v into u^(p/q) * v^(-p/q).
-  if (base.denominator > Integer.one) {
+  if (base.denominator > BigInt.one) {
     final u = IntegerNumber(base.numerator);
     final v = IntegerNumber(base.denominator);
     return simplifyMul([
@@ -454,12 +464,12 @@ Expr? _extractRationalRadical(
 
   // Extract q-th powers from integer base: n = k^q * r
   final (kNum, rNum) = _extractQthPower(base.numerator, q);
-  if (kNum > Integer.one) {
+  if (kNum > BigInt.one) {
     final extractedFactor = IntegerNumber(kNum).powInteger(p);
     if (extractedFactor != null) {
-      final remPow = rNum.isOne
+      final remPow = rNum == BigInt.one
           ? IntegerNumber.one
-          : Pow(IntegerNumber(rNum), exponent, isSimplified: true);
+          : Pow.of(IntegerNumber(rNum), exponent);
       return simplifyMul([extractedFactor, remPow], assumptions: assumptions);
     }
   }
@@ -469,34 +479,34 @@ Expr? _extractRationalRadical(
 
 /// Factors positive [n] into `(root, remainder)` such that `n = root^q * remainder`
 /// and `remainder` is free of prime factors `<=997` of multiplicity `>=q`.
-(Integer, Integer) _extractQthPower(Integer n, int q) {
-  if (n <= Integer.one || q <= 1) return (Integer.one, n);
+(BigInt, BigInt) _extractQthPower(BigInt n, int q) {
+  if (n <= BigInt.one || q <= 1) return (BigInt.one, n);
   var unfactored = n;
-  var root = Integer.one;
-  var restored = Integer.one;
+  var root = BigInt.one;
+  var restored = BigInt.one;
 
   var count2 = 0;
   while (unfactored.isEven) {
-    unfactored ~/= Integer.two;
+    unfactored ~/= BigInt.two;
     count2++;
   }
   if (count2 >= q) {
     final extracted = count2 ~/ q;
     for (var i = 0; i < extracted; i++) {
-      root *= Integer.two;
+      root *= BigInt.two;
     }
     count2 %= q;
   }
   for (var i = 0; i < count2; i++) {
-    restored *= Integer.two;
+    restored *= BigInt.two;
   }
 
-  var d = const Integer(3);
-  const limit = Integer(997);
+  var d = BigInt.from(3);
+  final limit = BigInt.from(997);
   while (d * d <= unfactored && d <= limit) {
-    if ((unfactored % d).isZero) {
+    if (unfactored % d == BigInt.zero) {
       var c = 0;
-      while ((unfactored % d).isZero) {
+      while (unfactored % d == BigInt.zero) {
         unfactored ~/= d;
         c++;
       }
@@ -511,25 +521,27 @@ Expr? _extractRationalRadical(
         restored *= d;
       }
     }
-    d += Integer.two;
+    d += BigInt.two;
   }
 
-  if (unfactored > Integer.one) {
+  if (unfactored > BigInt.one) {
     final exactRoot = Number.exactIntegerRoot(unfactored, q);
     if (exactRoot != null) {
       root *= exactRoot;
-      unfactored = Integer.one;
-    } else if (q == 2 && unfactored.bitLength <= 64 && !unfactored.isPrime) {
-      final primeCounts = <Integer, int>{};
-      final queue = <Integer>[unfactored];
+      unfactored = BigInt.one;
+    } else if (q == 2 &&
+        unfactored.bitLength <= 64 &&
+        !unfactored.isProbablyPrime) {
+      final primeCounts = <BigInt, int>{};
+      final queue = <BigInt>[unfactored];
       while (queue.isNotEmpty) {
         final curr = queue.removeLast();
-        if (curr <= Integer.one) continue;
-        if (curr.isPrime) {
+        if (curr <= BigInt.one) continue;
+        if (curr.isProbablyPrime) {
           primeCounts[curr] = (primeCounts[curr] ?? 0) + 1;
         } else {
           final factor = pollardsRho(curr);
-          if (factor != null && factor > Integer.one && factor < curr) {
+          if (factor != null && factor > BigInt.one && factor < curr) {
             queue.add(factor);
             queue.add(curr ~/ factor);
           } else {
@@ -537,7 +549,7 @@ Expr? _extractRationalRadical(
           }
         }
       }
-      var rem = Integer.one;
+      var rem = BigInt.one;
       for (final MapEntry(key: p, value: c) in primeCounts.entries) {
         final ext = c ~/ 2;
         for (var i = 0; i < ext; i++) {
@@ -556,27 +568,38 @@ Expr? _extractRationalRadical(
 
 Expr? _simplifyExpInvHyperbolic(Expr exponent, Assumptions assumptions) {
   RationalNumber? k;
-  Expr? fn;
-  if (exponent is Atanh || exponent is Asinh || exponent is Acosh) {
+  Call? fn;
+  if (exponent is Call &&
+      (exponent.id == FunctionId.atanh ||
+          exponent.id == FunctionId.asinh ||
+          exponent.id == FunctionId.acosh)) {
     k = IntegerNumber.one;
     fn = exponent;
   } else if (exponent is Mul && exponent.factors.length == 2) {
     final f0 = exponent.factors[0];
     final f1 = exponent.factors[1];
-    if (f0 is RationalNumber && (f1 is Atanh || f1 is Asinh || f1 is Acosh)) {
+    if (f0 is RationalNumber &&
+        f1 is Call &&
+        (f1.id == FunctionId.atanh ||
+            f1.id == FunctionId.asinh ||
+            f1.id == FunctionId.acosh)) {
       k = f0;
       fn = f1;
     } else if (f1 is RationalNumber &&
-        (f0 is Atanh || f0 is Asinh || f0 is Acosh)) {
+        f0 is Call &&
+        (f0.id == FunctionId.atanh ||
+            f0.id == FunctionId.asinh ||
+            f0.id == FunctionId.acosh)) {
       k = f1;
       fn = f0;
     }
   }
   if (k == null || fn == null) return null;
 
-  switch (fn) {
-    case Atanh(expr: final u):
-      if (k.denominator != Integer.one) return null;
+  final u = fn.args[0];
+  switch (fn.id) {
+    case FunctionId.atanh:
+      if (k.denominator != BigInt.one) return null;
       if (k.numerator.isOdd) {
         if (u is ComplexNumber) return null;
         if (tryStaticRealValue(u) case final v? when v.abs() >= 1.0) {
@@ -601,7 +624,7 @@ Expr? _simplifyExpInvHyperbolic(Expr exponent, Assumptions assumptions) {
         FractionNumber.half,
       ], assumptions: assumptions);
       return simplifyPow(ratio, expHalf, assumptions: assumptions);
-    case Asinh(expr: final u) when k is IntegerNumber:
+    case FunctionId.asinh when k is IntegerNumber:
       final u2Plus1 = simplifyAdd([
         simplifyPow(u, IntegerNumber.two, assumptions: assumptions),
         IntegerNumber.one,
@@ -622,7 +645,7 @@ Expr? _simplifyExpInvHyperbolic(Expr exponent, Assumptions assumptions) {
       return absK == IntegerNumber.one
           ? base
           : simplifyPow(base, absK, assumptions: assumptions);
-    case Acosh(expr: final u) when k is IntegerNumber:
+    case FunctionId.acosh when k is IntegerNumber:
       if (u is ComplexNumber) return null;
       if (tryStaticRealValue(u) case final v? when v < 1.0) return null;
       final u2Minus1 = simplifyAdd([

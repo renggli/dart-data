@@ -36,7 +36,7 @@ void main() {
       );
       check(pureImag).unorderedEquals([
         ComplexNumber(IntegerNumber.zero, IntegerNumber.two),
-        ComplexNumber(IntegerNumber.zero, const IntegerNumber(Integer(-2))),
+        ComplexNumber(IntegerNumber.zero, IntegerNumber(BigInt.from(-2))),
       ]);
 
       final complexRational = solveQuadratic(
@@ -48,7 +48,7 @@ void main() {
         ComplexNumber(IntegerNumber.negativeOne, IntegerNumber.two),
         ComplexNumber(
           IntegerNumber.negativeOne,
-          const IntegerNumber(Integer(-2)),
+          IntegerNumber(BigInt.from(-2)),
         ),
       ]);
 
@@ -146,18 +146,18 @@ void main() {
     test('sqrtConstant and rootConstant cover all cases', () {
       check(sqrtConstant(RationalNumber(4, 9))).equals(RationalNumber(2, 3));
       check(sqrtConstant(RationalNumber(2, 3)))
-          .equals(Pow(RationalNumber(2, 3), FractionNumber.half).simplify());
+          .equals(Pow.of(RationalNumber(2, 3), FractionNumber.half).simplify());
 
       check(rootConstant(RationalNumber(-8, 27), 3))
           .equals(RationalNumber(-2, 3));
       check(rootConstant(RationalNumber(8, 27), 3))
           .equals(RationalNumber(2, 3));
       check(rootConstant(IntegerNumber.of(5), 3))
-          .equals(Pow(IntegerNumber.of(5), FractionNumber.third).simplify());
+          .equals(Pow.of(IntegerNumber.of(5), FractionNumber.third).simplify());
       check(rootConstant(const RealNumber(-8.0), 3))
           .equals(const RealNumber(-2.0));
       check(rootConstant(const Variable('a'), 3))
-          .equals(Pow(const Variable('a'), FractionNumber.third));
+          .equals(Pow.of(const Variable('a'), FractionNumber.third));
     });
   });
 }

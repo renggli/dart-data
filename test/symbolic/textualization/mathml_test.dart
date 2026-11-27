@@ -92,14 +92,14 @@ void main() {
         const x = Variable('x');
         const y = Variable('y');
 
-        check(Add(const []).toMathMl(root: false)).equals('<mn>0</mn>');
-        check(Add([x]).toMathMl(root: false)).equals('<mi>x</mi>');
-        check(Mul(const []).toMathMl(root: false)).equals('<mn>1</mn>');
-        check(Mul([x]).toMathMl(root: false)).equals('<mi>x</mi>');
-        check(Mul([IntegerNumber.of(-2), x]).toMathMl(root: false)).equals(
+        check(Add.of(const []).toMathMl(root: false)).equals('<mn>0</mn>');
+        check(Add.of([x]).toMathMl(root: false)).equals('<mi>x</mi>');
+        check(Mul.of(const []).toMathMl(root: false)).equals('<mn>1</mn>');
+        check(Mul.of([x]).toMathMl(root: false)).equals('<mi>x</mi>');
+        check(Mul.of([IntegerNumber.of(-2), x]).toMathMl(root: false)).equals(
           '<mrow><mo form="prefix">&#x2212;</mo><mn>2</mn><mi>x</mi></mrow>',
         );
-        check(Mul([IntegerNumber.negativeOne, x + y]).toMathMl(root: false))
+        check(Mul.of([IntegerNumber.negativeOne, x + y]).toMathMl(root: false))
             .equals(
               '<mrow><mo form="prefix">&#x2212;</mo><mrow><mo>(</mo><mrow><mi>x</mi><mo>+</mo><mi>y</mi></mrow><mo>)</mo></mrow></mrow>',
             );
@@ -112,147 +112,146 @@ void main() {
         check(Expr.parse('x^(1/3)').toMathMl()).equals(
           '<math><mroot><mrow><mi>x</mi></mrow><mn>3</mn></mroot></math>',
         );
-        check(Pow(Constant.e, x).toMathMl(root: false))
+        check(Pow.of(Constant.e, x).toMathMl(root: false))
             .equals('<msup><mi>e</mi><mi>x</mi></msup>');
-        check(Pow(x, IntegerNumber.negativeOne).toMathMl(root: false))
+        check(Pow.of(x, IntegerNumber.negativeOne).toMathMl(root: false))
             .equals('<mfrac><mn>1</mn><mi>x</mi></mfrac>');
-        check(Pow(x + y, IntegerNumber.two).toMathMl(root: false)).equals(
+        check(Pow.of(x + y, IntegerNumber.two).toMathMl(root: false)).equals(
           '<msup><mrow><mo>(</mo><mrow><mi>x</mi><mo>+</mo><mi>y</mi></mrow><mo>)</mo></mrow><mn>2</mn></msup>',
         );
 
-        check(Sin(x).toMathMl(root: false))
+        check(Fn.sin(x).toMathMl(root: false))
             .equals('<mrow><mi>sin</mi><mo>(</mo><mi>x</mi><mo>)</mo></mrow>');
-        check(Cos(x).toMathMl(root: false))
+        check(Fn.cos(x).toMathMl(root: false))
             .equals('<mrow><mi>cos</mi><mo>(</mo><mi>x</mi><mo>)</mo></mrow>');
-        check(Tan(x).toMathMl(root: false))
+        check(Fn.tan(x).toMathMl(root: false))
             .equals('<mrow><mi>tan</mi><mo>(</mo><mi>x</mi><mo>)</mo></mrow>');
         check(
-          Asin(x).toMathMl(root: false),
+          Fn.asin(x).toMathMl(root: false),
         ).equals('<mrow><mi>arcsin</mi><mo>(</mo><mi>x</mi><mo>)</mo></mrow>');
         check(
-          Acos(x).toMathMl(root: false),
+          Fn.acos(x).toMathMl(root: false),
         ).equals('<mrow><mi>arccos</mi><mo>(</mo><mi>x</mi><mo>)</mo></mrow>');
         check(
-          Atan(x).toMathMl(root: false),
+          Fn.atan(x).toMathMl(root: false),
         ).equals('<mrow><mi>arctan</mi><mo>(</mo><mi>x</mi><mo>)</mo></mrow>');
-        check(Sinh(x).toMathMl(root: false))
+        check(Fn.sinh(x).toMathMl(root: false))
             .equals('<mrow><mi>sinh</mi><mo>(</mo><mi>x</mi><mo>)</mo></mrow>');
-        check(Cosh(x).toMathMl(root: false))
+        check(Fn.cosh(x).toMathMl(root: false))
             .equals('<mrow><mi>cosh</mi><mo>(</mo><mi>x</mi><mo>)</mo></mrow>');
-        check(Tanh(x).toMathMl(root: false))
+        check(Fn.tanh(x).toMathMl(root: false))
             .equals('<mrow><mi>tanh</mi><mo>(</mo><mi>x</mi><mo>)</mo></mrow>');
         check(
-          Asinh(x).toMathMl(root: false),
+          Fn.asinh(x).toMathMl(root: false),
         ).equals('<mrow><mi>arsinh</mi><mo>(</mo><mi>x</mi><mo>)</mo></mrow>');
         check(
-          Acosh(x).toMathMl(root: false),
+          Fn.acosh(x).toMathMl(root: false),
         ).equals('<mrow><mi>arcosh</mi><mo>(</mo><mi>x</mi><mo>)</mo></mrow>');
         check(
-          Atanh(x).toMathMl(root: false),
+          Fn.atanh(x).toMathMl(root: false),
         ).equals('<mrow><mi>artanh</mi><mo>(</mo><mi>x</mi><mo>)</mo></mrow>');
-        check(Abs(x).toMathMl(root: false))
+        check(Fn.abs(x).toMathMl(root: false))
             .equals('<mrow><mo>|</mo><mi>x</mi><mo>|</mo></mrow>');
-        check(Ln(x).toMathMl(root: false))
+        check(Fn.ln(x).toMathMl(root: false))
             .equals('<mrow><mi>ln</mi><mo>(</mo><mi>x</mi><mo>)</mo></mrow>');
-        check(LambertW(x).toMathMl(root: false))
+        check(Fn.lambertW(x).toMathMl(root: false))
             .equals('<mrow><mi>W</mi><mo>(</mo><mi>x</mi><mo>)</mo></mrow>');
-        check(LambertW(x, branch: -1).toMathMl(root: false))
+        check(Fn.lambertW(x, IntegerNumber.negativeOne).toMathMl(root: false))
             .contains('<msub><mi>W</mi>');
-        check(Erf(x).toMathMl(root: false))
+        check(Fn.erf(x).toMathMl(root: false))
             .equals('<mrow><mi>erf</mi><mo>(</mo><mi>x</mi><mo>)</mo></mrow>');
-        check(Erfc(x).toMathMl(root: false))
+        check(Fn.erfc(x).toMathMl(root: false))
             .equals('<mrow><mi>erfc</mi><mo>(</mo><mi>x</mi><mo>)</mo></mrow>');
-        check(Gamma(x).toMathMl(root: false))
+        check(Fn.gamma(x).toMathMl(root: false))
             .equals('<mrow><mi>Γ</mi><mo>(</mo><mi>x</mi><mo>)</mo></mrow>');
-        check(Zeta(x).toMathMl(root: false))
+        check(Fn.zeta(x).toMathMl(root: false))
             .equals('<mrow><mi>ζ</mi><mo>(</mo><mi>x</mi><mo>)</mo></mrow>');
-        check(Digamma(x).toMathMl(root: false))
+        check(Fn.digamma(x).toMathMl(root: false))
             .equals('<mrow><mi>ψ</mi><mo>(</mo><mi>x</mi><mo>)</mo></mrow>');
-        check(Polygamma(IntegerNumber.one, x).toMathMl(root: false)).equals(
+        check(Fn.polygamma(IntegerNumber.one, x).toMathMl(root: false)).equals(
           '<mrow><msup><mi>ψ</mi><mrow><mo>(</mo><mn>1</mn><mo>)</mo></mrow></msup><mo>(</mo><mi>x</mi><mo>)</mo></mrow>',
         );
-        check(BesselJ(IntegerNumber.zero, x).toMathMl(root: false)).equals(
+        check(Fn.besselJ(IntegerNumber.zero, x).toMathMl(root: false)).equals(
           '<mrow><msub><mi>J</mi><mn>0</mn></msub><mo>(</mo><mi>x</mi><mo>)</mo></mrow>',
         );
-        check(EllipticK(x).toMathMl(root: false))
+        check(Fn.ellipticK(x).toMathMl(root: false))
             .equals('<mrow><mi>K</mi><mo>(</mo><mi>x</mi><mo>)</mo></mrow>');
-        check(Beta(x, y).toMathMl(root: false)).equals(
+        check(Fn.beta(x, y).toMathMl(root: false)).equals(
           '<mrow><mi>B</mi><mo>(</mo><mi>x</mi><mo>,</mo><mi>y</mi><mo>)</mo></mrow>',
         );
-        check(Binomial(x, y).toMathMl(root: false)).equals(
+        check(Fn.binomial(x, y).toMathMl(root: false)).equals(
           '<mrow><mo>(</mo><mfrac linethickness="0"><mi>x</mi><mi>y</mi></mfrac><mo>)</mo></mrow>',
         );
         check(
-          Floor(x).toMathMl(root: false),
+          Fn.floor(x).toMathMl(root: false),
         ).equals('<mrow><mo>&#x230A;</mo><mi>x</mi><mo>&#x230B;</mo></mrow>');
         check(
-          Ceil(x).toMathMl(root: false),
+          Fn.ceil(x).toMathMl(root: false),
         ).equals('<mrow><mo>&#x2308;</mo><mi>x</mi><mo>&#x2309;</mo></mrow>');
         check(
-          Round(x).toMathMl(root: false),
+          Fn.round(x).toMathMl(root: false),
         ).equals('<mrow><mi>round</mi><mo>(</mo><mi>x</mi><mo>)</mo></mrow>');
-        check(Sign(x).toMathMl(root: false))
+        check(Fn.sign(x).toMathMl(root: false))
             .equals('<mrow><mi>sgn</mi><mo>(</mo><mi>x</mi><mo>)</mo></mrow>');
-        check(Mod(x, y).toMathMl(root: false))
+        check(Fn.mod(x, y).toMathMl(root: false))
             .equals('<mrow><mi>x</mi><mo>mod</mo><mi>y</mi></mrow>');
-        check(Mod(x + y, y).toMathMl(root: false)).equals(
+        check(Fn.mod(x + y, y).toMathMl(root: false)).equals(
           '<mrow><mrow><mo>(</mo><mrow><mi>x</mi><mo>+</mo><mi>y</mi></mrow><mo>)</mo></mrow><mo>mod</mo><mi>y</mi></mrow>',
         );
-        check((Mod(x, y) + IntegerNumber.one).toMathMl(root: false)).equals(
-          '<mrow><mrow><mo>(</mo><mrow><mi>x</mi><mo>mod</mo><mi>y</mi></mrow><mo>)</mo></mrow><mo>+</mo><mn>1</mn></mrow>',
+        check((Fn.mod(x, y) + IntegerNumber.one).toMathMl(root: false)).equals(
+          '<mrow><mn>1</mn><mo>+</mo><mrow><mo>(</mo><mrow><mi>x</mi><mo>mod</mo><mi>y</mi></mrow><mo>)</mo></mrow></mrow>',
         );
-        check((LessThan(x, y) + IntegerNumber.one).toMathMl(root: false))
-            .equals(
-              '<mrow><mrow><mo>(</mo><mrow><mi>x</mi><mo>&lt;</mo><mi>y</mi></mrow><mo>)</mo></mrow><mo>+</mo><mn>1</mn></mrow>',
-            );
         check(
-          Add([
+          (Relational.lessThan(x, y) + IntegerNumber.one).toMathMl(root: false),
+        ).equals(
+          '<mrow><mn>1</mn><mo>+</mo><mrow><mo>(</mo><mrow><mi>x</mi><mo>&lt;</mo><mi>y</mi></mrow><mo>)</mo></mrow></mrow>',
+        );
+        check(
+          Add.of([
             x,
-            Mul([
+            Mul.of([
               IntegerNumber.negativeOne,
               ComplexNumber(IntegerNumber.one, IntegerNumber.two),
             ]),
           ]).toMathMl(root: false),
         ).equals(
-          '<mrow><mi>x</mi><mo>&#x2212;</mo><mrow><mo>(</mo><mrow><mn>1</mn><mo>+</mo><mrow><mn>2</mn><mi>i</mi></mrow></mrow><mo>)</mo></mrow></mrow>',
+          '<mrow><mrow><mrow><mo form="prefix">&#x2212;</mo><mn>1</mn></mrow><mo>&#x2212;</mo><mrow><mn>2</mn><mi>i</mi></mrow></mrow><mo>+</mo><mi>x</mi></mrow>',
         );
-        check(Re(x).toMathMl(root: false))
+        check(Fn.re(x).toMathMl(root: false))
             .equals('<mrow><mi>Re</mi><mo>(</mo><mi>x</mi><mo>)</mo></mrow>');
-        check(Im(x).toMathMl(root: false))
+        check(Fn.im(x).toMathMl(root: false))
             .equals('<mrow><mi>Im</mi><mo>(</mo><mi>x</mi><mo>)</mo></mrow>');
-        check(Arg(x).toMathMl(root: false))
+        check(Fn.arg(x).toMathMl(root: false))
             .equals('<mrow><mi>arg</mi><mo>(</mo><mi>x</mi><mo>)</mo></mrow>');
       },
     );
 
-    test('renders OrderTerm, RelationalExpr, Piecewise, Integral, Derivative, Limit, and multiplication spacing', () {
+    test('renders OrderTerm, Relational, Piecewise, Integral, Derivative, Limit, and multiplication spacing', () {
       const x = Variable('x');
-      check(const OrderTerm('x', 0).toMathMl(root: false))
+      check(OrderTerm('x', 0).toMathMl(root: false))
           .equals('<mrow><mi>O</mi><mo>(</mo><mn>1</mn><mo>)</mo></mrow>');
-      check(
-        const OrderTerm('x', 0, point: IntegerNumber.one).toMathMl(root: false),
-      ).equals('<mrow><mi>O</mi><mo>(</mo><mn>1</mn><mo>)</mo></mrow>');
-      check(const OrderTerm('x', 1).toMathMl(root: false))
+      check(OrderTerm('x', 0, point: IntegerNumber.one).toMathMl(root: false))
+          .equals('<mrow><mi>O</mi><mo>(</mo><mn>1</mn><mo>)</mo></mrow>');
+      check(OrderTerm('x', 1).toMathMl(root: false))
           .equals('<mrow><mi>O</mi><mo>(</mo><mi>x</mi><mo>)</mo></mrow>');
-      check(const OrderTerm('x', 4).toMathMl()).contains('<mi>O</mi>');
-      check(
-        const OrderTerm('x', 1, point: IntegerNumber.one).toMathMl(root: false),
-      ).contains('<mo>&#x2212;</mo>');
-      check(
-        const OrderTerm('x', 3, point: IntegerNumber.one).toMathMl(root: false),
-      ).contains('<msup>');
+      check(OrderTerm('x', 4).toMathMl()).contains('<mi>O</mi>');
+      check(OrderTerm('x', 1, point: IntegerNumber.one).toMathMl(root: false))
+          .contains('<mo>&#x2212;</mo>');
+      check(OrderTerm('x', 3, point: IntegerNumber.one).toMathMl(root: false))
+          .contains('<msup>');
 
-      check(LessThan(x, IntegerNumber.zero).toMathMl(root: false))
+      check(Relational.lessThan(x, IntegerNumber.zero).toMathMl(root: false))
           .equals('<mrow><mi>x</mi><mo>&lt;</mo><mn>0</mn></mrow>');
-      check(LessEqual(x, IntegerNumber.zero).toMathMl(root: false))
+      check(Relational.lessEqual(x, IntegerNumber.zero).toMathMl(root: false))
           .equals('<mrow><mi>x</mi><mo>&#x2264;</mo><mn>0</mn></mrow>');
-      check(GreaterThan(x, IntegerNumber.zero).toMathMl(root: false))
+      check(Relational.greaterThan(x, IntegerNumber.zero).toMathMl(root: false))
           .equals('<mrow><mi>x</mi><mo>&gt;</mo><mn>0</mn></mrow>');
-      check(GreaterEqual(x, IntegerNumber.zero).toMathMl(root: false))
-          .equals('<mrow><mi>x</mi><mo>&#x2265;</mo><mn>0</mn></mrow>');
-      check(Equal(x, IntegerNumber.zero).toMathMl(root: false))
+      check(
+        Relational.greaterEqual(x, IntegerNumber.zero).toMathMl(root: false),
+      ).equals('<mrow><mi>x</mi><mo>&#x2265;</mo><mn>0</mn></mrow>');
+      check(Relational.equal(x, IntegerNumber.zero).toMathMl(root: false))
           .equals('<mrow><mi>x</mi><mo>=</mo><mn>0</mn></mrow>');
-      check(NotEqual(x, IntegerNumber.zero).toMathMl(root: false))
+      check(Relational.notEqual(x, IntegerNumber.zero).toMathMl(root: false))
           .equals('<mrow><mi>x</mi><mo>&#x2260;</mo><mn>0</mn></mrow>');
       check(Derivative(x, 'x').toMathMl(root: false)).contains('<mfrac>');
       check(Derivative(x, 'x', order: 2).toMathMl(root: false))
@@ -285,8 +284,9 @@ void main() {
       check(Expr.parse('piecewise(x < 0, -x, x)').toMathMl(root: false))
           .contains('<mtable>');
       check(
-        Piecewise([(relation: LessThan(x, IntegerNumber.zero), expr: -x)])
-            .toMathMl(root: false),
+        Piecewise([
+          (relation: Relational.lessThan(x, IntegerNumber.zero), expr: -x),
+        ]).toMathMl(root: false),
       ).contains('<mtable>');
 
       check(Expr.parse('sin(x)^2').toMathMl()).equals(
@@ -294,20 +294,21 @@ void main() {
       );
       check(Expr.parse('(1 / 2) * x').simplify().toMathMl())
           .equals('<math><mfrac><mi>x</mi><mn>2</mn></mfrac></math>');
-      check(Mul([Pow(x, IntegerNumber.of(-2))]).toMathMl(root: false)).equals(
-        '<msup><mi>x</mi><mrow><mo form="prefix">&#x2212;</mo><mn>2</mn></mrow></msup>',
-      );
+      check(Mul.of([Pow.of(x, IntegerNumber.of(-2))]).toMathMl(root: false))
+          .equals(
+            '<msup><mi>x</mi><mrow><mo form="prefix">&#x2212;</mo><mn>2</mn></mrow></msup>',
+          );
       check(
-        Mul([IntegerNumber.one, Pow(x, IntegerNumber.of(-2))])
+        Mul.of([IntegerNumber.two, Pow.of(x, IntegerNumber.of(-2))])
             .toMathMl(root: false),
-      ).equals('<mfrac><mn>1</mn><msup><mi>x</mi><mn>2</mn></msup></mfrac>');
+      ).equals('<mfrac><mn>2</mn><msup><mi>x</mi><mn>2</mn></msup></mfrac>');
 
       check(Integral(x, 'x').toMathMl()).equals(
         '<math><mrow><mo>&#x222B;</mo><mi>x</mi><mspace width="thinmathspace"/><mi>d</mi><mi>x</mi></mrow></math>',
       );
       check(Integral(x + IntegerNumber.one, 'x').toMathMl(root: false))
           .contains(
-            '<mo>(</mo><mrow><mi>x</mi><mo>+</mo><mn>1</mn></mrow><mo>)</mo>',
+            '<mo>(</mo><mrow><mn>1</mn><mo>+</mo><mi>x</mi></mrow><mo>)</mo>',
           );
       check(
         Integral(
@@ -322,83 +323,87 @@ void main() {
 
       check(Expr.parse('2 * x').toMathMl())
           .equals('<math><mrow><mn>2</mn><mi>x</mi></mrow></math>');
-      check(Mul([FractionNumber.negativeHalf, x]).toMathMl()).equals(
+      check(Mul.of([FractionNumber.negativeHalf, x]).toMathMl()).equals(
         '<math><mrow><mo form="prefix">&#x2212;</mo><mfrac><mi>x</mi><mn>2</mn></mfrac></mrow></math>',
       );
       check(
-        Add([
-          x,
-          Mul([IntegerNumber.negativeOne, x + const Variable('y')]),
+        Add.of([
+          const Variable('z'),
+          Mul.of([IntegerNumber.negativeOne, x + const Variable('y')]),
         ]).toMathMl(root: false),
       ).equals(
-        '<mrow><mi>x</mi><mo>&#x2212;</mo><mrow><mo>(</mo><mrow><mi>x</mi><mo>+</mo><mi>y</mi></mrow><mo>)</mo></mrow></mrow>',
+        '<mrow><mi>z</mi><mo>&#x2212;</mo><mrow><mo>(</mo><mrow><mi>x</mi><mo>+</mo><mi>y</mi></mrow><mo>)</mo></mrow></mrow>',
       );
       check(Expr.parse('2 * x * y').toMathMl())
           .equals('<math><mrow><mn>2</mn><mi>x</mi><mi>y</mi></mrow></math>');
       check(Expr.parse('ab * c').toMathMl())
           .equals('<math><mrow><mi>ab</mi><mi>c</mi></mrow></math>');
-      check(Mul([IntegerNumber.two, IntegerNumber.of(3)]).toMathMl()).equals(
-        '<math><mrow><mn>2</mn><mo>&#x22c5;</mo><mn>3</mn></mrow></math>',
+      check(
+        Mul.of([Pow.of(IntegerNumber.two, x), Pow.of(IntegerNumber.of(3), x)])
+            .toMathMl(),
+      ).equals(
+        '<math><mrow><msup><mn>2</mn><mi>x</mi></msup><mo>&#x22c5;</mo><msup><mn>3</mn><mi>x</mi></msup></mrow></math>',
       );
       check(Expr.parse('(x - 1) * (x + 1)').toMathMl()).equals(
-        '<math><mrow><mrow><mo>(</mo><mrow><mi>x</mi><mo>&#x2212;</mo><mn>1</mn></mrow><mo>)</mo></mrow><mrow><mo>(</mo><mrow><mi>x</mi><mo>+</mo><mn>1</mn></mrow><mo>)</mo></mrow></mrow></math>',
+        '<math><mrow><mrow><mo>(</mo><mrow><mrow><mo form="prefix">&#x2212;</mo><mn>1</mn></mrow><mo>+</mo><mi>x</mi></mrow><mo>)</mo></mrow><mrow><mo>(</mo><mrow><mn>1</mn><mo>+</mo><mi>x</mi></mrow><mo>)</mo></mrow></mrow></math>',
       );
-      check(Mul([IntegerNumber.negativeOne, x, const Variable('y')]).toMathMl())
-          .equals(
-            '<math><mrow><mo form="prefix">&#x2212;</mo><mrow><mi>x</mi><mi>y</mi></mrow></mrow></math>',
-          );
+      check(
+        Mul.of([IntegerNumber.negativeOne, x, const Variable('y')]).toMathMl(),
+      ).equals(
+        '<math><mrow><mo form="prefix">&#x2212;</mo><mrow><mi>x</mi><mi>y</mi></mrow></mrow></math>',
+      );
     });
 
     test('formats special integral and polylogarithm functions to MathML', () {
       const x = Variable('x');
       const k = Variable('k');
-      check(Erfi(x).toMathMl()).equals(
+      check(Fn.erfi(x).toMathMl()).equals(
         '<math><mrow><mi>erfi</mi><mo>(</mo><mi>x</mi><mo>)</mo></mrow></math>',
       );
-      check(FresnelS(x).toMathMl()).equals(
+      check(Fn.fresnelS(x).toMathMl()).equals(
         '<math><mrow><mi>S</mi><mo>(</mo><mi>x</mi><mo>)</mo></mrow></math>',
       );
-      check(FresnelC(x).toMathMl()).equals(
+      check(Fn.fresnelC(x).toMathMl()).equals(
         '<math><mrow><mi>C</mi><mo>(</mo><mi>x</mi><mo>)</mo></mrow></math>',
       );
-      check(ExpIntegral(x).toMathMl()).equals(
+      check(Fn.ei(x).toMathMl()).equals(
         '<math><mrow><mi>Ei</mi><mo>(</mo><mi>x</mi><mo>)</mo></mrow></math>',
       );
-      check(LogIntegral(x).toMathMl()).equals(
+      check(Fn.li(x).toMathMl()).equals(
         '<math><mrow><mi>li</mi><mo>(</mo><mi>x</mi><mo>)</mo></mrow></math>',
       );
-      check(SinIntegral(x).toMathMl()).equals(
+      check(Fn.si(x).toMathMl()).equals(
         '<math><mrow><mi>Si</mi><mo>(</mo><mi>x</mi><mo>)</mo></mrow></math>',
       );
-      check(CosIntegral(x).toMathMl()).equals(
+      check(Fn.ci(x).toMathMl()).equals(
         '<math><mrow><mi>Ci</mi><mo>(</mo><mi>x</mi><mo>)</mo></mrow></math>',
       );
-      check(SinhIntegral(x).toMathMl()).equals(
+      check(Fn.shi(x).toMathMl()).equals(
         '<math><mrow><mi>Shi</mi><mo>(</mo><mi>x</mi><mo>)</mo></mrow></math>',
       );
-      check(CoshIntegral(x).toMathMl()).equals(
+      check(Fn.chi(x).toMathMl()).equals(
         '<math><mrow><mi>Chi</mi><mo>(</mo><mi>x</mi><mo>)</mo></mrow></math>',
       );
-      check(UpperGamma(IntegerNumber.two, x).toMathMl()).equals(
+      check(Fn.upperGamma(IntegerNumber.two, x).toMathMl()).equals(
         '<math><mrow><mi>Γ</mi><mo>(</mo><mn>2</mn><mo>,</mo><mi>x</mi><mo>)</mo></mrow></math>',
       );
-      check(LowerGamma(IntegerNumber.two, x).toMathMl()).equals(
+      check(Fn.lowerGamma(IntegerNumber.two, x).toMathMl()).equals(
         '<math><mrow><mi>γ</mi><mo>(</mo><mn>2</mn><mo>,</mo><mi>x</mi><mo>)</mo></mrow></math>',
       );
-      check(Polylog(IntegerNumber.two, x).toMathMl()).equals(
+      check(Fn.polylog(IntegerNumber.two, x).toMathMl()).equals(
         '<math><mrow><msub><mi>Li</mi><mn>2</mn></msub><mo>(</mo><mi>x</mi><mo>)</mo></mrow></math>',
       );
-      check(EllipticF(x, k).toMathMl()).equals(
+      check(Fn.ellipticF(x, k).toMathMl()).equals(
         '<math><mrow><mi>F</mi><mo>(</mo><mi>x</mi><mo>,</mo><mi>k</mi><mo>)</mo></mrow></math>',
       );
-      check(EllipticE(k, amplitude: x).toMathMl()).equals(
+      check(Fn.ellipticE(x, k).toMathMl()).equals(
         '<math><mrow><mi>E</mi><mo>(</mo><mi>x</mi><mo>,</mo><mi>k</mi><mo>)</mo></mrow></math>',
       );
     });
 
     test('formats negative-shifted OrderTerm cleanly', () {
       check(
-        const OrderTerm(
+        OrderTerm(
           'x',
           2,
           point: IntegerNumber.negativeOne,
@@ -407,7 +412,7 @@ void main() {
         '<mrow><mi>O</mi><mo>(</mo><msup><mrow><mo>(</mo><mrow><mi>x</mi><mo>+</mo><mn>1</mn></mrow><mo>)</mo></mrow><mn>2</mn></msup><mo>)</mo></mrow>',
       );
       check(
-        const OrderTerm(
+        OrderTerm(
           'x',
           1,
           point: IntegerNumber.negativeOne,
@@ -428,7 +433,7 @@ void main() {
             .equals('<msub><mi>β</mi><mi>i</mi></msub>');
         check(const Variable('Omega').toMathMl(root: false))
             .equals('<mi>Ω</mi>');
-        check(const OrderTerm('x_1', 2).toMathMl(root: false)).equals(
+        check(OrderTerm('x_1', 2).toMathMl(root: false)).equals(
           '<mrow><mi>O</mi><mo>(</mo><msup><msub><mi>x</mi><mn>1</mn></msub><mn>2</mn></msup><mo>)</mo></mrow>',
         );
       },

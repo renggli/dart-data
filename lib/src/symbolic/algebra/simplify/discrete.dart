@@ -2,53 +2,42 @@ import '../../assumptions.dart';
 import '../../ast.dart';
 import '../../calculus/differentiation.dart';
 import '../../compiler.dart';
-import '../../number/integer.dart';
+import '../../functions/fn.dart';
 import '../simplify.dart';
-import '../structural_order.dart';
 import 'additive.dart';
 import 'domain.dart';
 import 'transcendental.dart';
 
 /// Simplifies a relational expression.
-Expr simplifyRelational(
-  RelationalExpr expr, {
-  required Assumptions assumptions,
-}) {
+Expr simplifyRelational(Relational expr, {required Assumptions assumptions}) {
   final left = expr.left.simplify(assumptions: assumptions);
   final right = expr.right.simplify(assumptions: assumptions);
   if (left is RealNumeric && right is RealNumeric) {
     final cmp = left.compareTo(right);
-    final matched = switch (expr) {
-      LessThan() => cmp < 0,
-      LessEqual() => cmp <= 0,
-      GreaterThan() => cmp > 0,
-      GreaterEqual() => cmp >= 0,
-      Equal() => cmp == 0,
-      NotEqual() => cmp != 0,
+    final matched = switch (expr.op) {
+      RelOp.lessThan => cmp < 0,
+      RelOp.lessEqual => cmp <= 0,
+      RelOp.greaterThan => cmp > 0,
+      RelOp.greaterEqual => cmp >= 0,
+      RelOp.equal => cmp == 0,
+      RelOp.notEqual => cmp != 0,
     };
     return matched ? IntegerNumber.one : IntegerNumber.zero;
   }
   final vL = realScalarValue(left);
   final vR = realScalarValue(right);
   if (vL != null && vR != null) {
-    final matched = switch (expr) {
-      LessThan() => vL < vR,
-      LessEqual() => vL <= vR,
-      GreaterThan() => vL > vR,
-      GreaterEqual() => vL >= vR,
-      Equal() => vL == vR,
-      NotEqual() => vL != vR,
+    final matched = switch (expr.op) {
+      RelOp.lessThan => vL < vR,
+      RelOp.lessEqual => vL <= vR,
+      RelOp.greaterThan => vL > vR,
+      RelOp.greaterEqual => vL >= vR,
+      RelOp.equal => vL == vR,
+      RelOp.notEqual => vL != vR,
     };
     return matched ? IntegerNumber.one : IntegerNumber.zero;
   }
-  return switch (expr) {
-    LessThan() => LessThan(left, right, isSimplified: true),
-    LessEqual() => LessEqual(left, right, isSimplified: true),
-    GreaterThan() => GreaterThan(left, right, isSimplified: true),
-    GreaterEqual() => GreaterEqual(left, right, isSimplified: true),
-    Equal() => Equal(left, right, isSimplified: true),
-    NotEqual() => NotEqual(left, right, isSimplified: true),
-  };
+  return Relational(expr.op, left, right);
 }
 
 /// Simplifies a piecewise expression.
@@ -64,24 +53,16 @@ Expr simplifyPiecewise(Piecewise expr, {required Assumptions assumptions}) {
       if (simplifiedBranches.isEmpty) {
         return sExpr;
       }
-      return Piecewise(
-        simplifiedBranches,
-        otherwise: sExpr,
-        isSimplified: true,
-      );
+      return Piecewise(simplifiedBranches, otherwise: sExpr);
     }
-    final relCond = sCond is RelationalExpr ? sCond : relation;
+    final relCond = sCond is Relational ? sCond : relation;
     simplifiedBranches.add((relation: relCond, expr: sExpr));
   }
   final sOtherwise = expr.otherwise?.simplify(assumptions: assumptions);
   if (simplifiedBranches.isEmpty) {
     return sOtherwise ?? IntegerNumber.zero;
   }
-  return Piecewise(
-    simplifiedBranches,
-    otherwise: sOtherwise,
-    isSimplified: true,
-  );
+  return Piecewise(simplifiedBranches, otherwise: sOtherwise);
 }
 
 /// Simplifies a symbolic [Integral] node.
@@ -107,13 +88,7 @@ Expr simplifyIntegral(
   if (sLower != null && sUpper != null && sLower == sUpper) {
     return IntegerNumber.zero;
   }
-  return Integral(
-    sIntegrand,
-    variable,
-    lower: sLower,
-    upper: sUpper,
-    isSimplified: true,
-  );
+  return Integral(sIntegrand, variable, lower: sLower, upper: sUpper);
 }
 
 /// Simplifies a symbolic [Derivative] node.
@@ -146,13 +121,7 @@ Expr simplifyDerivative(
           .substitute(variable, sPoint)
           .simplify(assumptions: assumptions);
     }
-    return Derivative(
-      sExpr,
-      variable,
-      order: order,
-      point: sPoint,
-      isSimplified: true,
-    );
+    return Derivative(sExpr, variable, order: order, point: sPoint);
   }
   if (sExpr
       case Derivative(
@@ -162,14 +131,9 @@ Expr simplifyDerivative(
         point: null,
       )
       when innerVar == variable) {
-    return Derivative(
-      inner,
-      variable,
-      order: innerOrder + order,
-      isSimplified: true,
-    );
+    return Derivative(inner, variable, order: innerOrder + order);
   }
-  return Derivative(sExpr, variable, order: order, isSimplified: true);
+  return Derivative(sExpr, variable, order: order);
 }
 
 /// Simplifies a symbolic [Limit] node.
@@ -185,13 +149,7 @@ Expr simplifyLimit(
   if (!sExpr.dependsOn(variable)) {
     return sExpr;
   }
-  return Limit(
-    sExpr,
-    variable,
-    sPoint,
-    direction: direction,
-    isSimplified: true,
-  );
+  return Limit(sExpr, variable, sPoint, direction: direction);
 }
 
 /// Simplifies a floor expression `floor(x)`.
@@ -202,8 +160,8 @@ Expr simplifyFloor(Expr expr, {required Assumptions assumptions}) {
     case FractionNumber(:final numerator, :final denominator):
       final q = numerator ~/ denominator;
       return IntegerNumber(
-        numerator.isNegative && !(numerator % denominator).isZero
-            ? q - Integer.one
+        numerator.isNegative && numerator % denominator != BigInt.zero
+            ? q - BigInt.one
             : q,
       );
     case RealNumber(:final value):
@@ -218,7 +176,7 @@ Expr simplifyFloor(Expr expr, {required Assumptions assumptions}) {
             }
             if ((v - v.roundToDouble()).abs() > 1e-12 &&
                 v.abs() < 4503599627370496.0) {
-              return IntegerNumber(Integer.from(v.floor()));
+              return IntegerNumber.of(v.floor());
             }
           }
         } on ArgumentError {
@@ -227,7 +185,7 @@ Expr simplifyFloor(Expr expr, {required Assumptions assumptions}) {
           // Keep symbolic
         }
       }
-      return Floor(expr, isSimplified: true);
+      return Fn.floor(expr);
   }
 }
 
@@ -239,8 +197,8 @@ Expr simplifyCeil(Expr expr, {required Assumptions assumptions}) {
     case FractionNumber(:final numerator, :final denominator):
       final q = numerator ~/ denominator;
       return IntegerNumber(
-        !numerator.isNegative && !(numerator % denominator).isZero
-            ? q + Integer.one
+        !numerator.isNegative && numerator % denominator != BigInt.zero
+            ? q + BigInt.one
             : q,
       );
     case RealNumber(:final value):
@@ -255,7 +213,7 @@ Expr simplifyCeil(Expr expr, {required Assumptions assumptions}) {
             }
             if ((v - v.roundToDouble()).abs() > 1e-12 &&
                 v.abs() < 4503599627370496.0) {
-              return IntegerNumber(Integer.from(v.ceil()));
+              return IntegerNumber.of(v.ceil());
             }
           }
         } on ArgumentError {
@@ -264,7 +222,7 @@ Expr simplifyCeil(Expr expr, {required Assumptions assumptions}) {
           // Keep symbolic
         }
       }
-      return Ceil(expr, isSimplified: true);
+      return Fn.ceil(expr);
   }
 }
 
@@ -275,8 +233,8 @@ Expr simplifyRound(Expr expr, {required Assumptions assumptions}) {
   switch (expr) {
     case FractionNumber(:final numerator, :final denominator):
       final absNum = numerator.abs();
-      final q2 = denominator * Integer.two;
-      final rounded = (absNum * Integer.two + denominator) ~/ q2;
+      final q2 = denominator * BigInt.two;
+      final rounded = (absNum * BigInt.two + denominator) ~/ q2;
       return IntegerNumber(numerator.isNegative ? -rounded : rounded);
     case RealNumber(:final value):
       return RealNumber.fromDouble(value.roundToDouble());
@@ -290,7 +248,7 @@ Expr simplifyRound(Expr expr, {required Assumptions assumptions}) {
             }
             if (((v - v.floorToDouble()).abs() - 0.5).abs() > 1e-12 &&
                 v.abs() < 4503599627370496.0) {
-              return IntegerNumber(Integer.from(v.round()));
+              return IntegerNumber.of(v.round());
             }
           }
         } on ArgumentError {
@@ -299,7 +257,7 @@ Expr simplifyRound(Expr expr, {required Assumptions assumptions}) {
           // Keep symbolic
         }
       }
-      return Round(expr, isSimplified: true);
+      return Fn.round(expr);
   }
 }
 
@@ -330,7 +288,7 @@ Expr simplifySign(Expr expr, {required Assumptions assumptions}) {
       if (v.isFinite) {
         final hasReal = expr.anyNode((n) => n is RealNumber);
         if (!hasReal && v.abs() <= 1e-12) {
-          return Sign(expr, isSimplified: true);
+          return Fn.sign(expr);
         }
         final s = v == 0.0 ? 0 : (v > 0.0 ? 1 : -1);
         return hasReal
@@ -343,7 +301,7 @@ Expr simplifySign(Expr expr, {required Assumptions assumptions}) {
       // Keep symbolic
     }
   }
-  return Sign(expr, isSimplified: true);
+  return Fn.sign(expr);
 }
 
 /// Simplifies a modulo expression `mod(a, b)`.
@@ -376,5 +334,5 @@ Expr simplifyMod(Expr left, Expr right, {required Assumptions assumptions}) {
     final b = right.toDouble();
     return RealNumber.fromDouble(a - b * (a / b).floorToDouble());
   }
-  return Mod(left, right, isSimplified: true);
+  return Fn.mod(left, right);
 }

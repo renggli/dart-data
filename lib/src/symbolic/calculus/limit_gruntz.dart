@@ -4,6 +4,7 @@ import '../algebra/simplify.dart';
 import '../algebra/term_accumulator.dart';
 import '../assumptions.dart';
 import '../ast.dart';
+import '../functions/fn.dart';
 import 'limit.dart';
 import 'limit_asymptotic.dart';
 import 'series.dart';
@@ -52,8 +53,6 @@ Expr gruntzLimit(Expr expr, String variable, Assumptions assumptions) {
     if (finiteSum != null) return finiteSum;
   }
 
-  f = splitPolyExpTerms(f, variable, assumptions);
-
   final expScale = _findDominantExpScale(f, variable);
 
   if (expScale == null && containsLogOfVariable(f, variable)) {
@@ -63,7 +62,7 @@ Expr gruntzLimit(Expr expr, String variable, Assumptions assumptions) {
       domains: {uName: VariableDomain.real},
     );
     final transformed = f
-        .substitute(variable, Pow(Constant.e, u))
+        .substitute(variable, Pow.of(Constant.e, u))
         .simplify(assumptions: uAssumptions);
     return computeInfiniteLimit(
       transformed,
@@ -233,7 +232,7 @@ Expr _rewriteSingleExp(
   int targetDeg,
   RealNumeric alpha,
 ) {
-  if (extractDominantPolynomialTerm(inner, variable)
+  if (_extractPolyPartFromExpArg(inner, variable)
       case (:final degree, :final coeff, :final remainder)
       when degree == targetDeg && !coeff.isZero) {
     int? asInt;
@@ -251,9 +250,9 @@ Expr _rewriteSingleExp(
     }
     if (asInt != null) {
       final omegaPower = switch (asInt) {
-        1 => Pow(omega, IntegerNumber.negativeOne),
+        1 => Pow.of(omega, IntegerNumber.negativeOne),
         -1 => omega,
-        _ => Pow(omega, IntegerNumber.of(-asInt)),
+        _ => Pow.of(omega, IntegerNumber.of(-asInt)),
       };
       final remRewritten = _rewriteExpInOmega(
         remainder,
@@ -264,12 +263,12 @@ Expr _rewriteSingleExp(
       );
       final expRemainder = (remRewritten is Number && remRewritten.isZero)
           ? IntegerNumber.one
-          : Pow(Constant.e, remRewritten);
+          : Pow.of(Constant.e, remRewritten);
       return (omegaPower * expRemainder).simplify();
     }
   }
 
-  return Pow(
+  return Pow.of(
     Constant.e,
     _rewriteExpInOmega(inner, variable, omega, targetDeg, alpha),
   );
@@ -317,13 +316,14 @@ extractDominantPolynomialTerm(Expr expr, String variable) {
   return (
     degree: maxDeg,
     coeff: leadCoeff,
-    remainder: Add(remainingTerms).simplify(),
+    remainder: Add.of(remainingTerms).simplify(),
   );
 }
 
 Expr _expandLogArguments(Expr expr, String variable) {
   final mapped = expr.mapChildren((c) => _expandLogArguments(c, variable));
-  if (mapped case Ln(expr: Add(:final terms)) when terms.length >= 2) {
+  if (mapped case Call(id: FunctionId.ln, args: [Add(:final terms)])
+      when terms.length >= 2) {
     return _tryFactorLogAdd(terms, variable) ?? mapped;
   }
   return mapped;
@@ -343,9 +343,45 @@ Expr? _tryFactorLogAdd(List<Expr> terms, String variable) {
         ];
         final rest = restTerms.length == 1
             ? restTerms.first
-            : Add(restTerms, isSimplified: true);
-        return (exponent + Ln(IntegerNumber.one + rest * Pow(Constant.e, negU)))
+            : Add.of(restTerms);
+        return (exponent +
+                Fn.ln(IntegerNumber.one + rest * Pow.of(Constant.e, negU)))
             .simplify();
+      }
+    }
+  }
+  return null;
+}
+
+({int degree, RealNumeric coeff, Expr remainder})? _extractPolyPartFromExpArg(
+  Expr inner,
+  String variable,
+) {
+  final direct = extractDominantPolynomialTerm(inner, variable);
+  if (direct != null) return direct;
+  if (inner case Add(:final terms)) {
+    final polyTerms = <Expr>[];
+    final otherTerms = <Expr>[];
+    var hasVarPoly = false;
+    for (final t in terms) {
+      if (isPolyMonomialTerm(t, variable)) {
+        polyTerms.add(t);
+        if (t.dependsOn(variable)) hasVarPoly = true;
+      } else {
+        otherTerms.add(t);
+      }
+    }
+    if (hasVarPoly && otherTerms.isNotEmpty) {
+      final polyExpr = polyTerms.length == 1
+          ? polyTerms.first
+          : Add.of(polyTerms);
+      final dom = extractDominantPolynomialTerm(polyExpr, variable);
+      if (dom != null) {
+        final rem = Add.of([
+          if (dom.remainder != IntegerNumber.zero) dom.remainder,
+          ...otherTerms,
+        ]);
+        return (degree: dom.degree, coeff: dom.coeff, remainder: rem);
       }
     }
   }
@@ -359,10 +395,10 @@ Expr? _tryFactorLogAdd(List<Expr> terms, String variable) {
   var maxDeg = 0;
   final coeffsAtMax = <RealNumeric>[];
 
-  void scan(Expr e) {
+  expr.anyNode((e) {
     if (e case Pow(base: Constant.e, :final exponent)
         when exponent.dependsOn(variable)) {
-      final dom = extractDominantPolynomialTerm(exponent, variable);
+      final dom = _extractPolyPartFromExpArg(exponent, variable);
       if (dom != null && !dom.coeff.isZero) {
         if (dom.degree > maxDeg) {
           maxDeg = dom.degree;
@@ -374,94 +410,8 @@ Expr? _tryFactorLogAdd(List<Expr> terms, String variable) {
         }
       }
     }
-    switch (e) {
-      case Add(:final terms):
-        for (final t in terms) {
-          scan(t);
-        }
-      case Mul(:final factors):
-        for (final f in factors) {
-          scan(f);
-        }
-      case BinaryExpr(:final left, :final right):
-        scan(left);
-        scan(right);
-      case UnaryExpr(:final expr):
-        scan(expr);
-      case Piecewise(:final branches, :final otherwise):
-        for (final (:relation, :expr) in branches) {
-          scan(relation);
-          scan(expr);
-        }
-        if (otherwise != null) scan(otherwise);
-      case Integral(:final integrand, :final lower, :final upper):
-        scan(integrand);
-        if (lower != null) scan(lower);
-        if (upper != null) scan(upper);
-      case Derivative(:final expr, :final point):
-        scan(expr);
-        if (point != null) scan(point);
-      case Limit(:final expr, :final point):
-        scan(expr);
-        scan(point);
-      case Sum(:final expr, :final lower, :final upper) ||
-          Product(:final expr, :final lower, :final upper):
-        scan(expr);
-        scan(lower);
-        scan(upper);
-      case RootSum(:final polynomial, :final body):
-        scan(polynomial);
-        scan(body);
-      case VariableFunction(:final arguments):
-        for (final argument in arguments) {
-          scan(argument);
-        }
-      case EllipticE(:final expr, :final amplitude):
-        scan(expr);
-        if (amplitude != null) scan(amplitude);
-      case EllipticPi(:final characteristic, :final amplitude, :final modulus):
-        scan(characteristic);
-        scan(amplitude);
-        scan(modulus);
-      case Zeta(:final expr, :final shift):
-        scan(expr);
-        if (shift != null) scan(shift);
-      case Hypergeometric(:final upper, :final lower, :final argument):
-        for (final u in upper) {
-          scan(u);
-        }
-        for (final l in lower) {
-          scan(l);
-        }
-        scan(argument);
-      case AppellF1(
-        :final a,
-        :final b1,
-        :final b2,
-        :final c,
-        :final x,
-        :final y,
-      ):
-        scan(a);
-        scan(b1);
-        scan(b2);
-        scan(c);
-        scan(x);
-        scan(y);
-      case Min(:final args) ||
-          Max(:final args) ||
-          Gcd(:final args) ||
-          Lcm(:final args) ||
-          Tuple(:final args):
-        for (final a in args) {
-          scan(a);
-        }
-      case Number() || Constant() || Variable() || OrderTerm():
-        break;
-    }
-  }
-
-  scan(expr);
+    return false;
+  });
   if (maxDeg == 0 || coeffsAtMax.isEmpty) return null;
 
   if (coeffsAtMax.every((c) => c is RationalNumber)) {

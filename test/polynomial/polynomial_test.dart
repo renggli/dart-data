@@ -283,8 +283,7 @@ void main() {
       final symPoly = Polynomial<Expr>.sparse({
         99: IntegerNumber.of(1),
       }, type: exprDataType);
-      check(symPoly.integrate()[100])
-          .equals(RationalNumber.of(const Integer(1), const Integer(100)));
+      check(symPoly.integrate()[100]).equals(RationalNumber(1, 100));
     });
 
     test('composition with polynomials and zero', () {

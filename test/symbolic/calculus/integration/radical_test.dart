@@ -304,7 +304,7 @@ void main() {
       'omits Abs inside Ln for negative-discriminant quadratic radicals',
       () {
         final res = Expr.parse('1 / sqrt(x^2 - 1)').integrate('x');
-        check(res.anyNode((n) => n is Abs)).isFalse;
+        check(res.anyNode((n) => n is Call && n.id == FunctionId.abs)).isFalse;
         verifyAntiderivative(
           Expr.parse('1 / sqrt(x^2 - 1)'),
           points: const [1.5, 2.0, 3.0],
@@ -377,10 +377,12 @@ void main() {
       final complexTrig = Expr.parse(
         '(i * a * tan(c + d * x) + a) * cot(c + d * x)^2',
       ).integrate('x');
-      check(complexTrig.anyNode((n) => n is Abs)).isFalse;
+      check(complexTrig.anyNode((n) => n is Call && n.id == FunctionId.abs))
+          .isFalse;
 
       final nestedLn = Expr.parse('1 / (x * ln(-x))').integrate('x');
-      check(nestedLn.anyNode((n) => n is Abs)).isFalse;
+      check(nestedLn.anyNode((n) => n is Call && n.id == FunctionId.abs))
+          .isFalse;
     });
 
     test(
@@ -405,7 +407,8 @@ void main() {
       // Chebyshev case 1 with k = -7 (< -6 bound) and positive scalar env
       final chebExt = Expr.parse('(2 + 3 * x^2)^(9/2) / x^15').integrate('x');
       check(chebExt.anyNode((n) => n is Integral)).isFalse;
-      check(chebExt.anyNode((n) => n is Sign)).isFalse;
+      check(chebExt.anyNode((n) => n is Call && n.id == FunctionId.sign))
+          .isFalse;
       for (final px in const [0.4, 0.9, 1.5]) {
         final env = {'x': px};
         check(
@@ -436,7 +439,8 @@ void main() {
       // Quadratic without Sign(x) in Case 3: 1 / (x * sqrt(-x^4 + x^2 - 1))
       final biquad = Expr.parse('1 / (x * sqrt(-x^4 + x^2 - 1))')
           .integrate('x');
-      check(biquad.anyNode((n) => n is Sign)).isFalse;
+      check(biquad.anyNode((n) => n is Call && n.id == FunctionId.sign))
+          .isFalse;
       if (!biquad.anyNode((n) => n is Integral)) {
         for (final pt in const [
           Complex(0.3, 0.2),
@@ -479,7 +483,7 @@ void main() {
       // Chebyshev Case 2 without Sign(x): 1 / (x^4 * (x^2 - 8)^(3/2))
       final cheb2 = Expr.parse('1 / (x^4 * (x^2 - 8)^(3/2))').integrate('x');
       check(cheb2.anyNode((n) => n is Integral)).isFalse;
-      check(cheb2.anyNode((n) => n is Sign)).isFalse;
+      check(cheb2.anyNode((n) => n is Call && n.id == FunctionId.sign)).isFalse;
       verifyAntiderivative(
         Expr.parse('1 / (x^4 * (x^2 - 8)^(3/2))'),
         points: const [-4.5, 4.5],
@@ -497,7 +501,8 @@ void main() {
       // Symbolic negative-square discriminants yield real Asin antiderivatives
       final linPair = Expr.parse('1 / (sqrt(-b * x + 3) * sqrt(b * x + 2))')
           .integrate('x');
-      check(linPair.anyNode((n) => n is Asin)).isTrue;
+      check(linPair.anyNode((n) => n is Call && n.id == FunctionId.asin))
+          .isTrue;
       for (final env in const [
         {'b': 1.7, 'x': 0.7},
         {'b': -1.7, 'x': 0.7},
@@ -512,7 +517,8 @@ void main() {
       final unitPair = Expr.parse(
         '(a * x + 1) / (sqrt(a * x) * sqrt(-a * x + 1))',
       ).integrate('x');
-      check(unitPair.anyNode((n) => n is Asin)).isTrue;
+      check(unitPair.anyNode((n) => n is Call && n.id == FunctionId.asin))
+          .isTrue;
       for (final env in const [
         {'a': 1.4, 'x': 0.35},
         {'a': -1.4, 'x': -0.35},

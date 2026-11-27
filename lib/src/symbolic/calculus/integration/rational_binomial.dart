@@ -1,10 +1,12 @@
+import 'package:more/math.dart' show BinomialIntegerExtension;
+
 import '../../algebra/expand.dart';
 import '../../algebra/helpers.dart';
 import '../../algebra/rational.dart';
 import '../../algebra/simplify.dart';
 import '../../assumptions.dart';
 import '../../ast.dart';
-import '../../number/integer.dart';
+import '../../functions/fn.dart';
 import '../linear_form.dart';
 import 'definite.dart';
 import 'integration.dart';
@@ -44,7 +46,7 @@ Expr? tryMonomialDenominator(
         if (inner != null) {
           final scale = constFactors.isEmpty
               ? IntegerNumber.one
-              : Mul(constFactors).simplify(assumptions: assumptions);
+              : Mul.of(constFactors).simplify(assumptions: assumptions);
           return (scale: scale, n: inner.n);
         }
       }
@@ -71,12 +73,12 @@ Expr? tryMonomialDenominator(
       terms.add((value * logAntiderivative(xVar, assumptions)) / scale);
     } else {
       final newExp = IntegerNumber.of(exp + 1);
-      terms.add((value * Pow(xVar, newExp)) / (scale * newExp));
+      terms.add((value * Pow.of(xVar, newExp)) / (scale * newExp));
     }
   }
   return terms.isEmpty
       ? IntegerNumber.zero
-      : Add(terms).simplify(assumptions: assumptions);
+      : Add.of(terms).simplify(assumptions: assumptions);
 }
 
 Expr? tryLinearPowerDenominator(
@@ -106,7 +108,7 @@ Expr? tryLinearPowerDenominator(
         if (inner != null) {
           final scale = constFactors.isEmpty
               ? IntegerNumber.one
-              : Mul(constFactors).simplify(assumptions: assumptions);
+              : Mul.of(constFactors).simplify(assumptions: assumptions);
           return (scale: scale, linBase: inner.linBase, q: inner.q);
         }
       }
@@ -132,7 +134,7 @@ Expr? tryLinearPowerDenominator(
   final numU = left
       .substitute(variable, xOfU)
       .simplify(assumptions: assumptions);
-  final denU = (a * scale * Pow(uVar, IntegerNumber.of(q))).simplify(
+  final denU = (a * scale * Pow.of(uVar, IntegerNumber.of(q))).simplify(
     assumptions: assumptions,
   );
   final resU = tryMonomialDenominator(
@@ -179,7 +181,7 @@ Expr? tryPowerOverLogPower(
       );
       return true;
     }
-    if (f case Ln(:final expr) when !isNum) {
+    if (f case Call(id: FunctionId.ln, args: [final expr]) when !isNum) {
       if (kInt != null) return false;
       if (expr.matchLinear(variable) case (:final a, :final b)
           when b is Number && b.isZero) {
@@ -191,7 +193,7 @@ Expr? tryPowerOverLogPower(
       return false;
     }
     if (f case Pow(
-      base: Ln(:final expr),
+      base: Call(id: FunctionId.ln, args: [final expr]),
       exponent: IntegerNumber(asInt: final p?),
     )) {
       final k = isNum ? -p : p;
@@ -219,14 +221,14 @@ Expr? tryPowerOverLogPower(
   final inner = logInner!;
   final c = logScale!;
   final k = kInt!;
-  final lnExpr = Ln(inner);
+  final lnExpr = Fn.ln(inner);
   final xVar = Variable(variable);
 
   if (nExp == IntegerNumber.negativeOne ||
       (nExp is RealNumber && (nExp as RealNumber).value == -1.0)) {
     final res = k == 1
         ? logAntiderivative(lnExpr, assumptions)
-        : (-Pow(lnExpr, IntegerNumber.of(1 - k)) / IntegerNumber.of(k - 1));
+        : (-Pow.of(lnExpr, IntegerNumber.of(1 - k)) / IntegerNumber.of(k - 1));
     return (scale * res).simplify(assumptions: assumptions);
   }
 
@@ -235,14 +237,14 @@ Expr? tryPowerOverLogPower(
   Expr integrateK(int m) {
     if (m == 1) {
       if (isZeroN) {
-        return (LogIntegral(inner) / c).simplify(assumptions: assumptions);
+        return (Fn.li(inner) / c).simplify(assumptions: assumptions);
       }
-      return (ExpIntegral((np1 * lnExpr).simplify(assumptions: assumptions)) /
-              Pow(c, np1))
+      return (Fn.ei((np1 * lnExpr).simplify(assumptions: assumptions)) /
+              Pow.of(c, np1))
           .simplify(assumptions: assumptions);
     }
     final m1 = IntegerNumber.of(m - 1);
-    final term1 = -Pow(xVar, np1) / (m1 * Pow(lnExpr, m1));
+    final term1 = -Pow.of(xVar, np1) / (m1 * Pow.of(lnExpr, m1));
     final term2 = (np1 / m1) * integrateK(m - 1);
     return (term1 + term2).simplify(assumptions: assumptions);
   }
@@ -275,10 +277,15 @@ Expr? tryTrigOrHypOverLinearPower(
   // Handle powered trig/hyperbolic numerator: (sin|cos|sinh|cosh)(u)^n / (c + d*x)^k
   if (left
       case Pow(
-        base: Sin() || Cos() || Sinh() || Cosh(),
+        base: Call(id: final fnId),
         exponent: IntegerNumber(asInt: final n?),
       )
-      when n >= 2 && n <= 4) {
+      when (fnId == FunctionId.sin ||
+              fnId == FunctionId.cos ||
+              fnId == FunctionId.sinh ||
+              fnId == FunctionId.cosh) &&
+          n >= 2 &&
+          n <= 4) {
     final reduced = reduceTrigPower(left, variable);
     if (reduced != null) {
       final expanded = reduced
@@ -296,62 +303,56 @@ Expr? tryTrigOrHypOverLinearPower(
         if (hasUnevaluatedIntegral(res, variable)) return null;
         results.add(res);
       }
-      return Add(results).simplify(assumptions: assumptions);
+      return Add.of(results).simplify(assumptions: assumptions);
     }
   }
 
+  if (left is! Call || left.args.length != 1) return null;
   final Expr inner;
-  if (left case Sin(:final expr)) {
-    inner = expr;
-  } else if (left case Cos(:final expr)) {
-    inner = expr;
-  } else if (left case Sinh(:final expr)) {
-    inner = expr;
-  } else if (left case Cosh(:final expr)) {
-    inner = expr;
-  } else {
-    return null;
+  switch (left.id) {
+    case FunctionId.sin || FunctionId.cos || FunctionId.sinh || FunctionId.cosh:
+      inner = left.args[0];
+    default:
+      return null;
   }
 
   final linNum = inner.matchLinear(variable);
   if (linNum == null) return null;
   final (a: b, b: a) = linNum;
 
-  Expr integrateBase(Expr fn) {
+  Expr integrateBase(Call fn) {
     final beta = (b / d).simplify(assumptions: assumptions);
     final alpha = (a - b * c / d).simplify(assumptions: assumptions);
     final arg = (beta * linBase).simplify(assumptions: assumptions);
-    return switch (fn) {
-      Sin() =>
-        ((Cos(alpha) * SinIntegral(arg) + Sin(alpha) * CosIntegral(arg)) / d)
+    return switch (fn.id) {
+      FunctionId.sin =>
+        ((Fn.cos(alpha) * Fn.si(arg) + Fn.sin(alpha) * Fn.ci(arg)) / d)
             .simplify(assumptions: assumptions),
-      Cos() =>
-        ((Cos(alpha) * CosIntegral(arg) - Sin(alpha) * SinIntegral(arg)) / d)
+      FunctionId.cos =>
+        ((Fn.cos(alpha) * Fn.ci(arg) - Fn.sin(alpha) * Fn.si(arg)) / d)
             .simplify(assumptions: assumptions),
-      Sinh() =>
-        ((Cosh(alpha) * SinhIntegral(arg) + Sinh(alpha) * CoshIntegral(arg)) /
-                d)
+      FunctionId.sinh =>
+        ((Fn.cosh(alpha) * Fn.shi(arg) + Fn.sinh(alpha) * Fn.chi(arg)) / d)
             .simplify(assumptions: assumptions),
-      Cosh() =>
-        ((Cosh(alpha) * CoshIntegral(arg) + Sinh(alpha) * SinhIntegral(arg)) /
-                d)
+      FunctionId.cosh =>
+        ((Fn.cosh(alpha) * Fn.chi(arg) + Fn.sinh(alpha) * Fn.shi(arg)) / d)
             .simplify(assumptions: assumptions),
       _ => throw StateError('Unreachable'),
     };
   }
 
-  Expr integrateK(Expr fn, int m) {
+  Expr integrateK(Call fn, int m) {
     if (m == 1) return integrateBase(fn);
     final m1 = IntegerNumber.of(m - 1);
-    final denomPow = m - 1 == 1 ? linBase : Pow(linBase, m1);
+    final denomPow = m - 1 == 1 ? linBase : Pow.of(linBase, m1);
     final term1 = (-fn / (d * m1 * denomPow)).simplify(
       assumptions: assumptions,
     );
-    final (Expr derivScale, Expr nextFn) = switch (fn) {
-      Sin() => (b, Cos(inner)),
-      Cos() => (-b, Sin(inner)),
-      Sinh() => (b, Cosh(inner)),
-      Cosh() => (b, Sinh(inner)),
+    final (Expr derivScale, Call nextFn) = switch (fn.id) {
+      FunctionId.sin => (b, Fn.cos(inner)),
+      FunctionId.cos => (-b, Fn.sin(inner)),
+      FunctionId.sinh => (b, Fn.cosh(inner)),
+      FunctionId.cosh => (b, Fn.sinh(inner)),
       _ => throw StateError('Unreachable'),
     };
     final rem = integrateK(nextFn, m - 1);
@@ -389,7 +390,7 @@ Expr? tryExpOverRational(
       if (p.base == Constant.e) {
         expNode = p;
         if (consts.isNotEmpty) {
-          scale = Mul(consts).simplify(assumptions: assumptions);
+          scale = Mul.of(consts).simplify(assumptions: assumptions);
         }
       }
     }
@@ -417,17 +418,17 @@ Expr? tryExpOverRational(
     final (a: d, b: c) = linDen;
     Expr integrateK(int m) {
       if (m == 1) {
-        final shift = Pow(
+        final shift = Pow.of(
           Constant.e,
           (a - b * c / d).simplify(assumptions: assumptions),
         );
         final arg = ((b / d) * linBase).simplify(assumptions: assumptions);
-        return (scale * shift * ExpIntegral(arg) / d).simplify(
+        return (scale * shift * Fn.ei(arg) / d).simplify(
           assumptions: assumptions,
         );
       }
       final m1 = IntegerNumber.of(m - 1);
-      final denomPow = m - 1 == 1 ? linBase : Pow(linBase, m1);
+      final denomPow = m - 1 == 1 ? linBase : Pow.of(linBase, m1);
       final term1 = (-left / (d * m1 * denomPow)).simplify(
         assumptions: assumptions,
       );
@@ -455,7 +456,7 @@ Expr? tryExpOverRational(
           if (hasUnevaluatedIntegral(res, variable)) return null;
           results.add(res);
         }
-        return Add(results).simplify(assumptions: assumptions);
+        return Add.of(results).simplify(assumptions: assumptions);
       }
     }
   }
@@ -474,20 +475,26 @@ Expr? trySumToProductTrigQuotient(
   }
 
   ({int sign, Expr arg})? matchSignedSin(Expr e) => switch (e) {
-    Sin(:final expr) => (sign: 1, arg: expr),
-    Mul(factors: [IntegerNumber(isNegativeOne: true), Sin(:final expr)]) => (
-      sign: -1,
-      arg: expr,
-    ),
+    Call(id: FunctionId.sin, args: [final expr]) => (sign: 1, arg: expr),
+    Mul(
+      factors: [
+        IntegerNumber(isNegativeOne: true),
+        Call(id: FunctionId.sin, args: [final expr]),
+      ],
+    ) =>
+      (sign: -1, arg: expr),
     _ => null,
   };
 
   ({int sign, Expr arg})? matchSignedCos(Expr e) => switch (e) {
-    Cos(:final expr) => (sign: 1, arg: expr),
-    Mul(factors: [IntegerNumber(isNegativeOne: true), Cos(:final expr)]) => (
-      sign: -1,
-      arg: expr,
-    ),
+    Call(id: FunctionId.cos, args: [final expr]) => (sign: 1, arg: expr),
+    Mul(
+      factors: [
+        IntegerNumber(isNegativeOne: true),
+        Call(id: FunctionId.cos, args: [final expr]),
+      ],
+    ) =>
+      (sign: -1, arg: expr),
     _ => null,
   };
 
@@ -537,13 +544,13 @@ Expr? trySumToProductTrigQuotient(
   if (denSignB == 1) {
     final angle = ((numSignB == 1 ? a + b : a - b) / IntegerNumber.two)
         .simplify(assumptions: assumptions);
-    rewritten = (IntegerNumber.of(overallSign) * Tan(angle)).simplify(
+    rewritten = (IntegerNumber.of(overallSign) * Fn.tan(angle)).simplify(
       assumptions: assumptions,
     );
   } else {
     final angle = ((numSignB == 1 ? a - b : a + b) / IntegerNumber.two)
         .simplify(assumptions: assumptions);
-    rewritten = (IntegerNumber.of(-overallSign) / Tan(angle)).simplify(
+    rewritten = (IntegerNumber.of(-overallSign) / Fn.tan(angle)).simplify(
       assumptions: assumptions,
     );
   }
@@ -567,7 +574,8 @@ Expr? trySumToProductTrigQuotient(
       a = (a + t).simplify();
       continue;
     }
-    if (t case Ln(expr: final arg) when inner == null || inner == arg) {
+    if (t case Call(id: FunctionId.ln, args: [final arg])
+        when inner == null || inner == arg) {
       inner = arg;
       b = ((b ?? IntegerNumber.zero) + IntegerNumber.one).simplify();
       continue;
@@ -579,7 +587,8 @@ Expr? trySumToProductTrigQuotient(
       for (final f in factors) {
         if (!f.dependsOn(variable)) {
           coeff = (coeff * f).simplify();
-        } else if (f case Ln(expr: final arg) when lnArg == null) {
+        } else if (f case Call(id: FunctionId.ln, args: [final arg])
+            when lnArg == null) {
           lnArg = arg;
         } else {
           valid = false;
@@ -599,7 +608,7 @@ Expr? trySumToProductTrigQuotient(
 }
 
 bool isScaledVarLn(Expr node, String variable) {
-  if (node case Ln(expr: final inner)) {
+  if (node case Call(id: FunctionId.ln, args: [final inner])) {
     if (inner.matchLinear(variable) case (a: final a, b: final b)
         when b is Number &&
             b.isZero &&
@@ -612,13 +621,13 @@ bool isScaledVarLn(Expr node, String variable) {
 }
 
 Expr splitScaledVarLn(Expr node, String variable) {
-  if (node case Ln(expr: final inner)) {
+  if (node case Call(id: FunctionId.ln, args: [final inner])) {
     if (inner.matchLinear(variable) case (a: final a, b: final b)
         when b is Number &&
             b.isZero &&
             a != IntegerNumber.one &&
             isPositiveConstant(a)) {
-      return Ln(a) + Ln(Variable(variable));
+      return Fn.ln(a) + Fn.ln(Variable(variable));
     }
   }
   return node.mapChildren((c) => splitScaledVarLn(c, variable));
@@ -719,15 +728,14 @@ Expr? tryTwoLinearPowersDenominator(
     } else {
       final oneMinusPow = IntegerNumber.of(1 - power);
       terms.add(
-        ((coeff / (slope * oneMinusPow)) * Pow(factor, oneMinusPow)).simplify(
-          assumptions: assumptions,
-        ),
+        ((coeff / (slope * oneMinusPow)) * Pow.of(factor, oneMinusPow))
+            .simplify(assumptions: assumptions),
       );
     }
   }
   return terms.isEmpty
       ? IntegerNumber.zero
-      : Add(terms).simplify(assumptions: assumptions);
+      : Add.of(terms).simplify(assumptions: assumptions);
 }
 
 /// Integrates `P(x) / (scale * x^r * prod_{i=1..m} (a_i + b_i * x^k)^{p_i})`
@@ -836,7 +844,7 @@ Expr? tryFactoredBinomialPowersDenominator(
   }
 
   final xVar = Variable(variable);
-  final xPowK = Pow(xVar, IntegerNumber.of(k));
+  final xPowK = Pow.of(xVar, IntegerNumber.of(k));
   final results = <Expr>[];
 
   Expr integrateMonomialPower(Expr coeff, int expX) {
@@ -846,7 +854,7 @@ Expr? tryFactoredBinomialPowersDenominator(
       );
     }
     final np1 = IntegerNumber.of(expX + 1);
-    return (coeff * Pow(xVar, np1) / np1).simplify(assumptions: assumptions);
+    return (coeff * Pow.of(xVar, np1) / np1).simplify(assumptions: assumptions);
   }
 
   for (final group in byRem.values) {
@@ -871,11 +879,11 @@ Expr? tryFactoredBinomialPowersDenominator(
       return null;
     }
 
-    final numT = Add([
+    final numT = Add.of([
       for (final item in items)
         (item.q + p0 == 0
                 ? item.coeff
-                : item.coeff * Pow(tVar, IntegerNumber.of(item.q + p0)))
+                : item.coeff * Pow.of(tVar, IntegerNumber.of(item.q + p0)))
             .simplify(assumptions: assumptions),
     ]).simplify(assumptions: assumptions);
 
@@ -899,7 +907,7 @@ Expr? tryFactoredBinomialPowersDenominator(
 
     final xPowS = s == 0
         ? IntegerNumber.one
-        : (s == 1 ? xVar : Pow(xVar, IntegerNumber.of(s)));
+        : (s == 1 ? xVar : Pow.of(xVar, IntegerNumber.of(s)));
 
     for (final (:coeff, :factor, :power) in decomp.pfTerms) {
       if (coeff is Number && coeff.isZero) continue;
@@ -924,7 +932,7 @@ Expr? tryFactoredBinomialPowersDenominator(
         } else {
           final oneMinusPow = IntegerNumber.of(1 - power);
           results.add(
-            ((coeff * Pow(ux, oneMinusPow)) /
+            ((coeff * Pow.of(ux, oneMinusPow)) /
                     (IntegerNumber.of(k) * bi * oneMinusPow))
                 .simplify(assumptions: assumptions),
           );
@@ -938,9 +946,11 @@ Expr? tryFactoredBinomialPowersDenominator(
         final denomScale = (ai * IntegerNumber.of(k * jm1)).simplify(
           assumptions: assumptions,
         );
-        final xPowSp1 = s == 0 ? xVar : Pow(xVar, IntegerNumber.of(s + 1));
+        final xPowSp1 = s == 0 ? xVar : Pow.of(xVar, IntegerNumber.of(s + 1));
         results.add(
-          (curCoeff * xPowSp1 / (denomScale * Pow(ux, IntegerNumber.of(jm1))))
+          (curCoeff *
+                  xPowSp1 /
+                  (denomScale * Pow.of(ux, IntegerNumber.of(jm1))))
               .simplify(assumptions: assumptions),
         );
         final remFactor = (IntegerNumber.of(k * jm1 - s - 1) / denomScale)
@@ -964,7 +974,7 @@ Expr? tryFactoredBinomialPowersDenominator(
 
   return results.isEmpty
       ? IntegerNumber.zero
-      : Add(results).simplify(assumptions: assumptions);
+      : Add.of(results).simplify(assumptions: assumptions);
 }
 
 /// Integrates `P(x) / (c * x^r * Q(x))` with `Q(0) != 0` by synthetic
@@ -1041,7 +1051,7 @@ Expr? tryMonomialTimesPolyDenominator(
       } else {
         final oneMinusM = IntegerNumber.of(1 - m);
         monoTerms.add(
-          ((c / oneMinusM) * Pow(xVar, oneMinusM)).simplify(
+          ((c / oneMinusM) * Pow.of(xVar, oneMinusM)).simplify(
             assumptions: assumptions,
           ),
         );
@@ -1063,13 +1073,13 @@ Expr? tryMonomialTimesPolyDenominator(
 
   final remTerms = <Expr>[
     for (final MapEntry(:key, :value) in curCoeffs.entries)
-      (key == 0 ? value : value * Pow(xVar, IntegerNumber.of(key))).simplify(
+      (key == 0 ? value : value * Pow.of(xVar, IntegerNumber.of(key))).simplify(
         assumptions: assumptions,
       ),
   ];
   final remNum = remTerms.isEmpty
       ? IntegerNumber.zero
-      : Add(remTerms).simplify(assumptions: assumptions);
+      : Add.of(remTerms).simplify(assumptions: assumptions);
   if (!(remNum is Number && remNum.isZero)) {
     final remIntegrand = (remNum / (scale * qExpr)).simplify(
       assumptions: assumptions,
@@ -1086,7 +1096,7 @@ Expr? tryMonomialTimesPolyDenominator(
 
   return monoTerms.isEmpty
       ? IntegerNumber.zero
-      : Add(monoTerms).simplify(assumptions: assumptions);
+      : Add.of(monoTerms).simplify(assumptions: assumptions);
 }
 
 ({Expr polyPart, List<({Expr coeff, Expr factor, int power})> pfTerms})?
@@ -1129,14 +1139,14 @@ _decomposeFactoredLinearPowers(
         pfTerms.add((coeff: cm, factor: u, power: p - m));
       } else {
         polyTerms.add(
-          m == p ? cm : (cm * Pow(u, IntegerNumber.of(m - p))).simplify(),
+          m == p ? cm : (cm * Pow.of(u, IntegerNumber.of(m - p))).simplify(),
         );
       }
     }
     return (
       polyPart: polyTerms.isEmpty
           ? IntegerNumber.zero
-          : Add(polyTerms).simplify(assumptions: assumptions),
+          : Add.of(polyTerms).simplify(assumptions: assumptions),
       pfTerms: pfTerms,
     );
   }
@@ -1172,7 +1182,10 @@ _decomposeFactoredLinearPowers(
         );
       } else {
         final sub = _decomposeFactoredLinearPowers(
-          (cm * (m == p ? IntegerNumber.one : Pow(u, IntegerNumber.of(m - p))))
+          (cm *
+                  (m == p
+                      ? IntegerNumber.one
+                      : Pow.of(u, IntegerNumber.of(m - p))))
               .simplify(assumptions: assumptions),
           {v: q},
           variable,
@@ -1186,7 +1199,7 @@ _decomposeFactoredLinearPowers(
     return (
       polyPart: polyParts.isEmpty
           ? IntegerNumber.zero
-          : Add(polyParts).simplify(assumptions: assumptions),
+          : Add.of(polyParts).simplify(assumptions: assumptions),
       pfTerms: pfTerms,
     );
   }
@@ -1258,7 +1271,7 @@ _decomposeFactoredLinearPowers(
       }
     } else {
       final sub = _decomposeFactoredLinearPowers(
-        (cm * (m == p ? IntegerNumber.one : Pow(u, IntegerNumber.of(m - p))))
+        (cm * (m == p ? IntegerNumber.one : Pow.of(u, IntegerNumber.of(m - p))))
             .simplify(assumptions: assumptions),
         {u2: p2, u3: p3},
         variable,
@@ -1272,7 +1285,7 @@ _decomposeFactoredLinearPowers(
   return (
     polyPart: polyParts.isEmpty
         ? IntegerNumber.zero
-        : Add(polyParts).simplify(assumptions: assumptions),
+        : Add.of(polyParts).simplify(assumptions: assumptions),
     pfTerms: pfTerms,
   );
 }
@@ -1293,30 +1306,30 @@ List<({Expr coeff, Expr factor, int power})> _decomposeTwoLinearPowers(
 
   // Terms A_i / u^i for 1 <= i <= p:
   // A_i = C(p - i + q - 1, q - 1) * (-d)^(p - i) * b^q / det^(p - i + q)
-  final bPowQ = Pow(b, IntegerNumber.of(q));
+  final bPowQ = Pow.of(b, IntegerNumber.of(q));
   for (var i = 1; i <= p; i++) {
-    final binom = Integer.from(p - i + q - 1).binomial(Integer.from(q - 1));
+    final binom = (p - i + q - 1).binomial(q - 1);
     final ai =
         (coeff *
-                IntegerNumber(binom) *
-                Pow(negD, IntegerNumber.of(p - i)) *
+                IntegerNumber.of(binom) *
+                Pow.of(negD, IntegerNumber.of(p - i)) *
                 bPowQ /
-                Pow(det, IntegerNumber.of(p - i + q)))
+                Pow.of(det, IntegerNumber.of(p - i + q)))
             .simplify(assumptions: assumptions);
     result.add((coeff: ai, factor: u, power: i));
   }
 
   // Terms B_j / v^j for 1 <= j <= q:
   // B_j = C(p - 1 + q - j, p - 1) * (-d)^p * b^(q - j) / det^(p + q - j)
-  final negDPowP = Pow(negD, IntegerNumber.of(p));
+  final negDPowP = Pow.of(negD, IntegerNumber.of(p));
   for (var j = 1; j <= q; j++) {
-    final binom = Integer.from(p - 1 + q - j).binomial(Integer.from(p - 1));
+    final binom = (p - 1 + q - j).binomial(p - 1);
     final bj =
         (coeff *
-                IntegerNumber(binom) *
+                IntegerNumber.of(binom) *
                 negDPowP *
-                Pow(b, IntegerNumber.of(q - j)) /
-                Pow(det, IntegerNumber.of(p + q - j)))
+                Pow.of(b, IntegerNumber.of(q - j)) /
+                Pow.of(det, IntegerNumber.of(p + q - j)))
             .simplify(assumptions: assumptions);
     result.add((coeff: bj, factor: v, power: j));
   }
@@ -1379,7 +1392,7 @@ Expr? tryBinomialPowerOstrogradsky(
       if (inner == null) return null;
       final c = consts.isEmpty
           ? IntegerNumber.one
-          : Mul(consts).simplify(assumptions: assumptions);
+          : Mul.of(consts).simplify(assumptions: assumptions);
       return (
         coeff: (c * inner.coeff).simplify(assumptions: assumptions),
         exp: inner.exp,
@@ -1406,8 +1419,8 @@ Expr? tryBinomialPowerOstrogradsky(
   );
   final isIntM =
       mExpr is IntegerNumber &&
-      mExpr.value >= const Integer(2) &&
-      mExpr.value <= const Integer(10);
+      mExpr.value >= BigInt.two &&
+      mExpr.value <= BigInt.from(10);
   if (!isIntM && remNum != IntegerNumber.zero) return null;
 
   final xVar = Variable(variable);
@@ -1415,15 +1428,18 @@ Expr? tryBinomialPowerOstrogradsky(
   if (denomFactor == IntegerNumber.zero) return null;
 
   final term1 =
-      (Pow(xVar, (k + IntegerNumber.one).simplify(assumptions: assumptions)) /
-              (denomFactor * Pow(base, mMinus1)))
+      (Pow.of(
+                xVar,
+                (k + IntegerNumber.one).simplify(assumptions: assumptions),
+              ) /
+              (denomFactor * Pow.of(base, mMinus1)))
           .simplify(assumptions: assumptions);
 
   if (remNum == IntegerNumber.zero) {
     return (c * term1).simplify(assumptions: assumptions);
   }
 
-  final reducedIntegrand = (Pow(xVar, k) / Pow(base, mMinus1)).simplify(
+  final reducedIntegrand = (Pow.of(xVar, k) / Pow.of(base, mMinus1)).simplify(
     assumptions: assumptions,
   );
   final reducedIntegral = antiDerivative(

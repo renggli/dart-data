@@ -2,12 +2,12 @@ import 'package:more/math.dart';
 
 import '../assumptions.dart';
 import '../ast.dart';
+import '../functions/fn.dart';
 import 'expand.dart';
 import 'rational.dart';
 import 'simplify.dart';
 import 'simplify/additive.dart';
 import 'simplify/multiplicative.dart';
-import 'structural_order.dart';
 import 'term_accumulator.dart';
 
 /// Target representation for algebraic and transcendental [TrigRewriteExtension.rewrite].
@@ -96,12 +96,21 @@ Expr _expandTrigExpr(Expr expr, Assumptions assumptions) {
       .mapChildren((c) => _expandTrigExpr(c, assumptions))
       .simplify(assumptions: assumptions);
   return switch (mapped) {
-    Sin(expr: final arg) => _expandSin(arg, assumptions),
-    Cos(expr: final arg) => _expandCos(arg, assumptions),
-    Tan(expr: final arg) => _expandTan(arg, assumptions),
-    Sinh(expr: final arg) => _expandSinh(arg, assumptions),
-    Cosh(expr: final arg) => _expandCosh(arg, assumptions),
-    Tanh(expr: final arg) => _expandTanh(arg, assumptions),
+    Call(id: FunctionId.sin, args: [final arg]) => _expandSin(arg, assumptions),
+    Call(id: FunctionId.cos, args: [final arg]) => _expandCos(arg, assumptions),
+    Call(id: FunctionId.tan, args: [final arg]) => _expandTan(arg, assumptions),
+    Call(id: FunctionId.sinh, args: [final arg]) => _expandSinh(
+      arg,
+      assumptions,
+    ),
+    Call(id: FunctionId.cosh, args: [final arg]) => _expandCosh(
+      arg,
+      assumptions,
+    ),
+    Call(id: FunctionId.tanh, args: [final arg]) => _expandTanh(
+      arg,
+      assumptions,
+    ),
     _ => mapped,
   };
 }
@@ -110,9 +119,7 @@ Expr _expandSin(Expr arg, Assumptions assumptions, [int depth = 0]) {
   if (arg case Add(:final terms)
       when depth < 16 && terms.length >= 2 && terms.length <= 16) {
     final first = terms.first;
-    final rest = terms.length == 2
-        ? terms[1]
-        : Add(terms.sublist(1), isSimplified: true);
+    final rest = terms.length == 2 ? terms[1] : Add.of(terms.sublist(1));
     final sinA = _expandSin(first, assumptions, depth + 1);
     final cosA = _expandCos(first, assumptions, depth + 1);
     final sinB = _expandSin(rest, assumptions, depth + 1);
@@ -127,16 +134,14 @@ Expr _expandSin(Expr arg, Assumptions assumptions, [int depth = 0]) {
     final expanded = _deMoivreSin(absN, base, assumptions);
     return n < 0 ? (-expanded).simplify(assumptions: assumptions) : expanded;
   }
-  return Sin(arg).simplify(assumptions: assumptions);
+  return Fn.sin(arg).simplify(assumptions: assumptions);
 }
 
 Expr _expandCos(Expr arg, Assumptions assumptions, [int depth = 0]) {
   if (arg case Add(:final terms)
       when depth < 16 && terms.length >= 2 && terms.length <= 16) {
     final first = terms.first;
-    final rest = terms.length == 2
-        ? terms[1]
-        : Add(terms.sublist(1), isSimplified: true);
+    final rest = terms.length == 2 ? terms[1] : Add.of(terms.sublist(1));
     final sinA = _expandSin(first, assumptions, depth + 1);
     final cosA = _expandCos(first, assumptions, depth + 1);
     final sinB = _expandSin(rest, assumptions, depth + 1);
@@ -149,16 +154,14 @@ Expr _expandCos(Expr arg, Assumptions assumptions, [int depth = 0]) {
       when n.abs() >= 2 && n.abs() <= 16) {
     return _deMoivreCos(n.abs(), base, assumptions);
   }
-  return Cos(arg).simplify(assumptions: assumptions);
+  return Fn.cos(arg).simplify(assumptions: assumptions);
 }
 
 Expr _expandTan(Expr arg, Assumptions assumptions, [int depth = 0]) {
   if (arg case Add(:final terms)
       when depth < 16 && terms.length >= 2 && terms.length <= 16) {
     final first = terms.first;
-    final rest = terms.length == 2
-        ? terms[1]
-        : Add(terms.sublist(1), isSimplified: true);
+    final rest = terms.length == 2 ? terms[1] : Add.of(terms.sublist(1));
     final tanA = _expandTan(first, assumptions, depth + 1);
     final tanB = _expandTan(rest, assumptions, depth + 1);
     return ((tanA + tanB) / (IntegerNumber.one - tanA * tanB)).simplify(
@@ -171,16 +174,14 @@ Expr _expandTan(Expr arg, Assumptions assumptions, [int depth = 0]) {
     final expanded = _deMoivreTan(absN, base, assumptions);
     return n < 0 ? (-expanded).simplify(assumptions: assumptions) : expanded;
   }
-  return Tan(arg).simplify(assumptions: assumptions);
+  return Fn.tan(arg).simplify(assumptions: assumptions);
 }
 
 Expr _expandSinh(Expr arg, Assumptions assumptions, [int depth = 0]) {
   if (arg case Add(:final terms)
       when depth < 16 && terms.length >= 2 && terms.length <= 16) {
     final first = terms.first;
-    final rest = terms.length == 2
-        ? terms[1]
-        : Add(terms.sublist(1), isSimplified: true);
+    final rest = terms.length == 2 ? terms[1] : Add.of(terms.sublist(1));
     final sinhA = _expandSinh(first, assumptions, depth + 1);
     final coshA = _expandCosh(first, assumptions, depth + 1);
     final sinhB = _expandSinh(rest, assumptions, depth + 1);
@@ -195,16 +196,14 @@ Expr _expandSinh(Expr arg, Assumptions assumptions, [int depth = 0]) {
     final expanded = _deMoivreSinh(absN, base, assumptions);
     return n < 0 ? (-expanded).simplify(assumptions: assumptions) : expanded;
   }
-  return Sinh(arg).simplify(assumptions: assumptions);
+  return Fn.sinh(arg).simplify(assumptions: assumptions);
 }
 
 Expr _expandCosh(Expr arg, Assumptions assumptions, [int depth = 0]) {
   if (arg case Add(:final terms)
       when depth < 16 && terms.length >= 2 && terms.length <= 16) {
     final first = terms.first;
-    final rest = terms.length == 2
-        ? terms[1]
-        : Add(terms.sublist(1), isSimplified: true);
+    final rest = terms.length == 2 ? terms[1] : Add.of(terms.sublist(1));
     final sinhA = _expandSinh(first, assumptions, depth + 1);
     final coshA = _expandCosh(first, assumptions, depth + 1);
     final sinhB = _expandSinh(rest, assumptions, depth + 1);
@@ -217,16 +216,14 @@ Expr _expandCosh(Expr arg, Assumptions assumptions, [int depth = 0]) {
       when n.abs() >= 2 && n.abs() <= 16) {
     return _deMoivreCosh(n.abs(), base, assumptions);
   }
-  return Cosh(arg).simplify(assumptions: assumptions);
+  return Fn.cosh(arg).simplify(assumptions: assumptions);
 }
 
 Expr _expandTanh(Expr arg, Assumptions assumptions, [int depth = 0]) {
   if (arg case Add(:final terms)
       when depth < 16 && terms.length >= 2 && terms.length <= 16) {
     final first = terms.first;
-    final rest = terms.length == 2
-        ? terms[1]
-        : Add(terms.sublist(1), isSimplified: true);
+    final rest = terms.length == 2 ? terms[1] : Add.of(terms.sublist(1));
     final tanhA = _expandTanh(first, assumptions, depth + 1);
     final tanhB = _expandTanh(rest, assumptions, depth + 1);
     return ((tanhA + tanhB) / (IntegerNumber.one + tanhA * tanhB)).simplify(
@@ -239,129 +236,129 @@ Expr _expandTanh(Expr arg, Assumptions assumptions, [int depth = 0]) {
     final expanded = _deMoivreTanh(absN, base, assumptions);
     return n < 0 ? (-expanded).simplify(assumptions: assumptions) : expanded;
   }
-  return Tanh(arg).simplify(assumptions: assumptions);
+  return Fn.tanh(arg).simplify(assumptions: assumptions);
 }
 
 ({int n, Expr base})? _extractIntegerMultiple(Expr arg) {
   if (arg case Mul(factors: [IntegerNumber(asInt: final k?), ...final rest])
       when rest.isNotEmpty) {
-    final base = rest.length == 1
-        ? rest.first
-        : Mul(rest, isSimplified: arg.isSimplified);
+    final base = rest.length == 1 ? rest.first : Mul.of(rest);
     return (n: k, base: base);
   }
   return null;
 }
 
 Expr _deMoivreSin(int n, Expr u, Assumptions assumptions) {
-  final sinU = Sin(u).simplify(assumptions: assumptions);
-  final cosU = Cos(u).simplify(assumptions: assumptions);
+  final sinU = Fn.sin(u).simplify(assumptions: assumptions);
+  final cosU = Fn.cos(u).simplify(assumptions: assumptions);
   final terms = <Expr>[];
   for (var k = 1; k <= n; k += 2) {
     final sign = ((k - 1) ~/ 2).isEven ? 1 : -1;
     final coeff = IntegerNumber.of(sign * n.binomial(k));
     final cosPow = n - k == 0
         ? IntegerNumber.one
-        : Pow(cosU, IntegerNumber.of(n - k));
-    final sinPow = k == 1 ? sinU : Pow(sinU, IntegerNumber.of(k));
+        : Pow.of(cosU, IntegerNumber.of(n - k));
+    final sinPow = k == 1 ? sinU : Pow.of(sinU, IntegerNumber.of(k));
     terms.add((coeff * cosPow * sinPow).simplify(assumptions: assumptions));
   }
-  return Add(terms)
+  return Add.of(terms)
       .expand(assumptions: assumptions)
       .simplify(assumptions: assumptions);
 }
 
 Expr _deMoivreCos(int n, Expr u, Assumptions assumptions) {
-  final sinU = Sin(u).simplify(assumptions: assumptions);
-  final cosU = Cos(u).simplify(assumptions: assumptions);
+  final sinU = Fn.sin(u).simplify(assumptions: assumptions);
+  final cosU = Fn.cos(u).simplify(assumptions: assumptions);
   final terms = <Expr>[];
   for (var k = 0; k <= n; k += 2) {
     final sign = (k ~/ 2).isEven ? 1 : -1;
     final coeff = IntegerNumber.of(sign * n.binomial(k));
     final cosPow = n - k == 0
         ? IntegerNumber.one
-        : Pow(cosU, IntegerNumber.of(n - k));
-    final sinPow = k == 0 ? IntegerNumber.one : Pow(sinU, IntegerNumber.of(k));
+        : Pow.of(cosU, IntegerNumber.of(n - k));
+    final sinPow = k == 0
+        ? IntegerNumber.one
+        : Pow.of(sinU, IntegerNumber.of(k));
     terms.add((coeff * cosPow * sinPow).simplify(assumptions: assumptions));
   }
-  return Add(terms)
+  return Add.of(terms)
       .expand(assumptions: assumptions)
       .simplify(assumptions: assumptions);
 }
 
 Expr _deMoivreTan(int n, Expr u, Assumptions assumptions) {
-  final tanU = Tan(u).simplify(assumptions: assumptions);
+  final tanU = Fn.tan(u).simplify(assumptions: assumptions);
   final numTerms = <Expr>[];
   final denTerms = <Expr>[];
   for (var k = 1; k <= n; k += 2) {
     final sign = ((k - 1) ~/ 2).isEven ? 1 : -1;
     final coeff = IntegerNumber.of(sign * n.binomial(k));
-    final pow = k == 1 ? tanU : Pow(tanU, IntegerNumber.of(k));
+    final pow = k == 1 ? tanU : Pow.of(tanU, IntegerNumber.of(k));
     numTerms.add((coeff * pow).simplify(assumptions: assumptions));
   }
   for (var k = 0; k <= n; k += 2) {
     final sign = (k ~/ 2).isEven ? 1 : -1;
     final coeff = IntegerNumber.of(sign * n.binomial(k));
-    final pow = k == 0 ? IntegerNumber.one : Pow(tanU, IntegerNumber.of(k));
+    final pow = k == 0 ? IntegerNumber.one : Pow.of(tanU, IntegerNumber.of(k));
     denTerms.add((coeff * pow).simplify(assumptions: assumptions));
   }
-  return (Add(numTerms).simplify(assumptions: assumptions) /
-          Add(denTerms).simplify(assumptions: assumptions))
+  return (Add.of(numTerms).simplify(assumptions: assumptions) /
+          Add.of(denTerms).simplify(assumptions: assumptions))
       .simplify(assumptions: assumptions);
 }
 
 Expr _deMoivreSinh(int n, Expr u, Assumptions assumptions) {
-  final sinhU = Sinh(u).simplify(assumptions: assumptions);
-  final coshU = Cosh(u).simplify(assumptions: assumptions);
+  final sinhU = Fn.sinh(u).simplify(assumptions: assumptions);
+  final coshU = Fn.cosh(u).simplify(assumptions: assumptions);
   final terms = <Expr>[];
   for (var k = 1; k <= n; k += 2) {
     final coeff = IntegerNumber.of(n.binomial(k));
     final coshPow = n - k == 0
         ? IntegerNumber.one
-        : Pow(coshU, IntegerNumber.of(n - k));
-    final sinhPow = k == 1 ? sinhU : Pow(sinhU, IntegerNumber.of(k));
+        : Pow.of(coshU, IntegerNumber.of(n - k));
+    final sinhPow = k == 1 ? sinhU : Pow.of(sinhU, IntegerNumber.of(k));
     terms.add((coeff * coshPow * sinhPow).simplify(assumptions: assumptions));
   }
-  return Add(terms)
+  return Add.of(terms)
       .expand(assumptions: assumptions)
       .simplify(assumptions: assumptions);
 }
 
 Expr _deMoivreCosh(int n, Expr u, Assumptions assumptions) {
-  final sinhU = Sinh(u).simplify(assumptions: assumptions);
-  final coshU = Cosh(u).simplify(assumptions: assumptions);
+  final sinhU = Fn.sinh(u).simplify(assumptions: assumptions);
+  final coshU = Fn.cosh(u).simplify(assumptions: assumptions);
   final terms = <Expr>[];
   for (var k = 0; k <= n; k += 2) {
     final coeff = IntegerNumber.of(n.binomial(k));
     final coshPow = n - k == 0
         ? IntegerNumber.one
-        : Pow(coshU, IntegerNumber.of(n - k));
+        : Pow.of(coshU, IntegerNumber.of(n - k));
     final sinhPow = k == 0
         ? IntegerNumber.one
-        : Pow(sinhU, IntegerNumber.of(k));
+        : Pow.of(sinhU, IntegerNumber.of(k));
     terms.add((coeff * coshPow * sinhPow).simplify(assumptions: assumptions));
   }
-  return Add(terms)
+  return Add.of(terms)
       .expand(assumptions: assumptions)
       .simplify(assumptions: assumptions);
 }
 
 Expr _deMoivreTanh(int n, Expr u, Assumptions assumptions) {
-  final tanhU = Tanh(u).simplify(assumptions: assumptions);
+  final tanhU = Fn.tanh(u).simplify(assumptions: assumptions);
   final numTerms = <Expr>[];
   final denTerms = <Expr>[];
   for (var k = 1; k <= n; k += 2) {
     final coeff = IntegerNumber.of(n.binomial(k));
-    final pow = k == 1 ? tanhU : Pow(tanhU, IntegerNumber.of(k));
+    final pow = k == 1 ? tanhU : Pow.of(tanhU, IntegerNumber.of(k));
     numTerms.add((coeff * pow).simplify(assumptions: assumptions));
   }
   for (var k = 0; k <= n; k += 2) {
     final coeff = IntegerNumber.of(n.binomial(k));
-    final pow = k == 0 ? IntegerNumber.one : Pow(tanhU, IntegerNumber.of(k));
+    final pow = k == 0 ? IntegerNumber.one : Pow.of(tanhU, IntegerNumber.of(k));
     denTerms.add((coeff * pow).simplify(assumptions: assumptions));
   }
-  return (Add(numTerms).simplify(assumptions: assumptions) /
-          Add(denTerms).simplify(assumptions: assumptions))
+  return (Add.of(numTerms).simplify(assumptions: assumptions) /
+          Add.of(denTerms).simplify(assumptions: assumptions))
       .simplify(assumptions: assumptions);
 }
 
@@ -410,7 +407,7 @@ Expr _contractTrigProduct(
 
   for (var i = 0; i < remaining.length; i++) {
     final f1 = remaining[i];
-    if (f1 is Sin || f1 is Cos) {
+    if (f1 is Call && (f1.id == FunctionId.sin || f1.id == FunctionId.cos)) {
       for (var j = i + 1; j < remaining.length; j++) {
         final f2 = remaining[j];
         final combined = _productToSumPair(f1, f2, assumptions);
@@ -424,7 +421,8 @@ Expr _contractTrigProduct(
         }
       }
       if (changed) break;
-    } else if (f1 is Sinh || f1 is Cosh) {
+    } else if (f1 is Call &&
+        (f1.id == FunctionId.sinh || f1.id == FunctionId.cosh)) {
       for (var j = i + 1; j < remaining.length; j++) {
         final f2 = remaining[j];
         final combined = _hyperbolicProductToSumPair(f1, f2, assumptions);
@@ -453,59 +451,91 @@ Expr _contractTrigProduct(
 }
 
 Expr? _productToSumPair(Expr f1, Expr f2, Assumptions assumptions) {
-  const half = FractionNumber.half;
+  final half = FractionNumber.half;
   return switch ((f1, f2)) {
-    (Sin(expr: final a), Cos(expr: final b)) ||
-    (Cos(expr: final b), Sin(expr: final a)) => () {
-      final sumTerm = Sin((a + b).simplify(assumptions: assumptions));
+    (
+      Call(id: FunctionId.sin, args: [final a]),
+      Call(id: FunctionId.cos, args: [final b]),
+    ) ||
+    (
+      Call(id: FunctionId.cos, args: [final b]),
+      Call(id: FunctionId.sin, args: [final a]),
+    ) => () {
+      final sumTerm = Fn.sin((a + b).simplify(assumptions: assumptions));
       final diffTerm = compareStructural(a, b) <= 0
-          ? Sin((a - b).simplify(assumptions: assumptions))
-          : -Sin((b - a).simplify(assumptions: assumptions));
+          ? Fn.sin((a - b).simplify(assumptions: assumptions))
+          : -Fn.sin((b - a).simplify(assumptions: assumptions));
       return half * (diffTerm + sumTerm);
     }(),
-    (Cos(expr: final a), Cos(expr: final b)) => () {
-      final diffArg = compareStructural(a, b) <= 0
-          ? (a - b).simplify(assumptions: assumptions)
-          : (b - a).simplify(assumptions: assumptions);
-      return half *
-          (Cos(diffArg) + Cos((a + b).simplify(assumptions: assumptions)));
-    }(),
-    (Sin(expr: final a), Sin(expr: final b)) => () {
-      final diffArg = compareStructural(a, b) <= 0
-          ? (a - b).simplify(assumptions: assumptions)
-          : (b - a).simplify(assumptions: assumptions);
-      return half *
-          (Cos(diffArg) - Cos((a + b).simplify(assumptions: assumptions)));
-    }(),
+    (
+      Call(id: FunctionId.cos, args: [final a]),
+      Call(id: FunctionId.cos, args: [final b]),
+    ) =>
+      () {
+        final diffArg = compareStructural(a, b) <= 0
+            ? (a - b).simplify(assumptions: assumptions)
+            : (b - a).simplify(assumptions: assumptions);
+        return half *
+            (Fn.cos(diffArg) +
+                Fn.cos((a + b).simplify(assumptions: assumptions)));
+      }(),
+    (
+      Call(id: FunctionId.sin, args: [final a]),
+      Call(id: FunctionId.sin, args: [final b]),
+    ) =>
+      () {
+        final diffArg = compareStructural(a, b) <= 0
+            ? (a - b).simplify(assumptions: assumptions)
+            : (b - a).simplify(assumptions: assumptions);
+        return half *
+            (Fn.cos(diffArg) -
+                Fn.cos((a + b).simplify(assumptions: assumptions)));
+      }(),
     _ => null,
   };
 }
 
 Expr? _hyperbolicProductToSumPair(Expr f1, Expr f2, Assumptions assumptions) {
-  const half = FractionNumber.half;
+  final half = FractionNumber.half;
   return switch ((f1, f2)) {
-    (Sinh(expr: final a), Cosh(expr: final b)) ||
-    (Cosh(expr: final b), Sinh(expr: final a)) => () {
-      final sumTerm = Sinh((a + b).simplify(assumptions: assumptions));
+    (
+      Call(id: FunctionId.sinh, args: [final a]),
+      Call(id: FunctionId.cosh, args: [final b]),
+    ) ||
+    (
+      Call(id: FunctionId.cosh, args: [final b]),
+      Call(id: FunctionId.sinh, args: [final a]),
+    ) => () {
+      final sumTerm = Fn.sinh((a + b).simplify(assumptions: assumptions));
       final diffTerm = compareStructural(a, b) <= 0
-          ? Sinh((a - b).simplify(assumptions: assumptions))
-          : -Sinh((b - a).simplify(assumptions: assumptions));
+          ? Fn.sinh((a - b).simplify(assumptions: assumptions))
+          : -Fn.sinh((b - a).simplify(assumptions: assumptions));
       return half * (diffTerm + sumTerm);
     }(),
-    (Cosh(expr: final a), Cosh(expr: final b)) => () {
-      final diffArg = compareStructural(a, b) <= 0
-          ? (a - b).simplify(assumptions: assumptions)
-          : (b - a).simplify(assumptions: assumptions);
-      return half *
-          (Cosh(diffArg) + Cosh((a + b).simplify(assumptions: assumptions)));
-    }(),
-    (Sinh(expr: final a), Sinh(expr: final b)) => () {
-      final diffArg = compareStructural(a, b) <= 0
-          ? (a - b).simplify(assumptions: assumptions)
-          : (b - a).simplify(assumptions: assumptions);
-      return half *
-          (Cosh((a + b).simplify(assumptions: assumptions)) - Cosh(diffArg));
-    }(),
+    (
+      Call(id: FunctionId.cosh, args: [final a]),
+      Call(id: FunctionId.cosh, args: [final b]),
+    ) =>
+      () {
+        final diffArg = compareStructural(a, b) <= 0
+            ? (a - b).simplify(assumptions: assumptions)
+            : (b - a).simplify(assumptions: assumptions);
+        return half *
+            (Fn.cosh(diffArg) +
+                Fn.cosh((a + b).simplify(assumptions: assumptions)));
+      }(),
+    (
+      Call(id: FunctionId.sinh, args: [final a]),
+      Call(id: FunctionId.sinh, args: [final b]),
+    ) =>
+      () {
+        final diffArg = compareStructural(a, b) <= 0
+            ? (a - b).simplify(assumptions: assumptions)
+            : (b - a).simplify(assumptions: assumptions);
+        return half *
+            (Fn.cosh((a + b).simplify(assumptions: assumptions)) -
+                Fn.cosh(diffArg));
+      }(),
     _ => null,
   };
 }
@@ -528,22 +558,22 @@ Expr _contractTrigSum(List<Expr> terms, Assumptions assumptions) {
 
   for (final MapEntry(:key, :value) in acc.terms.entries) {
     if (key case Pow(
-      base: Cos(:final expr),
+      base: Call(id: FunctionId.cos, args: [final expr]),
       exponent: IntegerNumber(asInt: 2),
     )) {
       cosSquares[expr] = (key, value);
     } else if (key case Pow(
-      base: Sin(:final expr),
+      base: Call(id: FunctionId.sin, args: [final expr]),
       exponent: IntegerNumber(asInt: 2),
     )) {
       sinSquares[expr] = (key, value);
     } else if (key case Pow(
-      base: Cosh(:final expr),
+      base: Call(id: FunctionId.cosh, args: [final expr]),
       exponent: IntegerNumber(asInt: 2),
     )) {
       coshSquares[expr] = (key, value);
     } else if (key case Pow(
-      base: Sinh(:final expr),
+      base: Call(id: FunctionId.sinh, args: [final expr]),
       exponent: IntegerNumber(asInt: 2),
     )) {
       sinhSquares[expr] = (key, value);
@@ -559,7 +589,7 @@ Expr _contractTrigSum(List<Expr> terms, Assumptions assumptions) {
           ..remove(cosKey)
           ..remove(sinKey);
         acc.add(
-          Cos((IntegerNumber.two * u).simplify(assumptions: assumptions)),
+          Fn.cos((IntegerNumber.two * u).simplify(assumptions: assumptions)),
           cosCoeff,
         );
       }
@@ -575,7 +605,7 @@ Expr _contractTrigSum(List<Expr> terms, Assumptions assumptions) {
           ..remove(coshKey)
           ..remove(sinhKey);
         acc.add(
-          Cosh((IntegerNumber.two * u).simplify(assumptions: assumptions)),
+          Fn.cosh((IntegerNumber.two * u).simplify(assumptions: assumptions)),
           coshCoeff,
         );
       }
@@ -602,31 +632,31 @@ Expr _foldMulToTan(List<Expr> factors, Assumptions assumptions) {
 
   for (final f in factors) {
     switch (f) {
-      case Sin(:final expr):
+      case Call(id: FunctionId.sin, args: [final expr]):
         sinExps[expr] = (sinExps[expr] ?? 0) + 1;
       case Pow(
-        base: Sin(:final expr),
+        base: Call(id: FunctionId.sin, args: [final expr]),
         exponent: IntegerNumber(asInt: final k?),
       ):
         sinExps[expr] = (sinExps[expr] ?? 0) + k;
-      case Cos(:final expr):
+      case Call(id: FunctionId.cos, args: [final expr]):
         cosExps[expr] = (cosExps[expr] ?? 0) + 1;
       case Pow(
-        base: Cos(:final expr),
+        base: Call(id: FunctionId.cos, args: [final expr]),
         exponent: IntegerNumber(asInt: final k?),
       ):
         cosExps[expr] = (cosExps[expr] ?? 0) + k;
-      case Sinh(:final expr):
+      case Call(id: FunctionId.sinh, args: [final expr]):
         sinhExps[expr] = (sinhExps[expr] ?? 0) + 1;
       case Pow(
-        base: Sinh(:final expr),
+        base: Call(id: FunctionId.sinh, args: [final expr]),
         exponent: IntegerNumber(asInt: final k?),
       ):
         sinhExps[expr] = (sinhExps[expr] ?? 0) + k;
-      case Cosh(:final expr):
+      case Call(id: FunctionId.cosh, args: [final expr]):
         coshExps[expr] = (coshExps[expr] ?? 0) + 1;
       case Pow(
-        base: Cosh(:final expr),
+        base: Call(id: FunctionId.cosh, args: [final expr]),
         exponent: IntegerNumber(asInt: final k?),
       ):
         coshExps[expr] = (coshExps[expr] ?? 0) + k;
@@ -643,16 +673,18 @@ Expr _foldMulToTan(List<Expr> factors, Assumptions assumptions) {
     final sExp = sinExps[u] ?? 0;
     final cExp = cosExps[u] ?? 0;
     if (sExp > 0 && cExp == -sExp) {
-      final tanNode = Tan(u, isSimplified: true);
-      rebuilt.add(sExp == 1 ? tanNode : Pow(tanNode, IntegerNumber.of(sExp)));
+      final tanNode = Fn.tan(u);
+      rebuilt.add(
+        sExp == 1 ? tanNode : Pow.of(tanNode, IntegerNumber.of(sExp)),
+      );
     } else {
       if (sExp != 0) {
-        final sNode = Sin(u, isSimplified: true);
-        rebuilt.add(sExp == 1 ? sNode : Pow(sNode, IntegerNumber.of(sExp)));
+        final sNode = Fn.sin(u);
+        rebuilt.add(sExp == 1 ? sNode : Pow.of(sNode, IntegerNumber.of(sExp)));
       }
       if (cExp != 0) {
-        final cNode = Cos(u, isSimplified: true);
-        rebuilt.add(cExp == 1 ? cNode : Pow(cNode, IntegerNumber.of(cExp)));
+        final cNode = Fn.cos(u);
+        rebuilt.add(cExp == 1 ? cNode : Pow.of(cNode, IntegerNumber.of(cExp)));
       }
     }
   }
@@ -663,18 +695,22 @@ Expr _foldMulToTan(List<Expr> factors, Assumptions assumptions) {
     final shExp = sinhExps[u] ?? 0;
     final chExp = coshExps[u] ?? 0;
     if (shExp > 0 && chExp == -shExp) {
-      final tanhNode = Tanh(u, isSimplified: true);
+      final tanhNode = Fn.tanh(u);
       rebuilt.add(
-        shExp == 1 ? tanhNode : Pow(tanhNode, IntegerNumber.of(shExp)),
+        shExp == 1 ? tanhNode : Pow.of(tanhNode, IntegerNumber.of(shExp)),
       );
     } else {
       if (shExp != 0) {
-        final shNode = Sinh(u, isSimplified: true);
-        rebuilt.add(shExp == 1 ? shNode : Pow(shNode, IntegerNumber.of(shExp)));
+        final shNode = Fn.sinh(u);
+        rebuilt.add(
+          shExp == 1 ? shNode : Pow.of(shNode, IntegerNumber.of(shExp)),
+        );
       }
       if (chExp != 0) {
-        final chNode = Cosh(u, isSimplified: true);
-        rebuilt.add(chExp == 1 ? chNode : Pow(chNode, IntegerNumber.of(chExp)));
+        final chNode = Fn.cosh(u);
+        rebuilt.add(
+          chExp == 1 ? chNode : Pow.of(chNode, IntegerNumber.of(chExp)),
+        );
       }
     }
   }
@@ -685,66 +721,63 @@ Expr _foldMulToTan(List<Expr> factors, Assumptions assumptions) {
 Expr _rewriteToSinCos(Expr expr, Assumptions assumptions) {
   final mapped = expr.mapChildren((c) => _rewriteToSinCos(c, assumptions));
   return switch (mapped) {
-    Tan(:final expr) => (Sin(expr) / Cos(expr)).simplify(
-      assumptions: assumptions,
-    ),
-    Tanh(:final expr) => (Sinh(expr) / Cosh(expr)).simplify(
-      assumptions: assumptions,
-    ),
+    Call(id: FunctionId.tan, args: [final inner]) =>
+      (Fn.sin(inner) / Fn.cos(inner)).simplify(assumptions: assumptions),
+    Call(id: FunctionId.tanh, args: [final inner]) =>
+      (Fn.sinh(inner) / Fn.cosh(inner)).simplify(assumptions: assumptions),
     _ => mapped.simplify(assumptions: assumptions),
   };
 }
 
 Expr _rewriteToExp(Expr expr, Assumptions assumptions) {
   final mapped = expr.mapChildren((c) => _rewriteToExp(c, assumptions));
-  const i = ComplexNumber.i;
-  final negHalfI = ComplexNumber(
+  final i = ComplexNumber.i;
+  final negHalfI = ComplexNumber.of(
     IntegerNumber.zero,
     FractionNumber.negativeHalf,
   );
-  const half = FractionNumber.half;
+  final half = FractionNumber.half;
   return switch (mapped) {
-    Sin(expr: final u) => () {
+    Call(id: FunctionId.sin, args: [final u]) => () {
       final iu = (i * u)
           .expand(assumptions: assumptions)
           .simplify(assumptions: assumptions);
       final negIu = (-iu).simplify(assumptions: assumptions);
-      return (negHalfI * (Pow(Constant.e, iu) - Pow(Constant.e, negIu)))
+      return (negHalfI * (Pow.of(Constant.e, iu) - Pow.of(Constant.e, negIu)))
           .simplify(assumptions: assumptions);
     }(),
-    Cos(expr: final u) => () {
+    Call(id: FunctionId.cos, args: [final u]) => () {
       final iu = (i * u)
           .expand(assumptions: assumptions)
           .simplify(assumptions: assumptions);
       final negIu = (-iu).simplify(assumptions: assumptions);
-      return (half * (Pow(Constant.e, iu) + Pow(Constant.e, negIu))).simplify(
-        assumptions: assumptions,
-      );
+      return (half * (Pow.of(Constant.e, iu) + Pow.of(Constant.e, negIu)))
+          .simplify(assumptions: assumptions);
     }(),
-    Tan(expr: final u) => () {
+    Call(id: FunctionId.tan, args: [final u]) => () {
       final iu = (i * u)
           .expand(assumptions: assumptions)
           .simplify(assumptions: assumptions);
       final negIu = (-iu).simplify(assumptions: assumptions);
-      final ePos = Pow(Constant.e, iu);
-      final eNeg = Pow(Constant.e, negIu);
+      final ePos = Pow.of(Constant.e, iu);
+      final eNeg = Pow.of(Constant.e, negIu);
       return ((-i * (ePos - eNeg)) / (ePos + eNeg)).simplify(
         assumptions: assumptions,
       );
     }(),
-    Sinh(expr: final u) =>
+    Call(id: FunctionId.sinh, args: [final u]) =>
       (half *
-              (Pow(Constant.e, u) -
-                  Pow(Constant.e, (-u).simplify(assumptions: assumptions))))
+              (Pow.of(Constant.e, u) -
+                  Pow.of(Constant.e, (-u).simplify(assumptions: assumptions))))
           .simplify(assumptions: assumptions),
-    Cosh(expr: final u) =>
+    Call(id: FunctionId.cosh, args: [final u]) =>
       (half *
-              (Pow(Constant.e, u) +
-                  Pow(Constant.e, (-u).simplify(assumptions: assumptions))))
+              (Pow.of(Constant.e, u) +
+                  Pow.of(Constant.e, (-u).simplify(assumptions: assumptions))))
           .simplify(assumptions: assumptions),
-    Tanh(expr: final u) => () {
-      final ePos = Pow(Constant.e, u);
-      final eNeg = Pow(Constant.e, (-u).simplify(assumptions: assumptions));
+    Call(id: FunctionId.tanh, args: [final u]) => () {
+      final ePos = Pow.of(Constant.e, u);
+      final eNeg = Pow.of(Constant.e, (-u).simplify(assumptions: assumptions));
       return ((ePos - eNeg) / (ePos + eNeg)).simplify(assumptions: assumptions);
     }(),
     _ => mapped.simplify(assumptions: assumptions),
@@ -781,7 +814,7 @@ Expr _expToTrig(Expr exponent, Assumptions assumptions) {
             ],
           )
           when !imaginary.isZero && rest.isNotEmpty:
-        final restExpr = rest.length == 1 ? rest.first : Mul(rest);
+        final restExpr = rest.length == 1 ? rest.first : Mul.of(rest);
         if (!real.isZero) {
           realTerms.add((real * restExpr).simplify(assumptions: assumptions));
         }
@@ -794,16 +827,18 @@ Expr _expToTrig(Expr exponent, Assumptions assumptions) {
   }
 
   if (imagTerms.isEmpty) {
-    return Pow(Constant.e, expanded).simplify(assumptions: assumptions);
+    return Pow.of(Constant.e, expanded).simplify(assumptions: assumptions);
   }
 
   final theta = simplifyAdd(imagTerms, assumptions: assumptions);
-  final euler = (Cos(theta) + ComplexNumber.i * Sin(theta)).simplify(
+  final euler = (Fn.cos(theta) + ComplexNumber.i * Fn.sin(theta)).simplify(
     assumptions: assumptions,
   );
   if (realTerms.isEmpty) {
     return euler;
   }
   final realArg = simplifyAdd(realTerms, assumptions: assumptions);
-  return (Pow(Constant.e, realArg) * euler).simplify(assumptions: assumptions);
+  return (Pow.of(Constant.e, realArg) * euler).simplify(
+    assumptions: assumptions,
+  );
 }

@@ -8,6 +8,7 @@ import '../../../special/polylog.dart' as special_polylog;
 import '../../../special/trig_integral.dart' as special_trig_int;
 import '../../assumptions.dart';
 import '../../ast.dart';
+import '../../functions/fn.dart';
 import '../simplify.dart';
 import 'additive.dart';
 import 'multiplicative.dart';
@@ -36,11 +37,11 @@ Expr simplifyEllipticK(Expr expr, {required Assumptions assumptions}) {
   if (expr is RealNumber) {
     return RealNumber.fromDouble(special_elliptic.ellipticK(expr.value));
   }
-  return EllipticK(expr, isSimplified: true);
+  return Fn.ellipticK(expr);
 }
 
 /// Simplifies a complete or incomplete elliptic integral of the second kind
-/// `ellipticE(k)` or `ellipticE(k, amplitude: phi)`.
+/// `ellipticE(k)` or `ellipticE(phi, k)`.
 Expr simplifyEllipticE(
   Expr expr, {
   Expr? amplitude,
@@ -74,7 +75,7 @@ Expr simplifyEllipticE(
         special_elliptic.ellipticE(expr.toDouble(), phi: amplitude.toDouble()),
       );
     }
-    return EllipticE(expr, amplitude: amplitude, isSimplified: true);
+    return Fn.ellipticE(amplitude, expr);
   }
   if (isFloatComplex(expr)) {
     return complexToExpr(special_elliptic.ellipticEComplex(toComplex(expr)));
@@ -91,7 +92,7 @@ Expr simplifyEllipticE(
   if (expr is RealNumber) {
     return RealNumber.fromDouble(special_elliptic.ellipticE(expr.value));
   }
-  return EllipticE(expr, isSimplified: true);
+  return Fn.ellipticE(expr);
 }
 
 /// Simplifies an imaginary error function `erfi(x)`.
@@ -111,7 +112,7 @@ Expr simplifyErfi(Expr expr, {required Assumptions assumptions}) {
       assumptions: assumptions,
     );
   }
-  return Erfi(expr, isSimplified: true);
+  return Fn.erfi(expr);
 }
 
 /// Simplifies a Fresnel sine integral `fresnelS(x)`.
@@ -131,7 +132,7 @@ Expr simplifyFresnelS(Expr expr, {required Assumptions assumptions}) {
       assumptions: assumptions,
     );
   }
-  return FresnelS(expr, isSimplified: true);
+  return Fn.fresnelS(expr);
 }
 
 /// Simplifies a Fresnel cosine integral `fresnelC(x)`.
@@ -151,17 +152,14 @@ Expr simplifyFresnelC(Expr expr, {required Assumptions assumptions}) {
       assumptions: assumptions,
     );
   }
-  return FresnelC(expr, isSimplified: true);
+  return Fn.fresnelC(expr);
 }
 
 /// Simplifies an exponential integral `Ei(x)`.
 Expr simplifyExpIntegralEi(Expr expr) {
   if (expr == Constant.undefined) return Constant.undefined;
   if (expr == IntegerNumber.zero) {
-    return Mul(const [
-      IntegerNumber.negativeOne,
-      Constant.infinity,
-    ], isSimplified: true);
+    return Mul.of([IntegerNumber.negativeOne, Constant.infinity]);
   }
   if (expr == Constant.infinity) return Constant.infinity;
   if (expr case Mul(
@@ -175,7 +173,7 @@ Expr simplifyExpIntegralEi(Expr expr) {
   if (expr is RealNumber) {
     return RealNumber.fromDouble(special_exp_int.expIntegral(expr.value));
   }
-  return ExpIntegral(expr, isSimplified: true);
+  return Fn.ei(expr);
 }
 
 /// Simplifies a logarithmic integral `li(x)`.
@@ -186,15 +184,12 @@ Expr simplifyLogIntegralLi(Expr expr) {
   }
   if (expr == IntegerNumber.zero) return IntegerNumber.zero;
   if (expr == IntegerNumber.one) {
-    return Mul(const [
-      IntegerNumber.negativeOne,
-      Constant.infinity,
-    ], isSimplified: true);
+    return Mul.of([IntegerNumber.negativeOne, Constant.infinity]);
   }
   if (expr is RealNumber) {
     return RealNumber.fromDouble(special_exp_int.logIntegral(expr.value));
   }
-  return LogIntegral(expr, isSimplified: true);
+  return Fn.li(expr);
 }
 
 /// Simplifies a sine integral `Si(x)`.
@@ -214,7 +209,7 @@ Expr simplifySinIntegralSi(Expr expr, {required Assumptions assumptions}) {
       assumptions: assumptions,
     );
   }
-  return SinIntegral(expr, isSimplified: true);
+  return Fn.si(expr);
 }
 
 /// Simplifies a cosine integral `Ci(x)`.
@@ -226,7 +221,7 @@ Expr simplifyCosIntegralCi(Expr expr) {
   if (expr is RealNumber) {
     return RealNumber.fromDouble(special_trig_int.cosIntegral(expr.value));
   }
-  return CosIntegral(expr, isSimplified: true);
+  return Fn.ci(expr);
 }
 
 /// Simplifies a hyperbolic sine integral `Shi(x)`.
@@ -246,7 +241,7 @@ Expr simplifySinhIntegralShi(Expr expr, {required Assumptions assumptions}) {
       assumptions: assumptions,
     );
   }
-  return SinhIntegral(expr, isSimplified: true);
+  return Fn.shi(expr);
 }
 
 /// Simplifies a hyperbolic cosine integral `Chi(x)`.
@@ -258,7 +253,7 @@ Expr simplifyCoshIntegralChi(Expr expr) {
   if (expr is RealNumber) {
     return RealNumber.fromDouble(special_trig_int.coshIntegral(expr.value));
   }
-  return CoshIntegral(expr, isSimplified: true);
+  return Fn.chi(expr);
 }
 
 /// Simplifies an upper incomplete gamma function `upperGamma(s, x)`.
@@ -288,7 +283,7 @@ Expr simplifyUpperGamma(Expr s, Expr x, {required Assumptions assumptions}) {
       special_gamma.upperGamma(s.toDouble(), x.toDouble()),
     );
   }
-  return UpperGamma(s, x, isSimplified: true);
+  return Fn.upperGamma(s, x);
 }
 
 /// Simplifies a lower incomplete gamma function `lowerGamma(s, x)`.
@@ -324,7 +319,7 @@ Expr simplifyLowerGamma(Expr s, Expr x, {required Assumptions assumptions}) {
       special_gamma.lowerGamma(s.toDouble(), x.toDouble()),
     );
   }
-  return LowerGamma(s, x, isSimplified: true);
+  return Fn.lowerGamma(s, x);
 }
 
 /// Simplifies a polylogarithm `polylog(s, z)`.
@@ -367,7 +362,7 @@ Expr simplifyPolylog(Expr s, Expr z, {required Assumptions assumptions}) {
       s is RealNumeric &&
       s.toDouble() > 1.0) {
     final zetaVal = simplifyZeta(s);
-    if (zetaVal is! Zeta) {
+    if (zetaVal is! Call || zetaVal.id != FunctionId.zeta) {
       return simplifyMul([
         simplifyAdd([
           simplifyPow(
@@ -391,7 +386,7 @@ Expr simplifyPolylog(Expr s, Expr z, {required Assumptions assumptions}) {
       special_polylog.polylog(s.toDouble(), z.toDouble()),
     );
   }
-  return Polylog(s, z, isSimplified: true);
+  return Fn.polylog(s, z);
 }
 
 /// Simplifies an incomplete elliptic integral of the first kind `ellipticF(phi, k)`.
@@ -420,7 +415,7 @@ Expr simplifyEllipticF(Expr phi, Expr k, {required Assumptions assumptions}) {
       special_elliptic.ellipticF(phi.toDouble(), k.toDouble()),
     );
   }
-  return EllipticF(phi, k, isSimplified: true);
+  return Fn.ellipticF(phi, k);
 }
 
 /// Simplifies an incomplete elliptic integral of the second kind `ellipticE(phi, k)`.
@@ -471,7 +466,7 @@ Expr simplifyEllipticPi(
       ),
     );
   }
-  return EllipticPi(n, phi, k, isSimplified: true);
+  return Fn.ellipticPi(n, phi, k);
 }
 
 /// Simplifies a generalized exponential integral `E_n(z)`.
@@ -480,7 +475,7 @@ Expr simplifyExpIntegralE(Expr n, Expr z) {
     return Constant.undefined;
   }
   if (n is Number && n.isZero) {
-    return (Pow(Constant.e, -z) / z).simplify();
+    return (Pow.of(Constant.e, -z) / z).simplify();
   }
   if (z is Number && z.isZero) {
     if (n is RationalNumber && n.compareTo(IntegerNumber.one) > 0) {
@@ -505,7 +500,7 @@ Expr simplifyExpIntegralE(Expr n, Expr z) {
       special_exp_int.expIntegralEComplex(toComplex(n), toComplex(z)),
     );
   }
-  return ExpIntegralE(n, z, isSimplified: true);
+  return Fn.expIntegralE(n, z);
 }
 
 /// Simplifies a generalized hypergeometric function `pFq(upper; lower; z)`.
@@ -537,10 +532,10 @@ Expr simplifyHypergeometric(List<Expr> upper, List<Expr> lower, Expr z) {
   }
 
   if (remUpper.isEmpty && remLower.isEmpty) {
-    return Pow(Constant.e, z).simplify();
+    return Pow.of(Constant.e, z).simplify();
   }
   if (remUpper.length == 1 && remLower.isEmpty) {
-    return Pow(IntegerNumber.one - z, -remUpper.first).simplify();
+    return Pow.of(IntegerNumber.one - z, -remUpper.first).simplify();
   }
 
   if (z is Number &&
@@ -568,7 +563,7 @@ Expr simplifyHypergeometric(List<Expr> upper, List<Expr> lower, Expr z) {
     if (!val.isNaN) return RealNumber.fromDouble(val);
   }
 
-  return Hypergeometric(remUpper, remLower, z, isSimplified: true);
+  return Fn.hypergeometric(Fn.tuple(remUpper), Fn.tuple(remLower), z);
 }
 
 /// Simplifies an Appell hypergeometric function `F_1(a; b1, b2; c; x, y)`.
@@ -683,5 +678,5 @@ Expr simplifyAppellF1(
       ),
     );
   }
-  return AppellF1(a, b1, b2, c, x, y, isSimplified: true);
+  return Fn.appellF1([a, b1, b2, c, x, y]);
 }

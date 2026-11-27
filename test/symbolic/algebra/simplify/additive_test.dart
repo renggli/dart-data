@@ -22,14 +22,14 @@ void main() {
       // Single element that is itself an unsimplified Add or negated Add
       check(
         simplifyAdd([
-          Add([x, x]),
+          Add.of([x, x]),
         ], assumptions: Assumptions.none).toString(),
       ).equals('2 * x');
       check(
         simplifyAdd([
-          Mul([
+          Mul.of([
             IntegerNumber.negativeOne,
-            Add([x, y]),
+            Add.of([x, y]),
           ]),
         ], assumptions: Assumptions.none).toString(),
       ).equals('-x - y');
@@ -46,7 +46,7 @@ void main() {
       ).equals(IntegerNumber.of(5));
       check(
         simplifySub(
-          Add([x, IntegerNumber.one]),
+          Add.of([x, IntegerNumber.one]),
           x,
           assumptions: Assumptions.none,
         ),
@@ -63,13 +63,12 @@ void main() {
 
         check(simplifyNeg(IntegerNumber.of(4), assumptions: Assumptions.none))
             .equals(IntegerNumber.of(-4));
-        check(
-          simplifyNeg(const OrderTerm('x', 3), assumptions: Assumptions.none),
-        ).equals(const OrderTerm('x', 3));
+        check(simplifyNeg(OrderTerm('x', 3), assumptions: Assumptions.none))
+            .equals(OrderTerm('x', 3));
 
         check(
           simplifyNeg(
-            Add([x, IntegerNumber.of(-2)]),
+            Add.of([x, IntegerNumber.of(-2)]),
             assumptions: Assumptions.none,
           ).toString(),
         ).equals('2 - x');
@@ -77,13 +76,13 @@ void main() {
         // Mul with leading -1 and 1 or multiple remaining factors
         check(
           simplifyNeg(
-            Mul([IntegerNumber.negativeOne, x]),
+            Mul.of([IntegerNumber.negativeOne, x]),
             assumptions: Assumptions.none,
           ),
         ).equals(x);
         check(
           simplifyNeg(
-            Mul([IntegerNumber.negativeOne, x, y]),
+            Mul.of([IntegerNumber.negativeOne, x, y]),
             assumptions: Assumptions.none,
           ).toString(),
         ).equals('x * y');
@@ -91,17 +90,17 @@ void main() {
         // Mul with leading scalar != -1
         check(
           simplifyNeg(
-            Mul([IntegerNumber.of(3), x]),
+            Mul.of([IntegerNumber.of(3), x]),
             assumptions: Assumptions.none,
           ).toString(),
         ).equals('-3 * x');
 
         // Mul without leading scalar
-        check(simplifyNeg(Mul([x, y]), assumptions: Assumptions.none))
-            .equals(Mul([IntegerNumber.negativeOne, x, y]));
+        check(simplifyNeg(Mul.of([x, y]), assumptions: Assumptions.none))
+            .equals(Mul.of([IntegerNumber.negativeOne, x, y]));
 
         // General expression
-        check(simplifyNeg(Sin(x), assumptions: Assumptions.none).toString())
+        check(simplifyNeg(Fn.sin(x), assumptions: Assumptions.none).toString())
             .equals('-sin(x)');
       },
     );

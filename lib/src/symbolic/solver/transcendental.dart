@@ -5,6 +5,7 @@ import '../algebra/simplify.dart';
 import '../assumptions.dart';
 import '../ast.dart';
 import '../compiler.dart';
+import '../functions/fn.dart';
 import '../type/expr_data_type.dart';
 import 'polynomial.dart';
 import 'transcendental_helpers.dart';
@@ -47,11 +48,11 @@ List<Expr>? isolateAndInvert(
     if (varTerms.isNotEmpty && constTerms.isNotEmpty) {
       final u = switch (varTerms) {
         [final single] => single,
-        _ => Add(varTerms).simplify(assumptions: assumptions),
+        _ => Add.of(varTerms).simplify(assumptions: assumptions),
       };
       final c = (-(switch (constTerms) {
         [final single] => single,
-        _ => Add(constTerms),
+        _ => Add.of(constTerms),
       })).simplify(assumptions: assumptions);
       final res = invertEquation(u, c, variable, assumptions: assumptions);
       if (res != null) return res;
@@ -128,144 +129,155 @@ List<Expr>? invertEquation(
   switch (u) {
     case Variable(:final name) when name == variable:
       return [c];
-    case Ln(:final expr):
-      final expC = Pow(Constant.e, c).simplify(assumptions: assumptions);
-      return solveEquation(
-        (expr - expC).simplify(assumptions: assumptions),
-        variable,
-        assumptions: assumptions,
-      );
-    case Sin(:final expr):
-      return invertSin(expr, c, variable, assumptions: assumptions);
-    case Cos(:final expr):
-      return invertCos(expr, c, variable, assumptions: assumptions);
-    case Tan(:final expr):
-      return invertTan(expr, c, variable, assumptions: assumptions);
-    case Asin(:final expr):
-      if (isRealConstantOutOfRange(c, math.pi / 2)) return const [];
-      final sinC = Sin(c).simplify(assumptions: assumptions);
-      return solveEquation(
-        (expr - sinC).simplify(assumptions: assumptions),
-        variable,
-        assumptions: assumptions,
-      );
-    case Acos(:final expr):
-      final cNum = tryEvalReal(c);
-      if (cNum != null && (cNum < -1e-12 || cNum > math.pi + 1e-12)) {
-        return const [];
+    case Call(:final id, :final args):
+      final expr = args[0];
+      switch (id) {
+        case FunctionId.ln:
+          final expC = Pow.of(Constant.e, c).simplify(assumptions: assumptions);
+          return solveEquation(
+            (expr - expC).simplify(assumptions: assumptions),
+            variable,
+            assumptions: assumptions,
+          );
+        case FunctionId.sin:
+          return invertSin(expr, c, variable, assumptions: assumptions);
+        case FunctionId.cos:
+          return invertCos(expr, c, variable, assumptions: assumptions);
+        case FunctionId.tan:
+          return invertTan(expr, c, variable, assumptions: assumptions);
+        case FunctionId.asin:
+          if (isRealConstantOutOfRange(c, math.pi / 2)) return const [];
+          final sinC = Fn.sin(c).simplify(assumptions: assumptions);
+          return solveEquation(
+            (expr - sinC).simplify(assumptions: assumptions),
+            variable,
+            assumptions: assumptions,
+          );
+        case FunctionId.acos:
+          final cNum = tryEvalReal(c);
+          if (cNum != null && (cNum < -1e-12 || cNum > math.pi + 1e-12)) {
+            return const [];
+          }
+          final cosC = Fn.cos(c).simplify(assumptions: assumptions);
+          return solveEquation(
+            (expr - cosC).simplify(assumptions: assumptions),
+            variable,
+            assumptions: assumptions,
+          );
+        case FunctionId.atan:
+          final cNum = tryEvalReal(c);
+          if (cNum != null && cNum.abs() >= math.pi / 2 - 1e-12) {
+            return const [];
+          }
+          final tanC = Fn.tan(c).simplify(assumptions: assumptions);
+          return solveEquation(
+            (expr - tanC).simplify(assumptions: assumptions),
+            variable,
+            assumptions: assumptions,
+          );
+        case FunctionId.sinh:
+          final rhs = Fn.asinh(c).simplify(assumptions: assumptions);
+          return solveEquation(
+            (expr - rhs).simplify(assumptions: assumptions),
+            variable,
+            assumptions: assumptions,
+          );
+        case FunctionId.cosh:
+          final cNum = tryEvalReal(c);
+          if (cNum != null && cNum < 1.0 - 1e-12) return const [];
+          if (c is Number && c.isOne) {
+            return solveEquation(expr, variable, assumptions: assumptions);
+          }
+          final pos = Fn.acosh(c).simplify(assumptions: assumptions);
+          final neg = (-pos).simplify(assumptions: assumptions);
+          return deduplicateRoots([
+            ...solveEquation(
+              (expr - pos).simplify(assumptions: assumptions),
+              variable,
+              assumptions: assumptions,
+            ),
+            ...solveEquation(
+              (expr - neg).simplify(assumptions: assumptions),
+              variable,
+              assumptions: assumptions,
+            ),
+          ], assumptions: assumptions);
+        case FunctionId.tanh:
+          final cNum = tryEvalReal(c);
+          if (cNum != null && cNum.abs() >= 1.0 - 1e-12) return const [];
+          final rhs = Fn.atanh(c).simplify(assumptions: assumptions);
+          return solveEquation(
+            (expr - rhs).simplify(assumptions: assumptions),
+            variable,
+            assumptions: assumptions,
+          );
+        case FunctionId.abs:
+          final cNum = tryEvalReal(c);
+          if (cNum != null && cNum < -1e-12) return const [];
+          if (c is Number && c.isZero) {
+            return solveEquation(expr, variable, assumptions: assumptions);
+          }
+          return deduplicateRoots([
+            ...solveEquation(
+              (expr - c).simplify(assumptions: assumptions),
+              variable,
+              assumptions: assumptions,
+            ),
+            ...solveEquation(
+              (expr + c).simplify(assumptions: assumptions),
+              variable,
+              assumptions: assumptions,
+            ),
+          ], assumptions: assumptions);
+        case FunctionId.lambertW:
+          final branch = args.length > 1 && args[1] is IntegerNumber
+              ? (args[1] as IntegerNumber).toInt()
+              : 0;
+          final cNum = tryEvalReal(c);
+          if (cNum != null) {
+            if (branch == 0 && cNum < -1.0 - 1e-12) return const [];
+            if (branch == -1 && cNum > -1.0 + 1e-12) return const [];
+          }
+          final rhs = (c * Pow.of(Constant.e, c)).simplify(
+            assumptions: assumptions,
+          );
+          return solveEquation(
+            (expr - rhs).simplify(assumptions: assumptions),
+            variable,
+            assumptions: assumptions,
+          );
+        case FunctionId.asinh:
+          final rhs = Fn.sinh(c).simplify(assumptions: assumptions);
+          return solveEquation(
+            (expr - rhs).simplify(assumptions: assumptions),
+            variable,
+            assumptions: assumptions,
+          );
+        case FunctionId.acosh:
+          final cNum = tryEvalReal(c);
+          if (cNum != null && cNum < -1e-12) return const [];
+          final rhs = Fn.cosh(c).simplify(assumptions: assumptions);
+          return solveEquation(
+            (expr - rhs).simplify(assumptions: assumptions),
+            variable,
+            assumptions: assumptions,
+          );
+        case FunctionId.atanh:
+          final rhs = Fn.tanh(c).simplify(assumptions: assumptions);
+          return solveEquation(
+            (expr - rhs).simplify(assumptions: assumptions),
+            variable,
+            assumptions: assumptions,
+          );
+        case FunctionId.erf:
+          if (c is Number && c.isZero) {
+            return solveEquation(expr, variable, assumptions: assumptions);
+          }
+          final cNum = tryEvalReal(c);
+          if (cNum != null && cNum.abs() > 1.0 + 1e-12) return const [];
+        case _:
+          break;
       }
-      final cosC = Cos(c).simplify(assumptions: assumptions);
-      return solveEquation(
-        (expr - cosC).simplify(assumptions: assumptions),
-        variable,
-        assumptions: assumptions,
-      );
-    case Atan(:final expr):
-      final cNum = tryEvalReal(c);
-      if (cNum != null && cNum.abs() >= math.pi / 2 - 1e-12) {
-        return const [];
-      }
-      final tanC = Tan(c).simplify(assumptions: assumptions);
-      return solveEquation(
-        (expr - tanC).simplify(assumptions: assumptions),
-        variable,
-        assumptions: assumptions,
-      );
-    case Sinh(:final expr):
-      final rhs = Asinh(c).simplify(assumptions: assumptions);
-      return solveEquation(
-        (expr - rhs).simplify(assumptions: assumptions),
-        variable,
-        assumptions: assumptions,
-      );
-    case Cosh(:final expr):
-      final cNum = tryEvalReal(c);
-      if (cNum != null && cNum < 1.0 - 1e-12) return const [];
-      if (c is Number && c.isOne) {
-        return solveEquation(expr, variable, assumptions: assumptions);
-      }
-      final pos = Acosh(c).simplify(assumptions: assumptions);
-      final neg = (-pos).simplify(assumptions: assumptions);
-      return deduplicateRoots([
-        ...solveEquation(
-          (expr - pos).simplify(assumptions: assumptions),
-          variable,
-          assumptions: assumptions,
-        ),
-        ...solveEquation(
-          (expr - neg).simplify(assumptions: assumptions),
-          variable,
-          assumptions: assumptions,
-        ),
-      ], assumptions: assumptions);
-    case Tanh(:final expr):
-      final cNum = tryEvalReal(c);
-      if (cNum != null && cNum.abs() >= 1.0 - 1e-12) return const [];
-      final rhs = Atanh(c).simplify(assumptions: assumptions);
-      return solveEquation(
-        (expr - rhs).simplify(assumptions: assumptions),
-        variable,
-        assumptions: assumptions,
-      );
-    case Abs(:final expr):
-      final cNum = tryEvalReal(c);
-      if (cNum != null && cNum < -1e-12) return const [];
-      if (c is Number && c.isZero) {
-        return solveEquation(expr, variable, assumptions: assumptions);
-      }
-      return deduplicateRoots([
-        ...solveEquation(
-          (expr - c).simplify(assumptions: assumptions),
-          variable,
-          assumptions: assumptions,
-        ),
-        ...solveEquation(
-          (expr + c).simplify(assumptions: assumptions),
-          variable,
-          assumptions: assumptions,
-        ),
-      ], assumptions: assumptions);
-    case LambertW(:final expr, :final branch):
-      final cNum = tryEvalReal(c);
-      if (cNum != null) {
-        if (branch == 0 && cNum < -1.0 - 1e-12) return const [];
-        if (branch == -1 && cNum > -1.0 + 1e-12) return const [];
-      }
-      final rhs = (c * Pow(Constant.e, c)).simplify(assumptions: assumptions);
-      return solveEquation(
-        (expr - rhs).simplify(assumptions: assumptions),
-        variable,
-        assumptions: assumptions,
-      );
-    case Asinh(:final expr):
-      final rhs = Sinh(c).simplify(assumptions: assumptions);
-      return solveEquation(
-        (expr - rhs).simplify(assumptions: assumptions),
-        variable,
-        assumptions: assumptions,
-      );
-    case Acosh(:final expr):
-      final cNum = tryEvalReal(c);
-      if (cNum != null && cNum < -1e-12) return const [];
-      final rhs = Cosh(c).simplify(assumptions: assumptions);
-      return solveEquation(
-        (expr - rhs).simplify(assumptions: assumptions),
-        variable,
-        assumptions: assumptions,
-      );
-    case Atanh(:final expr):
-      final rhs = Tanh(c).simplify(assumptions: assumptions);
-      return solveEquation(
-        (expr - rhs).simplify(assumptions: assumptions),
-        variable,
-        assumptions: assumptions,
-      );
-    case Erf(:final expr):
-      if (c is Number && c.isZero) {
-        return solveEquation(expr, variable, assumptions: assumptions);
-      }
-      final cNum = tryEvalReal(c);
-      if (cNum != null && cNum.abs() > 1.0 + 1e-12) return const [];
     case Add():
       final res = solveAddTranscendental(
         u,
@@ -280,7 +292,7 @@ List<Expr>? invertEquation(
         if (base == Constant.e) {
           final cNum = tryEvalReal(c);
           if (cNum != null && cNum <= 0.0) return const [];
-          final lnC = Ln(c).simplify(assumptions: assumptions);
+          final lnC = Fn.ln(c).simplify(assumptions: assumptions);
           return solveEquation(
             (exponent - lnC).simplify(assumptions: assumptions),
             variable,
@@ -291,7 +303,9 @@ List<Expr>? invertEquation(
         if (bNum == null || (bNum > 0.0 && bNum != 1.0)) {
           final cNum = tryEvalReal(c);
           if (cNum != null && cNum <= 0.0) return const [];
-          final rhs = (Ln(c) / Ln(base)).simplify(assumptions: assumptions);
+          final rhs = (Fn.ln(c) / Fn.ln(base)).simplify(
+            assumptions: assumptions,
+          );
           return solveEquation(
             (exponent - rhs).simplify(assumptions: assumptions),
             variable,
@@ -306,8 +320,8 @@ List<Expr>? invertEquation(
           final cNum = tryEvalReal(c);
           if (cNum != null && cNum <= 0.0) return const [];
           return solveLambertWEquation(
-            Ln(base).simplify(assumptions: assumptions),
-            Ln(c).simplify(assumptions: assumptions),
+            Fn.ln(base).simplify(assumptions: assumptions),
+            Fn.ln(c).simplify(assumptions: assumptions),
             variable,
             assumptions: assumptions,
           );
@@ -361,13 +375,13 @@ List<Expr>? invertEquation(
                   (c is RationalNumber && c.isNegative))) {
             final absRoot = c is RealNumber
                 ? RealNumber(math.pow(-c.value, invP.toDouble()).toDouble())
-                : Pow(
+                : Pow.of(
                     (-c).simplify(assumptions: assumptions),
                     invP,
                   ).simplify(assumptions: assumptions);
             posRoot = (-absRoot).simplify(assumptions: assumptions);
           } else {
-            posRoot = Pow(c, invP).simplify(assumptions: assumptions);
+            posRoot = Pow.of(c, invP).simplify(assumptions: assumptions);
           }
           if (expConst.numerator.isEven && !isZeroExpr(c)) {
             final negRoot = (-posRoot).simplify(assumptions: assumptions);
@@ -443,11 +457,11 @@ List<Expr>? invertEquation(
     if (constFactors.isNotEmpty && varFactors.isNotEmpty) {
       final constPart = switch (constFactors) {
         [final single] => single,
-        _ => Mul(constFactors).simplify(assumptions: assumptions),
+        _ => Mul.of(constFactors).simplify(assumptions: assumptions),
       };
       final varPart = switch (varFactors) {
         [final single] => single,
-        _ => Mul(varFactors).simplify(assumptions: assumptions),
+        _ => Mul.of(varFactors).simplify(assumptions: assumptions),
       };
       return invertEquation(
         varPart,

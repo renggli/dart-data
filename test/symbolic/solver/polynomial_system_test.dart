@@ -8,7 +8,7 @@ void main() {
       const x = Variable('x');
       const y = Variable('y');
       final eqs = [
-        Equal(x + y, IntegerNumber.of(3)),
+        Relational.equal(x + y, IntegerNumber.of(3)),
         x * y - IntegerNumber.two,
       ];
 
@@ -21,7 +21,7 @@ void main() {
 
       // Unexpanded equations across all methods
       final unexpEqs = [
-        Equal(Expr.parse('(x + y)^2'), IntegerNumber.of(4)),
+        Relational.equal(Expr.parse('(x + y)^2'), IntegerNumber.of(4)),
         Expr.parse('x - y'),
       ];
       for (final method in PolynomialSystemMethod.values) {

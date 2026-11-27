@@ -1,4 +1,6 @@
 import '../algebra/expand.dart';
+import '../algebra/helpers.dart';
+import '../algebra/rational.dart';
 import '../algebra/simplify.dart';
 import '../ast.dart';
 
@@ -80,7 +82,7 @@ extension LinearFormExtension on Expr {
     final scale = switch (constFactors) {
       [] => IntegerNumber.one,
       [final single] => single,
-      _ => Mul(constFactors),
+      _ => Mul.of(constFactors),
     };
     return _validLinear(
       (scale * sub.a).simplify(),
@@ -110,12 +112,12 @@ extension LinearFormExtension on Expr {
   }
   final a = switch (aTerms) {
     [final single] => single,
-    _ => Add(aTerms),
+    _ => Add.of(aTerms),
   }.simplify();
   final b = switch (bTerms) {
     [] => IntegerNumber.zero,
     [final single] => single.simplify(),
-    _ => Add(bTerms).simplify(),
+    _ => Add.of(bTerms).simplify(),
   };
   return _validLinear(a, b, variable);
 }
@@ -158,6 +160,22 @@ Expr? _matchScalarMultiple(Expr expr, Expr target, String variable) {
   if (!expandedQuot.dependsOn(variable)) {
     return expandedQuot;
   }
+  if (!exceedsNodeBudget(expr, 200) && !exceedsNodeBudget(target, 200)) {
+    final degExpr = polynomialDegree(expr, variable);
+    final degTarget = polynomialDegree(target, variable);
+    if (degExpr != null &&
+        degTarget != null &&
+        degExpr == degTarget &&
+        degExpr >= 1 &&
+        degExpr <= 24) {
+      final (:quotient, :remainder) = expr.polynomialDivide(target, variable);
+      if (remainder is Number &&
+          remainder.isZero &&
+          !quotient.dependsOn(variable)) {
+        return quotient;
+      }
+    }
+  }
   return null;
 }
 
@@ -170,12 +188,12 @@ Expr? _matchScalarMultiple(Expr expr, Expr target, String variable) {
     final c = switch (consts) {
       [] => IntegerNumber.one,
       [final single] => single,
-      _ => Mul(consts).simplify(),
+      _ => Mul.of(consts).simplify(),
     };
     final v = switch (vars) {
       [] => IntegerNumber.one,
       [final single] => single,
-      _ => Mul(vars).simplify(),
+      _ => Mul.of(vars).simplify(),
     };
     return (coeff: c, varPart: v);
   }
@@ -194,7 +212,7 @@ Expr _scaleExpr(Expr expr, Expr factor) {
   }
   expr = expr.simplify();
   if (expr case Add(:final terms)) {
-    return Add(terms.map((t) => _scaleExpr(t, factor)).toList()).simplify();
+    return Add.of(terms.map((t) => _scaleExpr(t, factor))).simplify();
   }
   return (factor * expr).simplify();
 }

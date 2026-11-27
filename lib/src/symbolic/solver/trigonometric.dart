@@ -4,6 +4,7 @@ import '../algebra/exact_constants.dart';
 import '../algebra/simplify.dart';
 import '../assumptions.dart';
 import '../ast.dart';
+import '../functions/fn.dart';
 import '../type/expr_data_type.dart';
 import 'transcendental.dart';
 import 'univariate.dart';
@@ -40,8 +41,8 @@ List<Expr> invertSin(
     _ when isSqrt3Over2(c) => [_piFraction(1, 3), _piFraction(2, 3)],
     _ when isNegativeSqrt3Over2(c) => [_piFraction(4, 3), _piFraction(5, 3)],
     _ => [
-      Asin(c).simplify(assumptions: assumptions),
-      (Constant.pi - Asin(c)).simplify(assumptions: assumptions),
+      Fn.asin(c).simplify(assumptions: assumptions),
+      (Constant.pi - Fn.asin(c)).simplify(assumptions: assumptions),
     ],
   };
 
@@ -79,8 +80,8 @@ List<Expr> invertCos(
     _ when isSqrt3Over2(c) => [_piFraction(1, 6), _piFraction(11, 6)],
     _ when isNegativeSqrt3Over2(c) => [_piFraction(5, 6), _piFraction(7, 6)],
     _ => [
-      Acos(c).simplify(assumptions: assumptions),
-      ((IntegerNumber.two * Constant.pi) - Acos(c)).simplify(
+      Fn.acos(c).simplify(assumptions: assumptions),
+      ((IntegerNumber.two * Constant.pi) - Fn.acos(c)).simplify(
         assumptions: assumptions,
       ),
     ],
@@ -118,8 +119,8 @@ List<Expr> invertTan(
     _ when isSqrt3(c) => [_piFraction(1, 3), _piFraction(4, 3)],
     _ when isNegativeSqrt3(c) => [_piFraction(2, 3), _piFraction(5, 3)],
     _ => [
-      Atan(c).simplify(assumptions: assumptions),
-      (Constant.pi + Atan(c)).simplify(assumptions: assumptions),
+      Fn.atan(c).simplify(assumptions: assumptions),
+      (Constant.pi + Fn.atan(c)).simplify(assumptions: assumptions),
     ],
   };
 
@@ -162,17 +163,25 @@ List<Expr>? solveQuadraticTrig(
         constFactors.add(factor);
         continue;
       }
-      if (factor is Sin && matchArg(factor.expr)) {
+      if (factor case Call(id: FunctionId.sin, args: [final inner])
+          when matchArg(inner)) {
         sinPow += 1;
-      } else if (factor is Cos && matchArg(factor.expr)) {
+      } else if (factor case Call(id: FunctionId.cos, args: [final inner])
+          when matchArg(inner)) {
         cosPow += 1;
       } else if (factor
-          case Pow(base: Sin(:final expr), exponent: IntegerNumber(asInt: 2))
-          when matchArg(expr)) {
+          case Pow(
+            base: Call(id: FunctionId.sin, args: [final inner]),
+            exponent: IntegerNumber(asInt: 2),
+          )
+          when matchArg(inner)) {
         sinPow += 2;
       } else if (factor
-          case Pow(base: Cos(:final expr), exponent: IntegerNumber(asInt: 2))
-          when matchArg(expr)) {
+          case Pow(
+            base: Call(id: FunctionId.cos, args: [final inner]),
+            exponent: IntegerNumber(asInt: 2),
+          )
+          when matchArg(inner)) {
         cosPow += 2;
       } else {
         return null;
@@ -183,7 +192,7 @@ List<Expr>? solveQuadraticTrig(
     final coeff = switch (constFactors) {
       [] => IntegerNumber.one,
       [final single] => single,
-      _ => Mul(constFactors).simplify(assumptions: assumptions),
+      _ => Mul.of(constFactors).simplify(assumptions: assumptions),
     };
     if (sinPow == 2) {
       a = (a + coeff).simplify(assumptions: assumptions);
@@ -230,7 +239,7 @@ List<Expr>? solveQuadraticTrig(
       tName = '_$tName';
     }
     final tVar = Variable(tName);
-    final quad = (bigA * Pow(tVar, IntegerNumber.two) + bigB * tVar + bigC)
+    final quad = (bigA * Pow.of(tVar, IntegerNumber.two) + bigB * tVar + bigC)
         .simplify(assumptions: assumptions);
     final tRoots = solveEquation(quad, tName, assumptions: assumptions);
     for (final tRoot in tRoots) {

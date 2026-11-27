@@ -51,7 +51,9 @@ List<Expr> solveEquation(
   required Assumptions assumptions,
 }) {
   final effectiveDomain = assumptions.domainOf(variable);
-  final normalized = expr is Equal ? expr.left - expr.right : expr;
+  final normalized = expr is Relational && expr.op == RelOp.equal
+      ? expr.left - expr.right
+      : expr;
   final rawRoots = _solveUnfiltered(expr, variable, assumptions);
   final validRoots = rawRoots
       .where((root) => _isValidRoot(normalized, variable, root, assumptions))
@@ -151,7 +153,7 @@ List<Expr> _solveUnfiltered(
   String variable,
   Assumptions assumptions,
 ) {
-  if (expr case Equal(:final left, :final right)) {
+  if (expr case Relational(op: RelOp.equal, :final left, :final right)) {
     expr = left - right;
   }
   expr = expr.simplify(assumptions: assumptions);
@@ -172,18 +174,21 @@ List<Expr> _solveUnfiltered(
         .toList();
   }
 
-  if (expr.anyNode((n) => n is Binomial)) {
+  if (expr.anyNode((n) => n is Call && n.id == FunctionId.binomial)) {
     Expr expandBinomial(Expr e) {
       final mapped = e.mapChildren(expandBinomial);
       if (mapped
-          case Binomial(left: final u, right: IntegerNumber(asInt: final k?))
+          case Call(
+            id: FunctionId.binomial,
+            args: [final u, IntegerNumber(asInt: final k?)],
+          )
           when k >= 0 && k <= 20) {
         if (k == 0) return IntegerNumber.one;
         final factors = <Expr>[
           for (var j = 0; j < k; j++)
             (j == 0 ? u : u - IntegerNumber.of(j)) / IntegerNumber.of(j + 1),
         ];
-        return factors.length == 1 ? factors.first : Mul(factors);
+        return factors.length == 1 ? factors.first : Mul.of(factors);
       }
       return mapped;
     }
@@ -304,7 +309,8 @@ bool _containsNonRealBranch(Expr expr, Assumptions assumptions) =>
               isNegativeExpr(base, assumptions: assumptions)) {
         return true;
       }
-      if (node is Ln && isNegativeExpr(node.expr, assumptions: assumptions)) {
+      if (node case Call(id: FunctionId.ln, args: [final inner])
+          when isNegativeExpr(inner, assumptions: assumptions)) {
         return true;
       }
       return false;

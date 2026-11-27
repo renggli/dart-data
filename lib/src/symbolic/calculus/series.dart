@@ -6,7 +6,7 @@ import '../algebra/simplify.dart';
 import '../assumptions.dart';
 import '../ast.dart';
 import '../compiler.dart';
-import '../number/integer.dart';
+import '../functions/fn.dart';
 import '../type/expr_data_type.dart';
 import 'series_functions.dart';
 
@@ -22,12 +22,12 @@ extension SeriesExtension on Expr {
   ///
   /// ```dart
   /// final x = Variable('x');
-  /// final s = Sin(x).series('x', order: 5);
+  /// final s = Fn.sin(x).series('x', order: 5);
   /// // x - 1/6 * x^3 + O(x^5)
   /// ```
   Expr series(
     String variable, {
-    Object point = IntegerNumber.zero,
+    Object point = 0,
     int order = 6,
     bool includeOrder = true,
     Assumptions assumptions = Assumptions.none,
@@ -42,7 +42,7 @@ extension SeriesExtension on Expr {
   /// expression around [point] up to [order].
   PowerSeries toPowerSeries(
     String variable, {
-    Object point = IntegerNumber.zero,
+    Object point = 0,
     int order = 6,
     Assumptions assumptions = Assumptions.none,
   }) {
@@ -69,7 +69,7 @@ extension SeriesExtension on Expr {
   ///
   /// ```dart
   /// final x = Variable('x');
-  /// final p = Pow(Constant.e, x).toPolynomial('x', order: 2);
+  /// final p = Pow.of(Constant.e, x).toPolynomial('x', order: 2);
   /// // coefficients: [1.0, 1.0, 0.5]
   /// ```
   Polynomial<T> toPolynomial<T>(
@@ -281,7 +281,7 @@ class PowerSeries {
     }
     final newCoeffs = <int, Expr>{
       for (final MapEntry(:key, :value) in buckets.entries)
-        key: value.length == 1 ? value.first : Add(value),
+        key: value.length == 1 ? value.first : Add.of(value),
     };
     return PowerSeries(variable, point, newCoeffs, newOrder);
   }
@@ -317,7 +317,8 @@ class PowerSeries {
         }
       }
       if (terms.isNotEmpty) {
-        final sum = (terms.length == 1 ? terms.first : Add(terms)).simplify();
+        final sum = (terms.length == 1 ? terms.first : Add.of(terms))
+            .simplify();
         if (!isZero(sum)) {
           v[k] = (-(invC0 * sum)).simplify();
         }
@@ -372,7 +373,7 @@ class PowerSeries {
       }
       if (exponent is RationalNumber && !exponent.isNegative && order > 0) {
         final scaled =
-            (Integer.from(order) * exponent.numerator) ~/ exponent.denominator;
+            (BigInt.from(order) * exponent.numerator) ~/ exponent.denominator;
         return PowerSeries(variable, point, const {}, scaled.toInt());
       }
       return PowerSeries(variable, point, const {}, order);
@@ -380,8 +381,8 @@ class PowerSeries {
     final m = valuation;
     if (m != 0) {
       if (exponent is RationalNumber) {
-        final prod = Integer.from(m) * exponent.numerator;
-        if ((prod % exponent.denominator).isZero) {
+        final prod = BigInt.from(m) * exponent.numerator;
+        if (prod % exponent.denominator == BigInt.zero) {
           final newM = (prod ~/ exponent.denominator).toInt();
           final shiftedCoeffs = <int, Expr>{
             for (final entry in coefficients.entries)
@@ -413,7 +414,7 @@ class PowerSeries {
     }
     final c0 = coefficients[0]!;
     final q = <int, Expr>{};
-    q[0] = Pow(c0, exponent).simplify();
+    q[0] = Pow.of(c0, exponent).simplify();
 
     final invC0 = (IntegerNumber.one / c0).simplify();
     for (var k = 1; k < order; k++) {
@@ -430,7 +431,8 @@ class PowerSeries {
         }
       }
       if (terms.isNotEmpty) {
-        final sum = (terms.length == 1 ? terms.first : Add(terms)).simplify();
+        final sum = (terms.length == 1 ? terms.first : Add.of(terms))
+            .simplify();
         if (!isZero(sum)) {
           q[k] = ((invC0 * sum) / IntegerNumber.of(k)).simplify();
         }
@@ -491,7 +493,7 @@ class PowerSeries {
         final delta = isCenterZero
             ? Variable(variable)
             : Variable(variable) - point;
-        final power = k == 1 ? delta : Pow(delta, IntegerNumber.of(k));
+        final power = k == 1 ? delta : Pow.of(delta, IntegerNumber.of(k));
         terms.add(switch (c) {
           Number(isOne: true) => power,
           Number(isNegativeOne: true) => -power,
@@ -507,7 +509,7 @@ class PowerSeries {
     return switch (terms) {
       [] => IntegerNumber.zero,
       [final single] => single,
-      _ => Add(terms),
+      _ => Add.of(terms),
     };
   }
 
@@ -595,157 +597,199 @@ PowerSeries expandToPowerSeries(
     assumptions,
   ),
 
-  Ln(:final expr) => _expandLn(expr, variable, point, order, assumptions),
-
-  Sin(:final expr) => expandSin(expr, variable, point, order),
-
-  Cos(:final expr) => expandCos(expr, variable, point, order),
-
-  Tan(:final expr) => () {
-    var sc = expandSinCos(expr, variable, point, order);
-    if (sc.cos.coefficients.isEmpty) {
-      var probeOrder = math.max(order, 0) + 4;
-      while (sc.cos.coefficients.isEmpty &&
-          probeOrder <= math.max(order, 0) + 32) {
-        sc = expandSinCos(expr, variable, point, probeOrder);
-        probeOrder *= 2;
+  Call(:final id, :final args) => switch (id) {
+    FunctionId.ln => _expandLn(args[0], variable, point, order, assumptions),
+    FunctionId.sin => expandSin(args[0], variable, point, order),
+    FunctionId.cos => expandCos(args[0], variable, point, order),
+    FunctionId.tan => () {
+      final arg = args[0];
+      var sc = expandSinCos(arg, variable, point, order);
+      if (sc.cos.coefficients.isEmpty) {
+        var probeOrder = math.max(order, 0) + 4;
+        while (sc.cos.coefficients.isEmpty &&
+            probeOrder <= math.max(order, 0) + 32) {
+          sc = expandSinCos(arg, variable, point, probeOrder);
+          probeOrder *= 2;
+        }
       }
-    }
-    final cosVal = sc.cos.valuation;
-    if (sc.cos.coefficients.isNotEmpty &&
-        (cosVal > 0 || sc.cos.order < order + 2 * cosVal)) {
-      sc = expandSinCos(expr, variable, point, math.max(1, order + 2 * cosVal));
-    }
-    return sc.sin / sc.cos;
-  }(),
-
-  Sinh(:final expr) => expandSinh(expr, variable, point, order),
-
-  Cosh(:final expr) => expandCosh(expr, variable, point, order),
-
-  Tanh(:final expr) => () {
-    var sc = expandSinhCosh(expr, variable, point, order);
-    if (sc.cosh.coefficients.isEmpty) {
-      var probeOrder = math.max(order, 0) + 4;
-      while (sc.cosh.coefficients.isEmpty &&
-          probeOrder <= math.max(order, 0) + 32) {
-        sc = expandSinhCosh(expr, variable, point, probeOrder);
-        probeOrder *= 2;
+      final cosVal = sc.cos.valuation;
+      if (sc.cos.coefficients.isNotEmpty &&
+          (cosVal > 0 || sc.cos.order < order + 2 * cosVal)) {
+        sc = expandSinCos(
+          arg,
+          variable,
+          point,
+          math.max(1, order + 2 * cosVal),
+        );
       }
-    }
-    final coshVal = sc.cosh.valuation;
-    if (sc.cosh.coefficients.isNotEmpty &&
-        (coshVal > 0 || sc.cosh.order < order + 2 * coshVal)) {
-      sc = expandSinhCosh(
-        expr,
-        variable,
-        point,
-        math.max(1, order + 2 * coshVal),
-      );
-    }
-    return sc.sinh / sc.cosh;
-  }(),
-
-  Asin(:final expr) => expandAsin(expr, variable, point, order),
-
-  Acos(:final expr) =>
-    PowerSeries(variable, point, {
-          0: (Constant.pi / IntegerNumber.two).simplify(),
-        }, order) -
-        expandAsin(expr, variable, point, order),
-
-  Atan(:final expr) => expandAtan(expr, variable, point, order),
-
-  Abs(:final expr) => expandAbs(expr, variable, point, order, assumptions),
-
-  LambertW(:final expr, :final branch) =>
-    branch == 0
-        ? expandLambertW(expr, variable, point, order)
-        : throw UnsupportedError(
-            'Power series only supported for principal branch W_0',
-          ),
-
-  Erf(:final expr) => expandErf(expr, variable, point, order),
-
-  Erfc(:final expr) =>
-    PowerSeries(variable, point, const {0: IntegerNumber.one}, order) -
-        expandErf(expr, variable, point, order),
-
-  Erfi(:final expr) => expandErfi(expr, variable, point, order),
-
-  FresnelS(:final expr) => expandFresnelS(expr, variable, point, order),
-
-  FresnelC(:final expr) => expandFresnelC(expr, variable, point, order),
-
-  SinIntegral(:final expr) => expandSinIntegralSi(expr, variable, point, order),
-
-  SinhIntegral(:final expr) => expandSinhIntegralShi(
-    expr,
-    variable,
-    point,
-    order,
-  ),
-
-  Polylog(:final left, :final right) => expandPolylog(
-    expr,
-    left,
-    right,
-    variable,
-    point,
-    order,
-  ),
-
-  EllipticK(expr: final inner) => expandEllipticK(
-    expr,
-    inner,
-    variable,
-    point,
-    order,
-  ),
-  EllipticE(expr: final inner, amplitude: null) => expandEllipticE(
-    expr,
-    inner,
-    variable,
-    point,
-    order,
-  ),
-  ExpIntegral() ||
-  LogIntegral() ||
-  CosIntegral() ||
-  CoshIntegral() ||
-  UpperGamma() ||
-  LowerGamma() ||
-  EllipticF() ||
-  EllipticE() ||
-  EllipticPi() ||
-  ExpIntegralE() ||
-  LogGamma() ||
-  AppellF1() ||
-  Hypergeometric() => expandTaylorSeries(expr, variable, point, order),
-  Atan2(:final left, :final right) => () {
-    final y0 = left
-        .substitute(variable, point)
-        .simplify(assumptions: assumptions);
-    final x0 = right
-        .substitute(variable, point)
-        .simplify(assumptions: assumptions);
-    if ((y0 is Number && y0.isZero) &&
-        (x0 is Number && (x0 is RealNumeric && (x0.isZero || x0.isNegative)))) {
-      throw UnsupportedError(
-        'Atan2 has a branch cut or singularity at ($y0, $x0)',
-      );
-    }
-    return expandTaylorSeries(expr, variable, point, order);
-  }(),
-  Min() || Max() || Gcd() || Lcm() || Tuple() => throw UnsupportedError(
-    'Power series expansion not supported for ${expr.runtimeType}',
-  ),
-
-  Asinh(:final expr) => expandAsinh(expr, variable, point, order),
-
-  Acosh(:final expr) => expandAcosh(expr, variable, point, order),
-
-  Atanh(:final expr) => expandAtanh(expr, variable, point, order),
+      return sc.sin / sc.cos;
+    }(),
+    FunctionId.sinh => expandSinh(args[0], variable, point, order),
+    FunctionId.cosh => expandCosh(args[0], variable, point, order),
+    FunctionId.tanh => () {
+      final arg = args[0];
+      var sc = expandSinhCosh(arg, variable, point, order);
+      if (sc.cosh.coefficients.isEmpty) {
+        var probeOrder = math.max(order, 0) + 4;
+        while (sc.cosh.coefficients.isEmpty &&
+            probeOrder <= math.max(order, 0) + 32) {
+          sc = expandSinhCosh(arg, variable, point, probeOrder);
+          probeOrder *= 2;
+        }
+      }
+      final coshVal = sc.cosh.valuation;
+      if (sc.cosh.coefficients.isNotEmpty &&
+          (coshVal > 0 || sc.cosh.order < order + 2 * coshVal)) {
+        sc = expandSinhCosh(
+          arg,
+          variable,
+          point,
+          math.max(1, order + 2 * coshVal),
+        );
+      }
+      return sc.sinh / sc.cosh;
+    }(),
+    FunctionId.asin => expandAsin(args[0], variable, point, order),
+    FunctionId.acos =>
+      PowerSeries(variable, point, {
+            0: (Constant.pi / IntegerNumber.two).simplify(),
+          }, order) -
+          expandAsin(args[0], variable, point, order),
+    FunctionId.atan => expandAtan(args[0], variable, point, order),
+    FunctionId.abs => expandAbs(args[0], variable, point, order, assumptions),
+    FunctionId.lambertW =>
+      args.length < 2 || args[1] == IntegerNumber.zero
+          ? expandLambertW(args[0], variable, point, order)
+          : throw UnsupportedError(
+              'Power series only supported for principal branch W_0',
+            ),
+    FunctionId.erf => expandErf(args[0], variable, point, order),
+    FunctionId.erfc =>
+      PowerSeries(variable, point, {0: IntegerNumber.one}, order) -
+          expandErf(args[0], variable, point, order),
+    FunctionId.erfi => expandErfi(args[0], variable, point, order),
+    FunctionId.fresnelS => expandFresnelS(args[0], variable, point, order),
+    FunctionId.fresnelC => expandFresnelC(args[0], variable, point, order),
+    FunctionId.si => expandSinIntegralSi(args[0], variable, point, order),
+    FunctionId.shi => expandSinhIntegralShi(args[0], variable, point, order),
+    FunctionId.polylog => expandPolylog(
+      expr,
+      args[0],
+      args[1],
+      variable,
+      point,
+      order,
+    ),
+    FunctionId.ellipticK => expandEllipticK(
+      expr,
+      args[0],
+      variable,
+      point,
+      order,
+    ),
+    FunctionId.ellipticE =>
+      args.length == 1
+          ? expandEllipticE(expr, args[0], variable, point, order)
+          : expandTaylorSeries(expr, variable, point, order),
+    FunctionId.ei ||
+    FunctionId.li ||
+    FunctionId.ci ||
+    FunctionId.chi ||
+    FunctionId.upperGamma ||
+    FunctionId.lowerGamma ||
+    FunctionId.ellipticF ||
+    FunctionId.ellipticPi ||
+    FunctionId.expIntegralE ||
+    FunctionId.logGamma ||
+    FunctionId.appellF1 ||
+    FunctionId.hypergeometric => expandTaylorSeries(
+      expr,
+      variable,
+      point,
+      order,
+    ),
+    FunctionId.atan2 => () {
+      final y0 = args[0]
+          .substitute(variable, point)
+          .simplify(assumptions: assumptions);
+      final x0 = args[1]
+          .substitute(variable, point)
+          .simplify(assumptions: assumptions);
+      if ((y0 is Number && y0.isZero) &&
+          (x0 is Number &&
+              (x0 is RealNumeric && (x0.isZero || x0.isNegative)))) {
+        throw UnsupportedError(
+          'Atan2 has a branch cut or singularity at ($y0, $x0)',
+        );
+      }
+      return expandTaylorSeries(expr, variable, point, order);
+    }(),
+    FunctionId.asinh => expandAsinh(args[0], variable, point, order),
+    FunctionId.acosh => expandAcosh(args[0], variable, point, order),
+    FunctionId.atanh => expandAtanh(args[0], variable, point, order),
+    FunctionId.sign => expandSign(args[0], variable, point, order),
+    FunctionId.floor => expandFloor(args[0], variable, point, order),
+    FunctionId.ceil => expandCeil(args[0], variable, point, order),
+    FunctionId.round => expandRound(args[0], variable, point, order),
+    FunctionId.gamma => expandGamma(args[0], variable, point, order),
+    FunctionId.digamma => expandDigamma(args[0], variable, point, order),
+    FunctionId.polygamma => expandPolygamma(
+      args[0],
+      args[1],
+      variable,
+      point,
+      order,
+    ),
+    FunctionId.zeta =>
+      args.length == 1
+          ? expandZeta(args[0], variable, point, order)
+          : expandTaylorSeries(expr, variable, point, order),
+    FunctionId.besselJ => expandBessel(
+      args[0],
+      args[1],
+      variable,
+      point,
+      order,
+      isModified: false,
+    ),
+    FunctionId.besselI => expandBessel(
+      args[0],
+      args[1],
+      variable,
+      point,
+      order,
+      isModified: true,
+    ),
+    FunctionId.factorial => expandGamma(
+      (args[0] + IntegerNumber.one).simplify(),
+      variable,
+      point,
+      order,
+    ),
+    FunctionId.beta => expandBeta(args[0], args[1], variable, point, order),
+    FunctionId.binomial => expandBinomial(
+      args[0],
+      args[1],
+      variable,
+      point,
+      order,
+    ),
+    FunctionId.min ||
+    FunctionId.max ||
+    FunctionId.gcd ||
+    FunctionId.lcm ||
+    FunctionId.tuple ||
+    FunctionId.re ||
+    FunctionId.im ||
+    FunctionId.arg ||
+    FunctionId.conj ||
+    FunctionId.besselY ||
+    FunctionId.besselK ||
+    FunctionId.mod ||
+    FunctionId.symbolic => throw UnsupportedError(
+      'Power series expansion not supported for ${id.name}',
+    ),
+  },
 
   Piecewise(:final branches, :final otherwise) => expandPiecewise(
     branches,
@@ -755,83 +799,7 @@ PowerSeries expandToPowerSeries(
     order,
   ),
 
-  Sign(:final expr) => expandSign(expr, variable, point, order),
-
-  Floor(:final expr) => expandFloor(expr, variable, point, order),
-
-  Ceil(:final expr) => expandCeil(expr, variable, point, order),
-
-  Round(:final expr) => expandRound(expr, variable, point, order),
-
-  Gamma(:final expr) => expandGamma(expr, variable, point, order),
-
-  Digamma(:final expr) => expandDigamma(expr, variable, point, order),
-
-  Polygamma(:final left, :final right) => expandPolygamma(
-    left,
-    right,
-    variable,
-    point,
-    order,
-  ),
-
-  Zeta(expr: final s, :final shift) =>
-    shift == null
-        ? expandZeta(s, variable, point, order)
-        : expandTaylorSeries(expr, variable, point, order),
-
-  BesselJ(:final left, :final right) => expandBessel(
-    left,
-    right,
-    variable,
-    point,
-    order,
-    isModified: false,
-  ),
-  BesselI(:final left, :final right) => expandBessel(
-    left,
-    right,
-    variable,
-    point,
-    order,
-    isModified: true,
-  ),
-  Factorial(:final expr) => expandGamma(
-    (expr + IntegerNumber.one).simplify(),
-    variable,
-    point,
-    order,
-  ),
-  Beta(:final left, :final right) => expandBeta(
-    left,
-    right,
-    variable,
-    point,
-    order,
-  ),
-  Binomial(:final left, :final right) => expandBinomial(
-    left,
-    right,
-    variable,
-    point,
-    order,
-  ),
-
-  Re() ||
-  Im() ||
-  Arg() ||
-  Conjugate() ||
-  BesselY() ||
-  BesselK() ||
-  Mod() ||
-  RelationalExpr() ||
-  Integral() ||
-  Derivative() ||
-  Limit() ||
-  Sum() ||
-  Product() ||
-  RootSum() ||
-  VariableFunction() => throw UnsupportedError(
+  Relational() || BinderExpr() => throw UnsupportedError(
     'Power series expansion not supported for ${expr.runtimeType}',
   ),
 
@@ -864,7 +832,7 @@ PowerSeries _expandMulFactors(
   Assumptions assumptions = Assumptions.none,
 ]) {
   if (factors.isEmpty) {
-    return PowerSeries(variable, point, const {0: IntegerNumber.one}, order);
+    return PowerSeries(variable, point, {0: IntegerNumber.one}, order);
   }
   if (factors.length == 1) {
     return expandToPowerSeries(factors[0], variable, point, order, assumptions);
@@ -983,14 +951,14 @@ PowerSeries expandExpFromSeries(PowerSeries u) {
       }
     }
     if (terms.isNotEmpty) {
-      final sum = (terms.length == 1 ? terms.first : Add(terms)).simplify();
+      final sum = (terms.length == 1 ? terms.first : Add.of(terms)).simplify();
       if (!PowerSeries.isZero(sum)) {
         q[k] = (sum / IntegerNumber.of(k)).simplify();
       }
     }
   }
   final baseExp = PowerSeries(u.variable, u.point, q, order);
-  return isU0Zero ? baseExp : baseExp.scale(Pow(Constant.e, u0).simplify());
+  return isU0Zero ? baseExp : baseExp.scale(Pow.of(Constant.e, u0).simplify());
 }
 
 PowerSeries _expandLn(
@@ -1010,7 +978,7 @@ PowerSeries _expandLn(
   }
 
   final q = <int, Expr>{};
-  q[0] = Ln(u0).simplify(assumptions: assumptions);
+  q[0] = Fn.ln(u0).simplify(assumptions: assumptions);
   final invU0 = (IntegerNumber.one / u0).simplify(assumptions: assumptions);
 
   for (var k = 1; k < order; k++) {
@@ -1025,7 +993,7 @@ PowerSeries _expandLn(
     }
     final sum = terms.isEmpty
         ? IntegerNumber.zero
-        : (terms.length == 1 ? terms.first : Add(terms)).simplify();
+        : (terms.length == 1 ? terms.first : Add.of(terms)).simplify();
     final adjusted = (uk - (sum / IntegerNumber.of(k))).simplify(
       assumptions: assumptions,
     );

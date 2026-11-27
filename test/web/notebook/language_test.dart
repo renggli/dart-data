@@ -187,7 +187,7 @@ void main() {
         ExprValue(Expr.parse('x^2 + 1')),
         const StringValue('hello'),
         const BoolValue(true),
-        const ListValue([ExprValue(IntegerNumber.two), BoolValue(false)]),
+        ListValue([ExprValue(IntegerNumber.two), const BoolValue(false)]),
       ];
       for (final v in values) {
         final decoded = valueFromJson(valueToJson(v));

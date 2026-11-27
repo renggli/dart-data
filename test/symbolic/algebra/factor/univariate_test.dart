@@ -1,6 +1,7 @@
 import 'package:checks/checks.dart';
 import 'package:data/src/symbolic/algebra/factor/univariate.dart';
 import 'package:data/symbolic.dart';
+import 'package:more/math.dart' show LcmBigIntExtension;
 import 'package:test/scaffolding.dart';
 
 void main() {
@@ -38,16 +39,16 @@ void main() {
           .equals('3 * x ^ 2');
 
       // BigInt coefficients exceeding 64-bit int are preserved and factored
-      final bigInt = Integer.big(BigInt.two.pow(70));
+      final bigInt = BigInt.two.pow(70);
       final bigNum = IntegerNumber(bigInt);
-      final bigDen = RationalNumber.of(Integer.one, bigInt);
+      final bigDen = RationalNumber.of(BigInt.one, bigInt);
       check(factorUnivariatePoly(PolyQ([IntegerNumber.one, bigNum]), 'x'))
           .isA<Add>();
       check(factorUnivariatePoly(PolyQ([IntegerNumber.one, bigDen]), 'x'))
           .isA<Mul>();
 
       // Large quadratic difference of squares with BigInt coefficients
-      final big140 = Integer.big(BigInt.two.pow(140));
+      final big140 = BigInt.two.pow(140);
       final polyBigSq = PolyQ([
         IntegerNumber(-big140),
         IntegerNumber.zero,
@@ -77,11 +78,7 @@ void main() {
           .equals('(1 + x ^ 2) * (2 + x ^ 2)');
 
       // Direct factorQuadraticInX with perfect-square discriminant
-      final quadFactors = factorQuadraticInX(
-        Integer.one,
-        const Integer(-4),
-        'x',
-      );
+      final quadFactors = factorQuadraticInX(BigInt.one, BigInt.from(-4), 'x');
       check(quadFactors.length).equals(2);
 
       // Irreducible degree 5 with content 1 and content 2
@@ -92,28 +89,28 @@ void main() {
     });
 
     test('number-theoretic helpers (divisors)', () {
-      check(const Integer(12).gcd(const Integer(18))).equals(const Integer(6));
-      check(Integer.zero.lcm(const Integer(5))).equals(Integer.zero);
-      check(const Integer(4).lcm(const Integer(6))).equals(const Integer(12));
-      check(const Integer(-4).isqrt()).isNull;
-      check(Integer.zero.isqrt()).equals(Integer.zero);
-      check(const Integer(16).isqrt()).equals(const Integer(4));
-      check(const Integer(15).isqrt()).isNull;
-      check(divisors(Integer.zero)).isEmpty;
-      check(divisors(const Integer(12))).deepEquals([
-        const Integer(1),
-        const Integer(2),
-        const Integer(3),
-        const Integer(4),
-        const Integer(6),
-        const Integer(12),
+      check(BigInt.from(12).gcd(BigInt.from(18))).equals(BigInt.from(6));
+      check(BigInt.zero.lcm(BigInt.from(5))).equals(BigInt.zero);
+      check(BigInt.from(4).lcm(BigInt.from(6))).equals(BigInt.from(12));
+      check(Number.exactIntegerRoot(BigInt.from(-4), 2)).isNull;
+      check(Number.exactIntegerRoot(BigInt.zero, 2)).equals(BigInt.zero);
+      check(Number.exactIntegerRoot(BigInt.from(16), 2)).equals(BigInt.from(4));
+      check(Number.exactIntegerRoot(BigInt.from(15), 2)).isNull;
+      check(divisors(BigInt.zero)).isEmpty;
+      check(divisors(BigInt.from(12))).deepEquals([
+        BigInt.one,
+        BigInt.two,
+        BigInt.from(3),
+        BigInt.from(4),
+        BigInt.from(6),
+        BigInt.from(12),
       ]);
       check(Expr.parse('x^2 - 3*2^31*x + 2^63').factor())
           .equals(Expr.parse('(x - 2^31)*(x - 2^32)').simplify());
-      final mixedDivs = divisors(Integer.big(BigInt.one << 60));
+      final mixedDivs = divisors(BigInt.one << 60);
       check(mixedDivs.length).equals(61);
-      check(mixedDivs.first).equals(Integer.one);
-      check(mixedDivs.last).equals(Integer.big(BigInt.one << 60));
+      check(mixedDivs.first).equals(BigInt.one);
+      check(mixedDivs.last).equals(BigInt.one << 60);
     });
 
     test('factors high-degree polynomials with large coefficients without GCD blowup', () {

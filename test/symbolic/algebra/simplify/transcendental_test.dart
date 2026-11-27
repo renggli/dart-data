@@ -10,25 +10,25 @@ void main() {
       'simplifies sin, cos, and tan parity, involutions, and pi multiples',
       () {
         const x = Variable('x');
-        check(simplifySin(Asin(x), assumptions: Assumptions.none)).equals(x);
-        check(simplifyCos(Acos(x), assumptions: Assumptions.none)).equals(x);
-        check(simplifyTan(Atan(x), assumptions: Assumptions.none)).equals(x);
+        check(simplifySin(Fn.asin(x), assumptions: Assumptions.none)).equals(x);
+        check(simplifyCos(Fn.acos(x), assumptions: Assumptions.none)).equals(x);
+        check(simplifyTan(Fn.atan(x), assumptions: Assumptions.none)).equals(x);
 
         check(
           simplifySin(
-            Mul([IntegerNumber.of(-2), x]),
+            Mul.of([IntegerNumber.of(-2), x]),
             assumptions: Assumptions.none,
           ).toString(),
         ).equals('-sin(2 * x)');
         check(
           simplifyCos(
-            Mul([IntegerNumber.of(-2), x]),
+            Mul.of([IntegerNumber.of(-2), x]),
             assumptions: Assumptions.none,
           ).toString(),
         ).equals('cos(2 * x)');
         check(
           simplifyTan(
-            Mul([IntegerNumber.of(-2), x]),
+            Mul.of([IntegerNumber.of(-2), x]),
             assumptions: Assumptions.none,
           ).toString(),
         ).equals('-tan(2 * x)');
@@ -36,22 +36,22 @@ void main() {
         // matchPiMultiple with pi * (1/2) and pi * 2^(-1)
         check(
           simplifySin(
-            Mul([Constant.pi, FractionNumber.half]),
+            Mul.of([Constant.pi, FractionNumber.half]),
             assumptions: Assumptions.none,
           ),
         ).equals(IntegerNumber.one);
         check(
           simplifySin(
-            Mul([
+            Mul.of([
               Constant.pi,
-              Pow(IntegerNumber.two, IntegerNumber.negativeOne),
+              Pow.of(IntegerNumber.two, IntegerNumber.negativeOne),
             ]),
             assumptions: Assumptions.none,
           ),
         ).equals(IntegerNumber.one);
         check(
           simplifySin(
-            Mul([RationalNumber(3, 2), Constant.pi]),
+            Mul.of([RationalNumber(3, 2), Constant.pi]),
             assumptions: Assumptions.none,
           ),
         ).equals(IntegerNumber.negativeOne);
@@ -60,12 +60,11 @@ void main() {
             .equals(IntegerNumber.zero);
         check(
           simplifyTan(
-            Mul([RationalNumber(3, 4), Constant.pi]),
+            Mul.of([RationalNumber(3, 4), Constant.pi]),
             assumptions: Assumptions.none,
           ),
         ).equals(IntegerNumber.negativeOne);
-        check(simplifyTan(x, assumptions: Assumptions.none))
-            .equals(Tan(x, isSimplified: true));
+        check(simplifyTan(x, assumptions: Assumptions.none)).equals(Fn.tan(x));
       },
     );
 
@@ -85,16 +84,15 @@ void main() {
           assumptions: Assumptions.none,
         ).toString(),
       ).equals('-1/2 * pi');
-      check(simplifyAsin(Sin(x), assumptions: Assumptions.none))
-          .equals(Asin(Sin(x), isSimplified: true));
+      check(simplifyAsin(Fn.sin(x), assumptions: Assumptions.none))
+          .equals(Fn.asin(Fn.sin(x)));
       check(
         simplifyAsin(
-          Mul([IntegerNumber.negativeOne, x]),
+          Mul.of([IntegerNumber.negativeOne, x]),
           assumptions: Assumptions.none,
         ).toString(),
       ).equals('-asin(x)');
-      check(simplifyAsin(x, assumptions: Assumptions.none))
-          .equals(Asin(x, isSimplified: true));
+      check(simplifyAsin(x, assumptions: Assumptions.none)).equals(Fn.asin(x));
 
       check(simplifyAcos(IntegerNumber.one, assumptions: Assumptions.none))
           .equals(IntegerNumber.zero);
@@ -107,10 +105,9 @@ void main() {
       check(
         simplifyAcos(IntegerNumber.negativeOne, assumptions: Assumptions.none),
       ).equals(Constant.pi);
-      check(simplifyAcos(Cos(x), assumptions: Assumptions.none))
-          .equals(Acos(Cos(x), isSimplified: true));
-      check(simplifyAcos(x, assumptions: Assumptions.none))
-          .equals(Acos(x, isSimplified: true));
+      check(simplifyAcos(Fn.cos(x), assumptions: Assumptions.none))
+          .equals(Fn.acos(Fn.cos(x)));
+      check(simplifyAcos(x, assumptions: Assumptions.none)).equals(Fn.acos(x));
 
       check(simplifyAtan(IntegerNumber.zero, assumptions: Assumptions.none))
           .equals(IntegerNumber.zero);
@@ -126,16 +123,15 @@ void main() {
           assumptions: Assumptions.none,
         ).toString(),
       ).equals('-1/4 * pi');
-      check(simplifyAtan(Tan(x), assumptions: Assumptions.none))
-          .equals(Atan(Tan(x), isSimplified: true));
+      check(simplifyAtan(Fn.tan(x), assumptions: Assumptions.none))
+          .equals(Fn.atan(Fn.tan(x)));
       check(
         simplifyAtan(
-          Mul([IntegerNumber.negativeOne, x]),
+          Mul.of([IntegerNumber.negativeOne, x]),
           assumptions: Assumptions.none,
         ).toString(),
       ).equals('-atan(x)');
-      check(simplifyAtan(x, assumptions: Assumptions.none))
-          .equals(Atan(x, isSimplified: true));
+      check(simplifyAtan(x, assumptions: Assumptions.none)).equals(Fn.atan(x));
     });
   });
 
@@ -144,46 +140,46 @@ void main() {
       const x = Variable('x');
       check(
         simplifySinh(
-          Mul([IntegerNumber.negativeOne, x]),
+          Mul.of([IntegerNumber.negativeOne, x]),
           assumptions: Assumptions.none,
         ).toString(),
       ).equals('-sinh(x)');
       check(
         simplifyCosh(
-          Mul([IntegerNumber.negativeOne, x]),
+          Mul.of([IntegerNumber.negativeOne, x]),
           assumptions: Assumptions.none,
         ).toString(),
       ).equals('cosh(x)');
       check(
         simplifyTanh(
-          Mul([IntegerNumber.negativeOne, x]),
+          Mul.of([IntegerNumber.negativeOne, x]),
           assumptions: Assumptions.none,
         ).toString(),
       ).equals('-tanh(x)');
 
-      check(simplifyAsinh(Sinh(x), assumptions: Assumptions.none))
-          .equals(Asinh(Sinh(x), isSimplified: true));
-      check(simplifyAsinh(Sinh(x), assumptions: Assumptions.real)).equals(x);
+      check(simplifyAsinh(Fn.sinh(x), assumptions: Assumptions.none))
+          .equals(Fn.asinh(Fn.sinh(x)));
+      check(simplifyAsinh(Fn.sinh(x), assumptions: Assumptions.real)).equals(x);
       check(
         simplifyAsinh(
-          Mul([IntegerNumber.negativeOne, x]),
+          Mul.of([IntegerNumber.negativeOne, x]),
           assumptions: Assumptions.none,
         ).toString(),
       ).equals('-asinh(x)');
-      check(simplifyAcosh(Cosh(x), assumptions: Assumptions.none))
-          .equals(Acosh(Cosh(x), isSimplified: true));
-      check(simplifyAcosh(Cosh(x), assumptions: Assumptions.real))
-          .equals(Abs(x, isSimplified: true));
-      check(simplifyAcosh(Cosh(x), assumptions: Assumptions.positive))
+      check(simplifyAcosh(Fn.cosh(x), assumptions: Assumptions.none))
+          .equals(Fn.acosh(Fn.cosh(x)));
+      check(simplifyAcosh(Fn.cosh(x), assumptions: Assumptions.real))
+          .equals(Fn.abs(x));
+      check(simplifyAcosh(Fn.cosh(x), assumptions: Assumptions.positive))
           .equals(x);
       check(simplifyAcosh(x, assumptions: Assumptions.none))
-          .equals(Acosh(x, isSimplified: true));
-      check(simplifyAtanh(Tanh(x), assumptions: Assumptions.none))
-          .equals(Atanh(Tanh(x), isSimplified: true));
-      check(simplifyAtanh(Tanh(x), assumptions: Assumptions.real)).equals(x);
+          .equals(Fn.acosh(x));
+      check(simplifyAtanh(Fn.tanh(x), assumptions: Assumptions.none))
+          .equals(Fn.atanh(Fn.tanh(x)));
+      check(simplifyAtanh(Fn.tanh(x), assumptions: Assumptions.real)).equals(x);
       check(
         simplifyAtanh(
-          Mul([IntegerNumber.negativeOne, x]),
+          Mul.of([IntegerNumber.negativeOne, x]),
           assumptions: Assumptions.none,
         ).toString(),
       ).equals('-atanh(x)');
@@ -201,45 +197,45 @@ void main() {
             .equals(-Constant.infinity);
         check(
           simplifyLn(IntegerNumber.negativeOne, assumptions: Assumptions.none),
-        ).equals(Mul([ComplexNumber.i, Constant.pi]));
+        ).equals(Mul.of([ComplexNumber.i, Constant.pi]));
         check(simplifyLn(IntegerNumber.of(-3), assumptions: Assumptions.none))
             .equals(
               simplifyAdd([
                 simplifyLn(IntegerNumber.of(3), assumptions: Assumptions.none),
-                Mul([ComplexNumber.i, Constant.pi]),
+                Mul.of([ComplexNumber.i, Constant.pi]),
               ], assumptions: Assumptions.none),
             );
         check(
           simplifyLn(
-            Pow(x, IntegerNumber.of(3)),
+            Pow.of(x, IntegerNumber.of(3)),
             assumptions: Assumptions.none,
           ).toString(),
         ).equals('ln(x ^ 3)');
         check(
           simplifyLn(
-            Pow(x, IntegerNumber.of(3)),
+            Pow.of(x, IntegerNumber.of(3)),
             assumptions: Assumptions.positive,
           ).toString(),
         ).equals('3 * ln(x)');
         check(
           simplifyLn(
-            Pow(x, IntegerNumber.negativeOne),
+            Pow.of(x, IntegerNumber.negativeOne),
             assumptions: Assumptions.none,
           ).toString(),
         ).equals('ln(1 / x)');
         check(
           simplifyLn(
-            Pow(x, IntegerNumber.negativeOne),
+            Pow.of(x, IntegerNumber.negativeOne),
             assumptions: Assumptions.positive,
           ).toString(),
         ).equals('-ln(x)');
         check(
           simplifyLn(
-            Pow(Constant.e, x),
+            Pow.of(Constant.e, x),
             assumptions: Assumptions.none,
           ).toString(),
         ).equals('ln(exp(x))');
-        check(simplifyLn(Pow(Constant.e, x), assumptions: Assumptions.real))
+        check(simplifyLn(Pow.of(Constant.e, x), assumptions: Assumptions.real))
             .equals(x);
 
         check(simplifyAbs(IntegerNumber.of(-5), assumptions: Assumptions.none))
@@ -249,7 +245,7 @@ void main() {
         ).equals(const RealNumber(2.5));
         check(
           simplifyAbs(
-            Mul([IntegerNumber.of(-3), x]),
+            Mul.of([IntegerNumber.of(-3), x]),
             assumptions: Assumptions.none,
           ).toString(),
         ).equals('3 * abs(x)');
@@ -260,19 +256,23 @@ void main() {
             .equals('0');
         check(simplifyAbs(Constant.pi, assumptions: Assumptions.none))
             .equals(Constant.pi);
-        check(simplifyAbs(Abs(x), assumptions: Assumptions.none))
-            .equals(Abs(x));
-        check(simplifyAbs(Pow(Constant.e, x), assumptions: Assumptions.real))
-            .equals(Pow(Constant.e, x));
+        check(simplifyAbs(Fn.abs(x), assumptions: Assumptions.none))
+            .equals(Fn.abs(x));
+        check(simplifyAbs(Pow.of(Constant.e, x), assumptions: Assumptions.real))
+            .equals(Pow.of(Constant.e, x));
         const posP = Assumptions(
           domains: {'p': VariableDomain.positive, 'x': VariableDomain.real},
         );
-        check(simplifyAbs(Pow(p, x), assumptions: posP)).equals(Pow(p, x));
-        check(simplifyAbs(Mul([Constant.pi, p]), assumptions: posP))
-            .equals(Mul([Constant.pi, p]));
+        check(simplifyAbs(Pow.of(p, x), assumptions: posP))
+            .equals(Pow.of(p, x));
+        check(simplifyAbs(Mul.of([Constant.pi, p]), assumptions: posP))
+            .equals(Mul.of([Constant.pi, p]));
         check(
-          simplifyAbs(Pow(x, IntegerNumber.two), assumptions: Assumptions.real),
-        ).equals(Pow(x, IntegerNumber.two));
+          simplifyAbs(
+            Pow.of(x, IntegerNumber.two),
+            assumptions: Assumptions.real,
+          ),
+        ).equals(Pow.of(x, IntegerNumber.two));
 
         check(
           Expr.parse('asinh(sinh(x))').simplify(assumptions: Assumptions.real),
@@ -310,12 +310,9 @@ void main() {
             Expr.parse('2/3 * ln(abs(x))')
                 .simplify(assumptions: Assumptions.real),
           );
-      check(Expr.parse('ln(x^(-1))').simplify()).equals(
-        Ln(
-          Pow(const Variable('x'), IntegerNumber.negativeOne),
-          isSimplified: true,
-        ),
-      );
+      check(
+        Expr.parse('ln(x^(-1))').simplify(),
+      ).equals(Fn.ln(Pow.of(const Variable('x'), IntegerNumber.negativeOne)));
       check(
         Expr.parse('ln(x^(-1))').simplify(assumptions: Assumptions.positive),
       ).equals(
@@ -325,15 +322,17 @@ void main() {
 
     test('simplifies integer-pi and half-pi trig argument shifts', () {
       const x = Variable('x');
-      check(Expr.parse('sin(x - 2 * pi)').simplify()).equals(Sin(x));
-      check(Expr.parse('sin(pi + x)').simplify()).equals((-Sin(x)).simplify());
-      check(Expr.parse('sin(pi / 2 + x)').simplify()).equals(Cos(x));
+      check(Expr.parse('sin(x - 2 * pi)').simplify()).equals(Fn.sin(x));
+      check(Expr.parse('sin(pi + x)').simplify())
+          .equals((-Fn.sin(x)).simplify());
+      check(Expr.parse('sin(pi / 2 + x)').simplify()).equals(Fn.cos(x));
       check(Expr.parse('sin(3 * pi / 2 + x)').simplify())
-          .equals((-Cos(x)).simplify());
-      check(Expr.parse('cos(pi - x)').simplify()).equals((-Cos(x)).simplify());
-      check(Expr.parse('cos(2 * pi + x)').simplify()).equals(Cos(x));
-      check(Expr.parse('cos(pi / 2 - x)').simplify()).equals(Sin(x));
-      check(Expr.parse('tan(pi + x)').simplify()).equals(Tan(x));
+          .equals((-Fn.cos(x)).simplify());
+      check(Expr.parse('cos(pi - x)').simplify())
+          .equals((-Fn.cos(x)).simplify());
+      check(Expr.parse('cos(2 * pi + x)').simplify()).equals(Fn.cos(x));
+      check(Expr.parse('cos(pi / 2 - x)').simplify()).equals(Fn.sin(x));
+      check(Expr.parse('tan(pi + x)').simplify()).equals(Fn.tan(x));
     });
   });
 }

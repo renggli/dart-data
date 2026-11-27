@@ -503,18 +503,18 @@ class MultivariatePolynomial {
           if (m.exponents[i] == 1)
             Variable(variables[i])
           else if (m.exponents[i] > 1)
-            Pow(Variable(variables[i]), IntegerNumber.of(m.exponents[i])),
+            Pow.of(Variable(variables[i]), IntegerNumber.of(m.exponents[i])),
       ];
       final termExpr = switch (factors) {
         [final single] => single,
-        _ => Mul(factors).simplify(),
+        _ => Mul.of(factors).simplify(),
       };
       termExprs.add(termExpr);
     }
     return switch (termExprs) {
       [] => IntegerNumber.zero,
       [final single] => single,
-      _ => Add(termExprs).simplify(),
+      _ => Add.of(termExprs).simplify(),
     };
   }
 

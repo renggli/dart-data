@@ -1,6 +1,4 @@
 import '../ast.dart';
-import 'integer.dart';
-import 'rational.dart';
 
 /// Computes the Bernoulli numbers `B_0, B_1, ..., B_maxIndex` using the
 /// first convention (`B_1 = -1/2`).
@@ -16,45 +14,79 @@ List<RationalNumber> bernoulliNumbers(int maxIndex) {
       b.add(IntegerNumber.zero);
       continue;
     }
-    var binom = Integer.one;
-    var sum = (numerator: Integer.zero, denominator: Integer.one);
+    var binom = BigInt.one;
+    RationalNumber sum = IntegerNumber.zero;
     for (var j = 0; j < m; j++) {
       if (j > 0) {
-        binom = (binom * Integer.from(m + 2 - j)) ~/ Integer.from(j);
+        binom = (binom * BigInt.from(m + 2 - j)) ~/ BigInt.from(j);
       }
       final bj = b[j];
       if (!bj.isZero) {
-        sum = rationalAdd(
-          sum,
-          rationalMultiply(
-            (numerator: binom, denominator: Integer.one),
-            (numerator: bj.numerator, denominator: bj.denominator),
-          ),
-        );
+        sum = sum.addRational(IntegerNumber(binom).mulRational(bj));
       }
     }
-    final next = rationalDivide(rationalNegate(sum), (
-      numerator: Integer.from(m + 1),
-      denominator: Integer.one,
-    ));
-    b.add(RationalNumber.of(next.numerator, next.denominator));
+    final next = sum.neg().divRational(IntegerNumber.of(m + 1));
+    b.add(next);
   }
   return b;
 }
 
 /// Computes the triangle of Stirling numbers of the second kind `S(n, k)`
 /// for `0 <= k <= n <= maxN`.
-List<List<Integer>> stirlingSecondKind(int maxN) {
+List<List<BigInt>> stirlingSecondKind(int maxN) {
   if (maxN < 0) return const [];
-  final table = List<List<Integer>>.generate(
+  final table = List<List<BigInt>>.generate(
     maxN + 1,
-    (_) => List<Integer>.filled(maxN + 1, Integer.zero),
+    (_) => List<BigInt>.filled(maxN + 1, BigInt.zero),
   );
-  table[0][0] = Integer.one;
+  table[0][0] = BigInt.one;
   for (var n = 1; n <= maxN; n++) {
     for (var k = 1; k <= n; k++) {
-      table[n][k] = Integer.from(k) * table[n - 1][k] + table[n - 1][k - 1];
+      table[n][k] = BigInt.from(k) * table[n - 1][k] + table[n - 1][k - 1];
     }
   }
   return table;
+}
+
+/// Finds a non-trivial factor of composite positive [n] via Brent's cycle
+/// variant of Pollard's rho algorithm, or returns `null` if unsuccessful.
+BigInt? pollardsRho(BigInt n) {
+  if (n <= BigInt.one) return null;
+  if (n.isEven) return BigInt.two;
+  for (final seed in [BigInt.two, BigInt.from(3), BigInt.from(5)]) {
+    for (final c in [BigInt.one, BigInt.from(3), BigInt.from(5)]) {
+      var y = seed;
+      var r = 1;
+      var q = BigInt.one;
+      var g = BigInt.one;
+      var ys = y;
+      var x = y;
+      while (g == BigInt.one) {
+        x = y;
+        for (var i = 0; i < r; i++) {
+          y = (y * y + c) % n;
+        }
+        var k = 0;
+        while (k < r && g == BigInt.one) {
+          ys = y;
+          final steps = 128 < (r - k) ? 128 : (r - k);
+          for (var i = 0; i < steps; i++) {
+            y = (y * y + c) % n;
+            q = (q * (x - y).abs()) % n;
+          }
+          g = q.gcd(n);
+          k += 128;
+        }
+        r <<= 1;
+      }
+      if (g == n) {
+        do {
+          ys = (ys * ys + c) % n;
+          g = (x - ys).abs().gcd(n);
+        } while (g == BigInt.one);
+      }
+      if (g > BigInt.one && g < n) return g;
+    }
+  }
+  return null;
 }

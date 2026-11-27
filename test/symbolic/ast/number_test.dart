@@ -27,8 +27,8 @@ void main() {
       final negDenom = RationalNumber(2, -4);
       check(negDenom).isA<FractionNumber>();
       check(negDenom).equals(FractionNumber.negativeHalf);
-      check(negDenom.numerator).equals(Integer.negativeOne);
-      check(negDenom.denominator).equals(Integer.two);
+      check(negDenom.numerator).equals(BigInt.from(-1));
+      check(negDenom.denominator).equals(BigInt.two);
       check(negDenom.isNegative).isTrue;
       check(negDenom.isInteger).isFalse;
       check(negDenom.asInt).isNull;
@@ -46,21 +46,21 @@ void main() {
       check(zero.anyNode((e) => e == zero)).isTrue;
     });
 
-    test('BigInt transparent promotion and demotion in IntegerNumber', () {
+    test('BigInt transparent handling in IntegerNumber', () {
       final big = BigInt.two.pow(100);
-      final expr = IntegerNumber(Integer.big(big));
-      check(expr.value.isBig).isTrue;
+      final expr = IntegerNumber(big);
+      check(expr.value.isValidInt).isFalse;
       check(expr.asInt).isNull;
-      check(expr.value.toBigInt()).equals(big);
+      check(expr.value).equals(big);
 
       final quotient = expr / expr;
       check(quotient).equals(IntegerNumber.one);
-      check((quotient as IntegerNumber).value.isBig).isFalse;
+      check((quotient as IntegerNumber).value.isValidInt).isTrue;
     });
 
     test('RationalNumber construction with values exceeding 2^53 and 2^64', () {
-      final bigNum = Integer.big(BigInt.one << 70);
-      final bigDen = Integer.big(BigInt.one << 69);
+      final bigNum = BigInt.one << 70;
+      final bigDen = BigInt.one << 69;
       final rat = RationalNumber.of(bigNum, bigDen);
       check(rat).equals(IntegerNumber.two);
 
@@ -246,21 +246,21 @@ void main() {
         check(IntegerNumber.of(4).powNumber(RationalNumber(1, 100))).isNull;
 
         // Large BigInt exact integer roots exceeding 2^53 and 2^64
-        final big120 = Integer.big(BigInt.one << 120);
-        final big60 = Integer.big(BigInt.one << 60);
+        final big120 = BigInt.one << 120;
+        final big60 = BigInt.one << 60;
         check(IntegerNumber(big120).powNumber(FractionNumber.half))
             .equals(IntegerNumber(big60));
-        check(Pow(IntegerNumber(big120), FractionNumber.half).simplify())
+        check(Pow.of(IntegerNumber(big120), FractionNumber.half).simplify())
             .equals(IntegerNumber(big60));
 
-        final cubeRoot = Integer.big(BigInt.one << 30);
-        final big90 = Integer.big((BigInt.one << 30).pow(3));
+        final cubeRoot = BigInt.one << 30;
+        final big90 = (BigInt.one << 30).pow(3);
         check(IntegerNumber(big90).powNumber(FractionNumber.third))
             .equals(IntegerNumber(cubeRoot));
 
         // Inexact BigInt roots return null
         check(
-          IntegerNumber(Integer.big((BigInt.one << 120) + BigInt.one))
+          IntegerNumber((BigInt.one << 120) + BigInt.one)
               .powNumber(FractionNumber.half),
         ).isNull;
 
@@ -314,7 +314,7 @@ void main() {
       },
     );
     test('compareTo handles overflowed RationalNumber vs RealNumber', () {
-      final huge = IntegerNumber(Integer.big(BigInt.one << 1024));
+      final huge = IntegerNumber(BigInt.one << 1024);
       const finite = RealNumber(1e300);
       check(huge.compareTo(finite)).isGreaterThan(0);
       check(finite.compareTo(huge)).isLessThan(0);
@@ -325,7 +325,7 @@ void main() {
     test(
       'compareTo performs exact IEEE-754 comparison for >53-bit rationals',
       () {
-        final bigPlusOne = IntegerNumber(Integer.parse('9007199254740993'));
+        final bigPlusOne = IntegerNumber(BigInt.parse('9007199254740993'));
         const exactDouble = RealNumber(9007199254740992.0);
         check(bigPlusOne.compareTo(exactDouble)).equals(1);
         check(exactDouble.compareTo(bigPlusOne)).equals(-1);

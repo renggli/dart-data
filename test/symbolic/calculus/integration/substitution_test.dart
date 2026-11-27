@@ -21,63 +21,68 @@ void main() {
 
   group('Chain-rule substitution and integration by parts', () {
     test('integrates products via chain-rule u-substitution', () {
-      check((IntegerNumber.two * y * Sin(x)).integrate('x'))
-          .equals((-IntegerNumber.two * y * Cos(x)).simplify());
+      check((IntegerNumber.two * y * Fn.sin(x)).integrate('x'))
+          .equals((-IntegerNumber.two * y * Fn.cos(x)).simplify());
 
-      final x2 = Pow(x, IntegerNumber.two);
-      final x3PlusX = Pow(x, IntegerNumber.of(3)) + x;
+      final x2 = Pow.of(x, IntegerNumber.two);
+      final x3PlusX = Pow.of(x, IntegerNumber.of(3)) + x;
       for (final f in [
-        x * Cos(x2),
-        x * Sin(x2),
-        x * Ln(x2),
-        x * Tan(x2),
-        x * Sinh(x2),
-        x * Cosh(x2),
-        x * Tanh(x2),
-        (IntegerNumber.of(3) * x2 + IntegerNumber.one) * Abs(x3PlusX),
-        Cos(x) * Pow(Sin(x), IntegerNumber.of(3)),
-        x * Cos(x2) * Pow(Sin(x2), IntegerNumber.negativeOne),
-        x * Pow(Constant.e, x2),
-        x * Pow(IntegerNumber.two, x2),
-        x * Pow(const RealNumber(2.5), x2),
+        x * Fn.cos(x2),
+        x * Fn.sin(x2),
+        x * Fn.ln(x2),
+        x * Fn.tan(x2),
+        x * Fn.sinh(x2),
+        x * Fn.cosh(x2),
+        x * Fn.tanh(x2),
+        (IntegerNumber.of(3) * x2 + IntegerNumber.one) * Fn.abs(x3PlusX),
+        Fn.cos(x) * Pow.of(Fn.sin(x), IntegerNumber.of(3)),
+        x * Fn.cos(x2) * Pow.of(Fn.sin(x2), IntegerNumber.negativeOne),
+        x * Pow.of(Constant.e, x2),
+        x * Pow.of(IntegerNumber.two, x2),
+        x * Pow.of(const RealNumber(2.5), x2),
       ]) {
         verifyAntiderivative(f, points: const [0.4, 0.7, 1.1]);
       }
 
       // Chain rule power u-substitution with power -1 (such as 1/(x * ln(x))):
       final xLnX = Expr.parse('1/(x * ln(x))').integrate('x');
-      check(xLnX).equals(Ln(Abs(Ln(x))));
+      check(xLnX).equals(Fn.ln(Fn.abs(Fn.ln(x))));
     });
 
     test('integrates products via linear, cyclic, and higher-degree IBP', () {
       final lin = IntegerNumber.two * x + IntegerNumber.one;
       for (final f in [
-        Pow(Constant.e, IntegerNumber.two * x) * Sin(IntegerNumber.of(3) * x),
-        Pow(Constant.e, IntegerNumber.two * x) * Cos(IntegerNumber.of(3) * x),
-        Sin(IntegerNumber.of(3) * x) * Pow(Constant.e, IntegerNumber.two * x),
-        x * Ln(lin),
-        x * Pow(Constant.e, lin),
-        x * Cos(lin),
-        x * Sin(lin),
-        x * Sinh(lin),
-        x * Cosh(lin),
-        x * Pow(IntegerNumber.two, lin),
-        x * Pow(const RealNumber(2.5), lin),
-        Pow(x, IntegerNumber.two) * Pow(Constant.e, x),
-        Pow(x, IntegerNumber.two) * Sin(x),
-        Pow(x, IntegerNumber.two) * Cos(x),
-        Pow(x, IntegerNumber.two) * Sinh(x),
-        Pow(x, IntegerNumber.two) * Cosh(x),
-        x * (x + IntegerNumber.one) * Pow(Constant.e, x),
-        (Pow(x, IntegerNumber.two) + Sin(x)) * Cos(x),
-        (Pow(x, IntegerNumber.two) + IntegerNumber.one) * Sin(x) * Cos(x),
-        Pow(x + IntegerNumber.one, IntegerNumber.two) *
-            Pow(x + IntegerNumber.two, IntegerNumber.two),
+        Pow.of(Constant.e, IntegerNumber.two * x) *
+            Fn.sin(IntegerNumber.of(3) * x),
+        Pow.of(Constant.e, IntegerNumber.two * x) *
+            Fn.cos(IntegerNumber.of(3) * x),
+        Fn.sin(IntegerNumber.of(3) * x) *
+            Pow.of(Constant.e, IntegerNumber.two * x),
+        x * Fn.ln(lin),
+        x * Pow.of(Constant.e, lin),
+        x * Fn.cos(lin),
+        x * Fn.sin(lin),
+        x * Fn.sinh(lin),
+        x * Fn.cosh(lin),
+        x * Pow.of(IntegerNumber.two, lin),
+        x * Pow.of(const RealNumber(2.5), lin),
+        Pow.of(x, IntegerNumber.two) * Pow.of(Constant.e, x),
+        Pow.of(x, IntegerNumber.two) * Fn.sin(x),
+        Pow.of(x, IntegerNumber.two) * Fn.cos(x),
+        Pow.of(x, IntegerNumber.two) * Fn.sinh(x),
+        Pow.of(x, IntegerNumber.two) * Fn.cosh(x),
+        x * (x + IntegerNumber.one) * Pow.of(Constant.e, x),
+        (Pow.of(x, IntegerNumber.two) + Fn.sin(x)) * Fn.cos(x),
+        (Pow.of(x, IntegerNumber.two) + IntegerNumber.one) *
+            Fn.sin(x) *
+            Fn.cos(x),
+        Pow.of(x + IntegerNumber.one, IntegerNumber.two) *
+            Pow.of(x + IntegerNumber.two, IntegerNumber.two),
       ]) {
         verifyAntiderivative(f);
       }
 
-      check((Sin(x) * Ln(x)).integrate('x'))
+      check((Fn.sin(x) * Fn.ln(x)).integrate('x'))
           .equals(Expr.parse('-cos(x) * ln(x) + Ci(x)').simplify());
     });
   });
@@ -371,9 +376,9 @@ void main() {
     });
 
     test('keeps piecewise floor expressions and bound summation indices unevaluated', () {
-      check(Floor(Expr.parse('x')).integrate('x')).isA<Integral>();
+      check(Fn.floor(Expr.parse('x')).integrate('x')).isA<Integral>();
       check(
-        (Expr.parse('x') - Floor(Expr.parse('x')))
+        (Expr.parse('x') - Fn.floor(Expr.parse('x')))
             .pow(2)
             .integrate('x')
             .anyNode((n) => n is Integral),

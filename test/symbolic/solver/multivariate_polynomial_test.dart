@@ -132,7 +132,7 @@ void main() {
       final vars = ['x', 'y'];
       // Duplicate additive terms cancelling to zero
       final cancelled = MultivariatePolynomial.fromExpr(
-        Add([const Variable('x'), -const Variable('x')]),
+        Add.of([const Variable('x'), -const Variable('x')]),
         vars,
       );
       check(cancelled.isZero).isTrue;
@@ -154,7 +154,8 @@ void main() {
 
       // Non-polynomial factor throws ArgumentError
       check(
-        () => MultivariatePolynomial.fromExpr(Sin(const Variable('x')), vars),
+        () =>
+            MultivariatePolynomial.fromExpr(Fn.sin(const Variable('x')), vars),
       ).throws<ArgumentError>();
 
       // Unknown variable throws ArgumentError

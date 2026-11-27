@@ -34,12 +34,12 @@ void main() {
   stdout.writeln('   ∫_0^3 x^2 dx = $defInt (exact: 9)');
 
   // Limits: sin(x) / x as x -> 0 is 1
-  final sinOverX = Sin(x) / x;
+  final sinOverX = Fn.sin(x) / x;
   final lim = sinOverX.limit('x', 0);
   stdout.writeln('   lim_{x -> 0} sin(x) / x = $lim');
 
   // Taylor series of exp(x) around 0
-  final expExpr = Pow(Constant.e, x);
+  final expExpr = Pow.of(Constant.e, x);
   final expSeries = expExpr.series('x', order: 5);
   stdout.writeln(
     '   Maclaurin series of exp(x) to order 5:\n      $expSeries\n',

@@ -23,57 +23,58 @@ void main() {
     test('integrates constants, linear terms, and affine unary functions', () {
       check(IntegerNumber.zero.integrate('x')).equals(IntegerNumber.zero);
       check(IntegerNumber.of(5).integrate('x')).equals(IntegerNumber.of(5) * x);
-      check(x.integrate('x'))
-          .equals((FractionNumber.half * Pow(x, IntegerNumber.two)).simplify());
+      check(
+        x.integrate('x'),
+      ).equals((FractionNumber.half * Pow.of(x, IntegerNumber.two)).simplify());
 
       final lin = IntegerNumber.two * x + IntegerNumber.one;
       final smallLin = FractionNumber.half * x;
       final largeLin = IntegerNumber.two * x + IntegerNumber.two;
 
       for (final f in [
-        Sin(lin),
-        Cos(lin),
-        Tan(smallLin),
-        Asin(smallLin),
-        Acos(smallLin),
-        Atan(lin),
-        Sinh(lin),
-        Cosh(lin),
-        Tanh(lin),
-        Asinh(lin),
-        Atanh(smallLin),
-        Abs(lin),
-        Ln(lin),
-        LambertW(lin),
-        Erf(lin),
-        Erfc(lin),
+        Fn.sin(lin),
+        Fn.cos(lin),
+        Fn.tan(smallLin),
+        Fn.asin(smallLin),
+        Fn.acos(smallLin),
+        Fn.atan(lin),
+        Fn.sinh(lin),
+        Fn.cosh(lin),
+        Fn.tanh(lin),
+        Fn.asinh(lin),
+        Fn.atanh(smallLin),
+        Fn.abs(lin),
+        Fn.ln(lin),
+        Fn.lambertW(lin),
+        Fn.erf(lin),
+        Fn.erfc(lin),
       ]) {
         verifyAntiderivative(f, points: const [0.2, 0.5, 0.8]);
       }
-      verifyAntiderivative(Acosh(largeLin), points: const [0.5, 1.0, 1.5]);
+      verifyAntiderivative(Fn.acosh(largeLin), points: const [0.5, 1.0, 1.5]);
     });
 
     test('returns unevaluated Integral for non-linear unary arguments', () {
-      final nonLin = Pow(x, IntegerNumber.of(3)) + x;
+      final nonLin = Pow.of(x, IntegerNumber.of(3)) + x;
       for (final f in [
-        Sin(nonLin),
-        Cos(nonLin),
-        Tan(nonLin),
-        Asin(nonLin),
-        Acos(nonLin),
-        Atan(nonLin),
-        Sinh(nonLin),
-        Cosh(nonLin),
-        Tanh(nonLin),
-        Asinh(nonLin),
-        Acosh(nonLin),
-        Atanh(nonLin),
-        Abs(nonLin),
-        Ln(Sin(x * x)),
-        LambertW(nonLin),
-        Erf(nonLin),
-        Erfc(nonLin),
-        Gamma(x),
+        Fn.sin(nonLin),
+        Fn.cos(nonLin),
+        Fn.tan(nonLin),
+        Fn.asin(nonLin),
+        Fn.acos(nonLin),
+        Fn.atan(nonLin),
+        Fn.sinh(nonLin),
+        Fn.cosh(nonLin),
+        Fn.tanh(nonLin),
+        Fn.asinh(nonLin),
+        Fn.acosh(nonLin),
+        Fn.atanh(nonLin),
+        Fn.abs(nonLin),
+        Fn.ln(Fn.sin(x * x)),
+        Fn.lambertW(nonLin),
+        Fn.erf(nonLin),
+        Fn.erfc(nonLin),
+        Fn.gamma(x),
       ]) {
         check(f.integrate('x')).isA<Integral>();
       }
@@ -83,31 +84,34 @@ void main() {
   group('Piecewise, power, exponential, and rational integration', () {
     test('integrates Piecewise expressions with continuity constants', () {
       final pw1 = Piecewise([
-        (relation: LessThan(x, IntegerNumber.zero), expr: -x),
-        (relation: Equal(x, IntegerNumber.zero), expr: IntegerNumber.zero),
-        (relation: LessEqual(x, IntegerNumber.one), expr: x),
+        (relation: Relational.lessThan(x, IntegerNumber.zero), expr: -x),
         (
-          relation: GreaterThan(IntegerNumber.two, x),
+          relation: Relational.equal(x, IntegerNumber.zero),
+          expr: IntegerNumber.zero,
+        ),
+        (relation: Relational.lessEqual(x, IntegerNumber.one), expr: x),
+        (
+          relation: Relational.greaterThan(IntegerNumber.two, x),
           expr: IntegerNumber.two * x,
         ),
         (
-          relation: GreaterEqual(IntegerNumber.of(3), x),
+          relation: Relational.greaterEqual(IntegerNumber.of(3), x),
           expr: IntegerNumber.of(3),
         ),
-        (relation: Equal(x, IntegerNumber.of(4)), expr: x),
+        (relation: Relational.equal(x, IntegerNumber.of(4)), expr: x),
       ], otherwise: IntegerNumber.of(5));
       final intPw1 = pw1.integrate('x');
       check(intPw1).isA<Piecewise>();
 
       final pw2 = Piecewise([
-        (relation: LessThan(x, IntegerNumber.zero), expr: -x),
+        (relation: Relational.lessThan(x, IntegerNumber.zero), expr: -x),
       ], otherwise: x);
       final intPw2 = pw2.integrate('x');
       check(intPw2.evaluate({'x': -2.0})).equals(-2.0);
       check(intPw2.evaluate({'x': 2.0})).equals(2.0);
 
       final pwNoOth = Piecewise([
-        (relation: LessThan(x, IntegerNumber.zero), expr: x),
+        (relation: Relational.lessThan(x, IntegerNumber.zero), expr: x),
       ]);
       check(pwNoOth.integrate('x')).isA<Piecewise>();
     });
@@ -116,23 +120,26 @@ void main() {
       'integrates affine powers, exponentials, and expanded polynomials',
       () {
         final lin = IntegerNumber.two * x + IntegerNumber.one;
-        verifyAntiderivative(Pow(lin, IntegerNumber.negativeOne));
-        verifyAntiderivative(Pow(lin, IntegerNumber.of(3)));
-        verifyAntiderivative(Pow(lin, FractionNumber.half));
+        verifyAntiderivative(Pow.of(lin, IntegerNumber.negativeOne));
+        verifyAntiderivative(Pow.of(lin, IntegerNumber.of(3)));
+        verifyAntiderivative(Pow.of(lin, FractionNumber.half));
         verifyAntiderivative(
-          Pow(Pow(x, IntegerNumber.two) + IntegerNumber.one, IntegerNumber.two),
+          Pow.of(
+            Pow.of(x, IntegerNumber.two) + IntegerNumber.one,
+            IntegerNumber.two,
+          ),
         );
-        verifyAntiderivative(Pow(Constant.e, lin));
-        verifyAntiderivative(Pow(IntegerNumber.two, lin));
-        verifyAntiderivative(Pow(const RealNumber(2.5), lin));
-        verifyAntiderivative(Pow(Tanh(lin), IntegerNumber.two));
-        verifyAntiderivative(Pow(Sinh(lin), IntegerNumber.of(3)));
-        verifyAntiderivative(Pow(Cosh(lin), IntegerNumber.of(3)));
-        verifyAntiderivative(Pow(Sinh(lin), IntegerNumber.of(4)));
-        verifyAntiderivative(Pow(Cosh(lin), IntegerNumber.of(4)));
+        verifyAntiderivative(Pow.of(Constant.e, lin));
+        verifyAntiderivative(Pow.of(IntegerNumber.two, lin));
+        verifyAntiderivative(Pow.of(const RealNumber(2.5), lin));
+        verifyAntiderivative(Pow.of(Fn.tanh(lin), IntegerNumber.two));
+        verifyAntiderivative(Pow.of(Fn.sinh(lin), IntegerNumber.of(3)));
+        verifyAntiderivative(Pow.of(Fn.cosh(lin), IntegerNumber.of(3)));
+        verifyAntiderivative(Pow.of(Fn.sinh(lin), IntegerNumber.of(4)));
+        verifyAntiderivative(Pow.of(Fn.cosh(lin), IntegerNumber.of(4)));
 
         // Negative float powers:
-        check(Expr.parse('x^(-1.0)').integrate('x')).equals(Ln(Abs(x)));
+        check(Expr.parse('x^(-1.0)').integrate('x')).equals(Fn.ln(Fn.abs(x)));
         check(Expr.parse('1/x').integrate('x'))
             .equals(Expr.parse('ln(abs(x))'));
         check(
@@ -146,8 +153,8 @@ void main() {
         check(Expr.parse('tan(x)').integrate('x'))
             .equals(Expr.parse('-ln(abs(cos(x)))').simplify());
 
-        check(Pow(IntegerNumber.of(-2), x).integrate('x')).isA<Integral>();
-        check(Pow(x, x).integrate('x')).isA<Integral>();
+        check(Pow.of(IntegerNumber.of(-2), x).integrate('x')).isA<Integral>();
+        check(Pow.of(x, x).integrate('x')).isA<Integral>();
       },
     );
 
@@ -156,79 +163,92 @@ void main() {
       () {
         final lin = IntegerNumber.two * x + IntegerNumber.one;
         verifyAntiderivative(IntegerNumber.of(3) / lin);
-        verifyAntiderivative(IntegerNumber.of(3) / Pow(lin, IntegerNumber.two));
-        verifyAntiderivative(IntegerNumber.of(3) / Cosh(lin));
+        verifyAntiderivative(
+          IntegerNumber.of(3) / Pow.of(lin, IntegerNumber.two),
+        );
+        verifyAntiderivative(IntegerNumber.of(3) / Fn.cosh(lin));
         verifyAntiderivative(
           IntegerNumber.of(3) /
               (IntegerNumber.two +
-                  Pow(Constant.e, IntegerNumber.of(4) * x + IntegerNumber.one)),
+                  Pow.of(
+                    Constant.e,
+                    IntegerNumber.of(4) * x + IntegerNumber.one,
+                  )),
         );
         verifyAntiderivative(
           IntegerNumber.of(3) /
-              Add([
-                Pow(Constant.e, IntegerNumber.of(4) * x + IntegerNumber.one),
+              Add.of([
+                Pow.of(Constant.e, IntegerNumber.of(4) * x + IntegerNumber.one),
                 IntegerNumber.two,
               ]),
         );
 
         verifyAntiderivative(
-          Cos(x) / (IntegerNumber.one + Pow(Sin(x), IntegerNumber.two)),
+          Fn.cos(x) /
+              (IntegerNumber.one + Pow.of(Fn.sin(x), IntegerNumber.two)),
         );
         verifyAntiderivative(
-          Cos(x) / Add([Pow(Sin(x), IntegerNumber.two), const RealNumber(1.0)]),
+          Fn.cos(x) /
+              Add.of([
+                Pow.of(Fn.sin(x), IntegerNumber.two),
+                const RealNumber(1.0),
+              ]),
         );
         verifyAntiderivative(
-          x / (IntegerNumber.one + Pow(x, IntegerNumber.of(4))),
+          x / (IntegerNumber.one + Pow.of(x, IntegerNumber.of(4))),
         );
         verifyAntiderivative(
-          x / (const RealNumber(1.0) + Pow(x, const RealNumber(4.0))),
+          x / (const RealNumber(1.0) + Pow.of(x, const RealNumber(4.0))),
         );
         verifyAntiderivative(
           IntegerNumber.one /
               (IntegerNumber.of(4) +
-                  IntegerNumber.of(9) * Pow(x, IntegerNumber.two)),
+                  IntegerNumber.of(9) * Pow.of(x, IntegerNumber.two)),
         );
         verifyAntiderivative(
-          IntegerNumber.one / (Constant.pi + Pow(x, IntegerNumber.two)),
+          IntegerNumber.one / (Constant.pi + Pow.of(x, IntegerNumber.two)),
         );
         verifyAntiderivative(
           IntegerNumber.one /
               (IntegerNumber.one +
                   IntegerNumber.of(4) *
                       Constant.pi *
-                      Pow(x, IntegerNumber.two)),
+                      Pow.of(x, IntegerNumber.two)),
         );
         verifyAntiderivative(
           IntegerNumber.one /
-              Add([Pow(x, IntegerNumber.two), const RealNumber(4.0)]),
+              Add.of([Pow.of(x, IntegerNumber.two), const RealNumber(4.0)]),
         );
 
         verifyAntiderivative(
-          Pow(
-            IntegerNumber.one - Pow(x, IntegerNumber.two),
+          Pow.of(
+            IntegerNumber.one - Pow.of(x, IntegerNumber.two),
             FractionNumber.negativeHalf,
           ),
           points: const [0.2, 0.5, 0.7],
         );
         verifyAntiderivative(
-          Pow(
-            IntegerNumber.one - Pow(x, IntegerNumber.two),
+          Pow.of(
+            IntegerNumber.one - Pow.of(x, IntegerNumber.two),
             const RealNumber(-0.5),
           ),
           points: const [0.2, 0.5, 0.7],
         );
         verifyAntiderivative(
-          Pow(x, IntegerNumber.two) /
-              Pow(
-                IntegerNumber.one - Pow(x, IntegerNumber.of(6)),
+          Pow.of(x, IntegerNumber.two) /
+              Pow.of(
+                IntegerNumber.one - Pow.of(x, IntegerNumber.of(6)),
                 FractionNumber.half,
               ),
           points: const [0.2, 0.5, 0.7],
         );
         verifyAntiderivative(
           x /
-              Pow(
-                Add([-Pow(x, IntegerNumber.of(4)), const RealNumber(1.0)]),
+              Pow.of(
+                Add.of([
+                  -Pow.of(x, IntegerNumber.of(4)),
+                  const RealNumber(1.0),
+                ]),
                 const RealNumber(0.5),
               ),
           points: const [0.2, 0.5, 0.7],
@@ -236,14 +256,14 @@ void main() {
 
         verifyAntiderivative(
           (IntegerNumber.two * x) /
-              (Pow(x, IntegerNumber.two) + IntegerNumber.one),
+              (Pow.of(x, IntegerNumber.two) + IntegerNumber.one),
         );
         verifyAntiderivative(
-          (Pow(x, IntegerNumber.of(3)) + IntegerNumber.one) /
+          (Pow.of(x, IntegerNumber.of(3)) + IntegerNumber.one) /
               (x + IntegerNumber.one),
         );
         verifyAntiderivative(
-          (Pow(x, IntegerNumber.two) +
+          (Pow.of(x, IntegerNumber.two) +
                   IntegerNumber.two * x +
                   IntegerNumber.of(3)) /
               (x + IntegerNumber.one),
@@ -321,7 +341,7 @@ void main() {
         (variable: 'y', from: 0, to: 1),
         (variable: 'x', from: 0, to: 1),
       ]);
-      check(nested).equals(SinIntegral(IntegerNumber.one));
+      check(nested).equals(Fn.si(IntegerNumber.one));
       // \int_0^1 \int_0^1 cos(x*y) dy dx = \int_0^1 sin(x)/x dx = Si(1) \approx 0.946083070367
       check(nested.evaluate()).isCloseTo(0.946083070367183, 1e-12);
 
@@ -474,11 +494,11 @@ void main() {
         points: const [0.3, 0.8, 1.5],
       );
       verifyAntiderivative(
-        Expr.parse('fresnels(2 * x)'),
+        Expr.parse('fresnelS(2 * x)'),
         points: const [0.3, 0.8, 1.5],
       );
       verifyAntiderivative(
-        Expr.parse('fresnelc(2 * x)'),
+        Expr.parse('fresnelC(2 * x)'),
         points: const [0.3, 0.8, 1.5],
       );
       verifyAntiderivative(
@@ -568,7 +588,8 @@ void main() {
     test('omits Abs in logarithmic antiderivative for complex arguments', () {
       final sqrtNegA = Expr.parse('1 / (a + x * sqrt(-a))').integrate('x');
       check(sqrtNegA).isNotA<Integral>();
-      check(sqrtNegA.anyNode((n) => n is Abs)).isFalse;
+      check(sqrtNegA.anyNode((n) => n is Call && n.id == FunctionId.abs))
+          .isFalse;
 
       final withI = Expr.parse('1 / (x + i)').integrate('x');
       check(withI).equals(Expr.parse('ln(i + x)').simplify());
@@ -585,18 +606,20 @@ void main() {
             .equals(Expr.parse('2 * x * cos(x^2)').simplify());
 
         final binomRecip =
-            (IntegerNumber.one / Binomial(x, IntegerNumber.of(5))).integrate(
+            (IntegerNumber.one / Fn.binomial(x, IntegerNumber.of(5))).integrate(
               'x',
             );
         check(binomRecip).isNotA<Integral>();
-        check(binomRecip.anyNode((n) => n is Binomial)).isFalse;
+        check(
+          binomRecip.anyNode((n) => n is Call && n.id == FunctionId.binomial),
+        ).isFalse;
 
         verifyAntiderivative(
-          Ln(Pow(Constant.e, Cos(x))),
+          Fn.ln(Pow.of(Constant.e, Fn.cos(x))),
           points: const [0.3, 0.8, 1.4],
         );
         verifyAntiderivative(
-          Ln(Pow(IntegerNumber.two, Cos(x))),
+          Fn.ln(Pow.of(IntegerNumber.two, Fn.cos(x))),
           points: const [0.3, 0.8, 1.4],
         );
 
@@ -627,7 +650,11 @@ void main() {
 
     test('integrates Chebyshev binomials via Hypergeometric and x^s * exp(a*x) via ExpIntegralE', () {
       final binomHyper = Expr.parse('x * (2 + 3 * x^3)^(1/2)').integrate('x');
-      check(binomHyper.anyNode((n) => n is Hypergeometric)).isTrue;
+      check(
+        binomHyper.anyNode(
+          (n) => n is Call && n.id == FunctionId.hypergeometric,
+        ),
+      ).isTrue;
       verifyAntiderivative(
         binomHyper.derivative('x'),
         points: const [0.1, 0.3],
@@ -638,7 +665,8 @@ void main() {
       check(diffHyper.evaluate({'x': 0.25})).isCloseTo(0.0, 1e-8);
 
       final expE = Expr.parse('x^(-1/3) * exp(-2 * x + 1)').integrate('x');
-      check(expE.anyNode((n) => n is ExpIntegralE)).isTrue;
+      check(expE.anyNode((n) => n is Call && n.id == FunctionId.expIntegralE))
+          .isTrue;
       final diffExpE =
           (expE.derivative('x') - Expr.parse('x^(-1/3) * exp(-2 * x + 1)'))
               .simplify();
@@ -646,7 +674,8 @@ void main() {
 
       final shiftedCi = Expr.parse('cos(2 * x + 1) / (3 * x + 4)')
           .integrate('x');
-      check(shiftedCi.anyNode((n) => n is CosIntegral)).isTrue;
+      check(shiftedCi.anyNode((n) => n is Call && n.id == FunctionId.ci))
+          .isTrue;
       final diffCi =
           (shiftedCi.derivative('x') -
                   Expr.parse('cos(2 * x + 1) / (3 * x + 4)'))

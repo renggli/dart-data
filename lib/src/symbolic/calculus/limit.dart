@@ -4,6 +4,7 @@ import '../algebra/simplify/domain.dart';
 import '../assumptions.dart';
 import '../ast.dart';
 import '../compiler.dart';
+import '../functions/fn.dart';
 import 'limit_asymptotic.dart';
 import 'series.dart';
 
@@ -21,7 +22,7 @@ extension LimitExtension on Expr {
   ///
   /// ```dart
   /// final x = Variable('x');
-  /// final expr = Sin(x) / x;
+  /// final expr = Fn.sin(x) / x;
   /// final lim = expr.limit('x', 0); // 1
   /// ```
   Expr limit(
@@ -51,6 +52,8 @@ Expr computeLimit(
 
   if (expr case Add(:final terms)) {
     final termLims = <Expr>[];
+    final finiteLims = <Expr>[];
+    final unresolvedTerms = <Expr>[];
     var indeterminate = false;
     var hasInfinity = false;
     var hasNegInfinity = false;
@@ -69,23 +72,32 @@ Expr computeLimit(
           rethrow;
         }
         indeterminate = true;
-        break;
+        unresolvedTerms.add(t);
+        continue;
       }
       if (tLim.anyNode((n) => n is Limit)) {
         indeterminate = true;
-        break;
+        unresolvedTerms.add(t);
+        continue;
       }
       if (isPositiveInfinity(tLim)) {
         hasInfinity = true;
+        unresolvedTerms.add(t);
       } else if (isNegativeInfinity(tLim)) {
         hasNegInfinity = true;
+        unresolvedTerms.add(t);
+      } else if (tLim == Constant.undefined || tLim.dependsOn(variable)) {
+        indeterminate = true;
+        unresolvedTerms.add(t);
+      } else {
+        finiteLims.add(tLim);
       }
       termLims.add(tLim);
     }
     if (!indeterminate && !(hasInfinity && hasNegInfinity)) {
       if (hasInfinity) return Constant.infinity;
       if (hasNegInfinity) return negInfinity;
-      final combinedSum = Add(termLims).simplify(assumptions: assumptions);
+      final combinedSum = Add.of(termLims).simplify(assumptions: assumptions);
       if (!combinedSum.dependsOn(variable) &&
           !combinedSum.anyNode((n) => n is Limit) &&
           combinedSum != Constant.undefined) {
@@ -100,6 +112,26 @@ Expr computeLimit(
         direction: direction,
         assumptions: assumptions,
       );
+    } else if (finiteLims.isNotEmpty &&
+        unresolvedTerms.isNotEmpty &&
+        unresolvedTerms.length < terms.length) {
+      final finiteSum = Add.of(finiteLims).simplify(assumptions: assumptions);
+      final rest = unresolvedTerms.length == 1
+          ? unresolvedTerms.first
+          : Add.of(unresolvedTerms);
+      final restLim = computeLimit(
+        rest,
+        variable,
+        point,
+        direction: direction,
+        assumptions: assumptions,
+      );
+      if (!restLim.anyNode((n) => n is Limit) &&
+          restLim != Constant.undefined) {
+        if (isPositiveInfinity(restLim)) return Constant.infinity;
+        if (isNegativeInfinity(restLim)) return negInfinity;
+        return (finiteSum + restLim).simplify(assumptions: assumptions);
+      }
     }
   }
 
@@ -114,8 +146,8 @@ Expr computeLimit(
       }
     }
     if (constFactors.isNotEmpty && varFactors.isNotEmpty) {
-      final constMul = Mul(constFactors).simplify(assumptions: assumptions);
-      final varMul = Mul(varFactors).simplify(assumptions: assumptions);
+      final constMul = Mul.of(constFactors).simplify(assumptions: assumptions);
+      final varMul = Mul.of(varFactors).simplify(assumptions: assumptions);
       try {
         final varLim = computeLimit(
           varMul,
@@ -134,7 +166,6 @@ Expr computeLimit(
             variable,
             point.simplify(assumptions: assumptions),
             direction: direction,
-            isSimplified: true,
           );
         }
         if (isNegativeInfinity(varLim)) {
@@ -147,7 +178,6 @@ Expr computeLimit(
             variable,
             point.simplify(assumptions: assumptions),
             direction: direction,
-            isSimplified: true,
           );
         }
         if (!varLim.dependsOn(variable) &&
@@ -188,7 +218,10 @@ Expr computeLimit(
       } else if (isWellDefinedFinite(baseLim) &&
           isWellDefinedFinite(expLim) &&
           !(baseLim is Number && baseLim.isZero)) {
-        final direct = Pow(baseLim, expLim).simplify(assumptions: assumptions);
+        final direct = Pow.of(
+          baseLim,
+          expLim,
+        ).simplify(assumptions: assumptions);
         if (isWellDefinedFinite(direct)) {
           return direct;
         }
@@ -205,7 +238,7 @@ Expr computeLimit(
     if (oscillating) {
       throw UnsupportedError('Limit does not exist due to oscillation');
     }
-    final logForm = exponent * Ln(base);
+    final logForm = exponent * Fn.ln(base);
     try {
       final innerLim = computeLimit(
         logForm,
@@ -217,7 +250,7 @@ Expr computeLimit(
       if (isPositiveInfinity(innerLim)) return Constant.infinity;
       if (isNegativeInfinity(innerLim)) return IntegerNumber.zero;
       if (!innerLim.anyNode((n) => n is Limit)) {
-        return Pow(Constant.e, innerLim).simplify(assumptions: assumptions);
+        return Pow.of(Constant.e, innerLim).simplify(assumptions: assumptions);
       }
     } on UnsupportedError {
       // Fall through to general limit pipeline
@@ -294,7 +327,7 @@ Expr computeLimit(
       }
       if (isWellDefinedFinite(baseLim) &&
           !(baseLim is Number && baseLim.isZero)) {
-        final direct = Pow(
+        final direct = Pow.of(
           baseLim,
           exponent,
         ).simplify(assumptions: assumptions);
@@ -330,7 +363,10 @@ Expr computeLimit(
         if (isPositiveInfinity(innerLim)) return Constant.infinity;
         if (isNegativeInfinity(innerLim)) return IntegerNumber.zero;
         if (!innerLim.anyNode((n) => n is Limit)) {
-          return Pow(Constant.e, innerLim).simplify(assumptions: assumptions);
+          return Pow.of(
+            Constant.e,
+            innerLim,
+          ).simplify(assumptions: assumptions);
         }
       } else if (base is RealNumeric) {
         final cmpOne = base.abs().compareTo(IntegerNumber.one);
@@ -367,7 +403,7 @@ Expr computeLimit(
           throw UnsupportedError('Limit does not exist due to oscillation');
         }
         if (!innerLim.anyNode((n) => n is Limit)) {
-          return Pow(base, innerLim).simplify(assumptions: assumptions);
+          return Pow.of(base, innerLim).simplify(assumptions: assumptions);
         }
       }
     } on UnsupportedError catch (e) {
@@ -381,7 +417,7 @@ Expr computeLimit(
     }
   }
 
-  if (expr case Abs(expr: final inner)) {
+  if (expr case Call(id: FunctionId.abs, args: [final inner])) {
     try {
       final innerLim = computeLimit(
         inner,
@@ -396,7 +432,7 @@ Expr computeLimit(
       if (!innerLim.dependsOn(variable) &&
           !innerLim.anyNode((n) => n is Limit) &&
           innerLim != Constant.undefined) {
-        return Abs(innerLim).simplify(assumptions: assumptions);
+        return Fn.abs(innerLim).simplify(assumptions: assumptions);
       }
     } on UnsupportedError catch (e) {
       if (e.message?.contains('in R:') ?? false) {
@@ -409,7 +445,7 @@ Expr computeLimit(
     }
   }
 
-  if (expr case Ln(expr: final inner)) {
+  if (expr case Call(id: FunctionId.ln, args: [final inner])) {
     try {
       final innerLim = computeLimit(
         inner,
@@ -435,12 +471,12 @@ Expr computeLimit(
         }
         if (isNegativeInfinity(recipLim)) {
           throw UnsupportedError(
-            'Limit of Ln($inner) does not exist as $variable -> $point: argument approaches 0 from below',
+            'Limit of ln($inner) does not exist as $variable -> $point: argument approaches 0 from below',
           );
         }
       }
       if (isWellDefinedFinite(innerLim)) {
-        return Ln(innerLim).simplify(assumptions: assumptions);
+        return Fn.ln(innerLim).simplify(assumptions: assumptions);
       }
     } on UnsupportedError catch (e) {
       if (e.message?.contains('does not exist') ?? false) {
@@ -453,7 +489,10 @@ Expr computeLimit(
     }
   }
 
-  if (expr case Factorial(expr: final inner) || Gamma(expr: final inner)) {
+  if (expr case Call(
+    id: FunctionId.factorial || FunctionId.gamma,
+    args: [final inner],
+  )) {
     try {
       final innerLim = computeLimit(
         inner,
@@ -474,7 +513,11 @@ Expr computeLimit(
     }
   }
 
-  if (expr case LambertW(expr: final inner, :final branch)) {
+  if (expr case Call(id: FunctionId.lambertW, :final args)) {
+    final inner = args[0];
+    final branch = args.length > 1 && args[1] is IntegerNumber
+        ? (args[1] as IntegerNumber).toInt()
+        : 0;
     try {
       final innerLim = computeLimit(
         inner,
@@ -500,23 +543,20 @@ Expr computeLimit(
           }
           if (isPositiveInfinity(recipLim)) {
             throw UnsupportedError(
-              'Limit of LambertW($inner, branch: -1) does not exist as $variable -> $point: argument approaches 0 from above',
+              'Limit of lambertW($inner, -1) does not exist as $variable -> $point: argument approaches 0 from above',
             );
           }
         }
         if (isWellDefinedFinite(innerLim)) {
-          return LambertW(
+          return Fn.lambertW(
             innerLim,
-            branch: branch,
+            IntegerNumber.of(branch),
           ).simplify(assumptions: assumptions);
         }
       } else if (branch == 0) {
         if (isPositiveInfinity(innerLim)) return Constant.infinity;
         if (isWellDefinedFinite(innerLim)) {
-          return LambertW(
-            innerLim,
-            branch: branch,
-          ).simplify(assumptions: assumptions);
+          return Fn.lambertW(innerLim).simplify(assumptions: assumptions);
         }
       }
     } on UnsupportedError catch (e) {
@@ -530,17 +570,17 @@ Expr computeLimit(
     }
   }
 
-  if (expr
-      case Sin(expr: final inner) ||
-          Cos(expr: final inner) ||
-          Atan(expr: final inner) ||
-          Tanh(expr: final inner) ||
-          Sinh(expr: final inner) ||
-          Cosh(expr: final inner) ||
-          Asinh(expr: final inner) ||
-          Acosh(expr: final inner) ||
-          Erf(expr: final inner) ||
-          Erfc(expr: final inner)) {
+  if (expr case Call(:final id, args: [final inner])
+      when id == FunctionId.sin ||
+          id == FunctionId.cos ||
+          id == FunctionId.atan ||
+          id == FunctionId.tanh ||
+          id == FunctionId.sinh ||
+          id == FunctionId.cosh ||
+          id == FunctionId.asinh ||
+          id == FunctionId.acosh ||
+          id == FunctionId.erf ||
+          id == FunctionId.erfc) {
     try {
       final innerLim = computeLimit(
         inner,
@@ -555,8 +595,8 @@ Expr computeLimit(
             .simplify(assumptions: assumptions);
       }
       if (isPositiveInfinity(innerLim) || isNegativeInfinity(innerLim)) {
-        return switch (expr) {
-          Atan() =>
+        return switch (id) {
+          FunctionId.atan =>
             isPositiveInfinity(innerLim)
                 ? (Constant.pi / IntegerNumber.two).simplify(
                     assumptions: assumptions,
@@ -564,18 +604,18 @@ Expr computeLimit(
                 : (-(Constant.pi / IntegerNumber.two)).simplify(
                     assumptions: assumptions,
                   ),
-          Tanh() || Erf() =>
+          FunctionId.tanh || FunctionId.erf =>
             isPositiveInfinity(innerLim)
                 ? IntegerNumber.one
                 : IntegerNumber.negativeOne,
-          Erfc() =>
+          FunctionId.erfc =>
             isPositiveInfinity(innerLim)
                 ? IntegerNumber.zero
                 : IntegerNumber.two,
-          Sinh() || Asinh() =>
+          FunctionId.sinh || FunctionId.asinh =>
             isPositiveInfinity(innerLim) ? Constant.infinity : negInfinity,
-          Cosh() => Constant.infinity,
-          Acosh() =>
+          FunctionId.cosh => Constant.infinity,
+          FunctionId.acosh =>
             isPositiveInfinity(innerLim)
                 ? Constant.infinity
                 : Constant.undefined,
@@ -627,7 +667,6 @@ Expr computeLimit(
       variable,
       point.simplify(assumptions: assumptions),
       direction: direction,
-      isSimplified: true,
     );
   }
 }
@@ -833,21 +872,25 @@ bool isEverywhereContinuous(Expr expr, String variable) => switch (expr) {
   ),
   Pow(:final base, exponent: final IntegerNumber n) when !n.isNegative =>
     isEverywhereContinuous(base, variable),
-  Sin(:final expr) ||
-  Cos(:final expr) ||
-  Sinh(:final expr) ||
-  Cosh(:final expr) ||
-  Tanh(:final expr) ||
-  Atan(:final expr) ||
-  Asinh(:final expr) ||
-  Erf(:final expr) ||
-  Erfc(:final expr) ||
-  Erfi(:final expr) ||
-  FresnelS(:final expr) ||
-  FresnelC(:final expr) ||
-  SinIntegral(:final expr) ||
-  SinhIntegral(:final expr) ||
-  Abs(:final expr) => isEverywhereContinuous(expr, variable),
+  Call(
+    id: FunctionId.sin ||
+        FunctionId.cos ||
+        FunctionId.sinh ||
+        FunctionId.cosh ||
+        FunctionId.tanh ||
+        FunctionId.atan ||
+        FunctionId.asinh ||
+        FunctionId.erf ||
+        FunctionId.erfc ||
+        FunctionId.erfi ||
+        FunctionId.fresnelS ||
+        FunctionId.fresnelC ||
+        FunctionId.si ||
+        FunctionId.shi ||
+        FunctionId.abs,
+    args: [final expr],
+  ) =>
+    isEverywhereContinuous(expr, variable),
   _ => false,
 };
 
@@ -886,16 +929,20 @@ bool _isSymbolicFinite(Expr expr) => switch (expr) {
             (exponent is IntegerNumber && !exponent.isNegative)) &&
         _isSymbolicFinite(base) &&
         _isSymbolicFinite(exponent),
-  Sin(:final expr) ||
-  Cos(:final expr) ||
-  Sinh(:final expr) ||
-  Cosh(:final expr) ||
-  Atan(:final expr) ||
-  Tanh(:final expr) ||
-  Asinh(:final expr) ||
-  Erf(:final expr) ||
-  Erfc(:final expr) ||
-  Abs(:final expr) => _isSymbolicFinite(expr),
+  Call(
+    id: FunctionId.sin ||
+        FunctionId.cos ||
+        FunctionId.sinh ||
+        FunctionId.cosh ||
+        FunctionId.atan ||
+        FunctionId.tanh ||
+        FunctionId.asinh ||
+        FunctionId.erf ||
+        FunctionId.erfc ||
+        FunctionId.abs,
+    args: [final expr],
+  ) =>
+    _isSymbolicFinite(expr),
   _ => false,
 };
 
@@ -910,7 +957,7 @@ int getSign(Expr expr, [Assumptions assumptions = Assumptions.none]) {
       when rest.isNotEmpty) {
     final restExpr = switch (rest) {
       [final single] => single,
-      _ => Mul(rest),
+      _ => Mul.of(rest),
     };
     return first.sign * getSign(restExpr, assumptions);
   }
@@ -946,7 +993,7 @@ int asymptoticSignAtInfinity(
       when rest.isNotEmpty) {
     final restExpr = switch (rest) {
       [final single] => single,
-      _ => Mul(rest),
+      _ => Mul.of(rest),
     };
     return first.sign *
         asymptoticSignAtInfinity(restExpr, variable, visited, assumptions);
@@ -1027,7 +1074,4 @@ String freshLimitVar(String base, Expr expr, [Expr? point]) {
   return '${base}_$i';
 }
 
-final Expr negInfinity = Mul(const [
-  IntegerNumber.negativeOne,
-  Constant.infinity,
-], isSimplified: true);
+final Expr negInfinity = -Constant.infinity;

@@ -50,8 +50,8 @@ void main() {
       check(y.matchLinear('x')).isNull;
       check(Expr.parse('x^2 + 1').matchLinear('x')).isNull;
       check(Expr.parse('sin(x)').matchLinear('x')).isNull;
-      check((x * Sin(x)).matchLinear('x')).isNull;
-      check((IntegerNumber.two * Sin(x)).matchLinear('x')).isNull;
+      check((x * Fn.sin(x)).matchLinear('x')).isNull;
+      check((IntegerNumber.two * Fn.sin(x)).matchLinear('x')).isNull;
       check((y * (x + IntegerNumber.one) - y * x).matchLinear('x')).isNull;
     });
   });
@@ -66,8 +66,8 @@ void main() {
         ),
       ).equals(IntegerNumber.of(3));
       check(
-        (IntegerNumber.two * y * x * Sin(x)).matchScalarMultiple(
-          x * Sin(x),
+        (IntegerNumber.two * y * x * Fn.sin(x)).matchScalarMultiple(
+          x * Fn.sin(x),
           'x',
         ),
       ).equals((IntegerNumber.two * y).simplify());
@@ -84,10 +84,10 @@ void main() {
       ).equals(IntegerNumber.two);
 
       check(
-        Pow(
+        Pow.of(
           Constant.e,
           x + IntegerNumber.one,
-        ).matchScalarMultiple(Pow(Constant.e, x), 'x'),
+        ).matchScalarMultiple(Pow.of(Constant.e, x), 'x'),
       ).equals(Constant.e);
     });
 

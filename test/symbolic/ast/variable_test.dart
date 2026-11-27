@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:checks/checks.dart';
 import 'package:data/symbolic.dart';
 import 'package:test/scaffolding.dart';
@@ -7,20 +9,19 @@ void main() {
     test('evaluation, freeVariables, dependsOn, and substitute', () {
       const x = Variable('x');
       const y = Variable('y');
-      check(x.isSimplified).isTrue;
       check(() => x.evaluate({})).throws<ArgumentError>();
       check(x.evaluate({'x': 4.5})).equals(4.5);
       check(x.mapChildren((e) => y)).equals(x);
       check(x.anyNode((e) => e == x)).isTrue;
 
-      final expr = x * y + Sin(x);
+      final expr = x * y + Fn.sin(x);
       check(expr.freeVariables).unorderedEquals(['x', 'y']);
       check(expr.dependsOn('x')).isTrue;
       check(expr.dependsOn('z')).isFalse;
 
-      final sub = expr.substitute('x', IntegerNumber.zero);
+      final sub = expr.substitute('x', IntegerNumber.one);
       check(sub.freeVariables).unorderedEquals(['y']);
-      check(sub.evaluate({'y': 5.0})).equals(0.0);
+      check(sub.evaluate({'y': 5.0})).isCloseTo(5.0 + math.sin(1.0), 1e-12);
     });
   });
 
@@ -40,17 +41,16 @@ void main() {
     });
   });
 
-  group('VariableFunction AST node', () {
+  group('Symbolic Call AST node', () {
     test('parsing, formatting, simplification, substitution, and evaluation errors', () {
       const x = Variable('x');
       const y = Variable('y');
       final f = Expr.parse('f(x + x, y)');
-      check(f).equals(VariableFunction('f', [x + x, y]));
-      check(f.isSimplified).isFalse;
-      check(f.toString()).equals('f(x + x, y)');
-      check(f.toLatex()).equals('f(x + x, y)');
+      check(f).equals(Fn.symbolic('f', [IntegerNumber.two * x, y]));
+      check(f.toString()).equals('f(2 * x, y)');
+      check(f.toLatex()).equals('f(2 x, y)');
       check(f.toMathMl(root: false)).equals(
-        '<mrow><mi>f</mi><mo>(</mo><mrow><mi>x</mi><mo>+</mo><mi>x</mi></mrow><mo>,</mo><mi>y</mi><mo>)</mo></mrow>',
+        '<mrow><mi>f</mi><mo>(</mo><mrow><mn>2</mn><mi>x</mi></mrow><mo>,</mo><mi>y</mi><mo>)</mo></mrow>',
       );
       check(f.freeVariables).unorderedEquals(['x', 'y']);
       check(f.dependsOn('x')).isTrue;
@@ -59,15 +59,14 @@ void main() {
 
       final simplified = f.simplify();
       check(simplified).equals(
-        VariableFunction('f', [
-          Mul([IntegerNumber.two, x]),
+        Fn.symbolic('f', [
+          Mul.of([IntegerNumber.two, x]),
           y,
-        ], isSimplified: true),
+        ]),
       );
-      check(simplified.isSimplified).isTrue;
       check(simplified.hashCode).equals(
-        VariableFunction('f', [
-          Mul([IntegerNumber.two, x]),
+        Fn.symbolic('f', [
+          Mul.of([IntegerNumber.two, x]),
           y,
         ]).hashCode,
       );
@@ -78,8 +77,7 @@ void main() {
       check(() => simplified.evaluate({'x': 1.0, 'y': 2.0}))
           .throws<UnsupportedError>();
       check(simplified.evaluateComplex).throws<UnsupportedError>();
-      check(simplified.derivative('x'))
-          .equals(Derivative(simplified, 'x', isSimplified: true));
+      check(simplified.derivative('x')).equals(Derivative(simplified, 'x'));
       check(() => simplified.toFunction1D('x')).throws<UnsupportedError>();
     });
   });

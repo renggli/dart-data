@@ -124,8 +124,8 @@ void main() {
         -x + y + IntegerNumber.one,
         IntegerNumber.two * x + IntegerNumber.of(3) * y + IntegerNumber.one,
         Constant.pi * x + Constant.e * y + IntegerNumber.one,
-        (y + IntegerNumber.one) * Pow(x, IntegerNumber.two) + z,
-        Pow(x + y + IntegerNumber.one, IntegerNumber.two),
+        (y + IntegerNumber.one) * Pow.of(x, IntegerNumber.two) + z,
+        Pow.of(x + y + IntegerNumber.one, IntegerNumber.two),
       ]) {
         final m = Matrix<Expr>.fromRows([
           [pivot, x + IntegerNumber.one, y + IntegerNumber.one],
