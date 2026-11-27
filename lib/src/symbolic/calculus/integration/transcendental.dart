@@ -5,6 +5,8 @@ import '../../algebra/simplify.dart';
 import '../../assumptions.dart';
 import '../../ast.dart';
 import '../../functions/fn.dart';
+import '../../poly/bridge.dart';
+import '../../poly/univariate.dart';
 import '../differentiation.dart';
 import 'definite.dart';
 import 'integration.dart';
@@ -285,7 +287,13 @@ Expr? _integrateWithKernel(
   final dPoly = _polyTrim(rawD, assumptions);
   final pDeg = _polyDeg(pPoly);
   final dDeg = _polyDeg(dPoly);
-  if (dDeg < 0 || pDeg > 12 || dDeg > 12) return null;
+  if (dDeg < 0 ||
+      pDeg > 12 ||
+      dDeg > 12 ||
+      _hasHighVariableExponent(numExp, variable, 18) ||
+      _hasHighVariableExponent(denExp, variable, 18)) {
+    return null;
+  }
 
   // Ensure coefficients have no hidden occurrence of the generator `tv`
   // or nested kernels referencing `tv`.
@@ -1437,14 +1445,90 @@ int _intGcd(int a, int b) {
 // ---------------------------------------------------------------------------
 
 Expr? _safeCancel(Expr e, Assumptions assumptions) {
-  if (consumeIntegrationWork() || exceedsNodeBudget(e, 1000)) {
+  if (e is Number) {
+    return _exceedsBitBudget(e, 128) ? null : e;
+  }
+  if (consumeIntegrationWork() ||
+      exceedsNodeBudget(e, 500) ||
+      _exceedsBitBudget(e, 128)) {
     return null;
   }
-  final c = e.cancel(assumptions: assumptions);
-  if (isIntegrationBudgetExhausted() || exceedsNodeBudget(c, 400)) {
+  final vars = e.freeVariables;
+  var target = e;
+  if (vars.length <= 1) {
+    final combined = e.together(assumptions: assumptions);
+    if (exceedsNodeBudget(combined, 600) || _exceedsBitBudget(combined, 128)) {
+      return null;
+    }
+    final (rawNum, rawDen) = splitNumeratorDenominator(combined);
+    if (rawDen == IntegerNumber.one) {
+      return (exceedsNodeBudget(rawNum, 350) || _exceedsBitBudget(rawNum, 128))
+          ? null
+          : rawNum.simplify(assumptions: assumptions);
+    }
+    if (vars.length == 1) {
+      final v = vars.first;
+      final pNum = exprToPolyQ(rawNum, v);
+      final pDen = exprToPolyQ(rawDen, v);
+      if (pNum != null && pDen != null && !pDen.isZero) {
+        if (pNum.degree > 16 || pDen.degree > 16) return null;
+        final (scale: nScale, primitive: nPrim) = pNum.clearDenominators();
+        final (scale: dScale, primitive: dPrim) = pDen.clearDenominators();
+        if (_polyZExceedsBitBudget(nPrim, 128) ||
+            _polyZExceedsBitBudget(dPrim, 128)) {
+          return null;
+        }
+        final g = nPrim.gcd(dPrim);
+        final remNum = nPrim.exactDivide(g) ?? nPrim;
+        final remDen = dPrim.exactDivide(g) ?? dPrim;
+        final totalScale = nScale.divRational(dScale);
+        final numExpr = totalScale.numerator == BigInt.one
+            ? polyZToExpr(remNum, v)
+            : IntegerNumber(totalScale.numerator) * polyZToExpr(remNum, v);
+        final denExpr = totalScale.denominator == BigInt.one
+            ? polyZToExpr(remDen, v)
+            : IntegerNumber(totalScale.denominator) * polyZToExpr(remDen, v);
+        final res = (numExpr / denExpr).simplify(assumptions: assumptions);
+        return (exceedsNodeBudget(res, 350) || _exceedsBitBudget(res, 128))
+            ? null
+            : res;
+      }
+    }
+    target = combined;
+  }
+  if (consumeIntegrationWork(4) || exceedsNodeBudget(target, 350)) {
+    return null;
+  }
+  final c = target.cancel(assumptions: assumptions);
+  if (isIntegrationBudgetExhausted() ||
+      exceedsNodeBudget(c, 350) ||
+      _exceedsBitBudget(c, 128)) {
     return null;
   }
   return c;
+}
+
+bool _exceedsBitBudget(Expr expr, int maxBits) => expr.anyNode(
+  (n) => switch (n) {
+    RationalNumber(:final numerator, :final denominator) =>
+      numerator.bitLength > maxBits || denominator.bitLength > maxBits,
+    ComplexNumber(real: RationalNumber(:final numerator, :final denominator))
+        when numerator.bitLength > maxBits || denominator.bitLength > maxBits =>
+      true,
+    ComplexNumber(
+      imaginary: RationalNumber(:final numerator, :final denominator),
+    )
+        when numerator.bitLength > maxBits || denominator.bitLength > maxBits =>
+      true,
+    _ => false,
+  },
+);
+
+bool _polyZExceedsBitBudget(PolyZ poly, int maxBits) {
+  for (final c in poly.coeffs) {
+    if (c.bitLength > maxBits) return true;
+  }
+  return false;
 }
 
 bool _hasHighVariableExponent(Expr expr, String variable, int limit) =>

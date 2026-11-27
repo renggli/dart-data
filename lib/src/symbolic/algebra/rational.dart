@@ -98,14 +98,18 @@ extension RationalFunctionExtension on Expr {
         final remNum = nPrim.exactDivide(g) ?? nPrim;
         final remDen = dPrim.exactDivide(g) ?? dPrim;
         final totalScale = nScale.divRational(dScale);
-        final factoredNum = totalScale.numerator == BigInt.one
+        final numExpr = remNum.degree <= 8
             ? factorPolyQToExpr(remNum.toPolyQ(), v)
-            : (IntegerNumber(totalScale.numerator) *
-                  factorPolyQToExpr(remNum.toPolyQ(), v));
-        final factoredDen = totalScale.denominator == BigInt.one
+            : polyZToExpr(remNum, v);
+        final denExpr = remDen.degree <= 8
             ? factorPolyQToExpr(remDen.toPolyQ(), v)
-            : (IntegerNumber(totalScale.denominator) *
-                  factorPolyQToExpr(remDen.toPolyQ(), v));
+            : polyZToExpr(remDen, v);
+        final factoredNum = totalScale.numerator == BigInt.one
+            ? numExpr
+            : (IntegerNumber(totalScale.numerator) * numExpr);
+        final factoredDen = totalScale.denominator == BigInt.one
+            ? denExpr
+            : (IntegerNumber(totalScale.denominator) * denExpr);
         return cancelFactoredFraction(
           factoredNum,
           factoredDen,

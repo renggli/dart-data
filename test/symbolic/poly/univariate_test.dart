@@ -50,6 +50,41 @@ void main() {
         check(pseudo.quotient).equals(gSq);
       },
     );
+
+    test(
+      'fast-paths coprime high-degree GCDs and preserves non-trivial GCDs',
+      () {
+        final big = BigInt.one << 80;
+        final coprimeA = PolyZ([
+          BigInt.one,
+          big,
+          BigInt.from(3),
+          BigInt.zero,
+          BigInt.from(5),
+          big + BigInt.one,
+          BigInt.from(7),
+          BigInt.from(11),
+        ]);
+        final coprimeB = PolyZ([
+          BigInt.from(2),
+          BigInt.from(3),
+          big - BigInt.one,
+          BigInt.from(13),
+          BigInt.from(17),
+          BigInt.zero,
+          BigInt.from(19),
+        ]);
+        check(coprimeA.gcd(coprimeB)).equals(PolyZ.one);
+        check(
+          coprimeA.scale(BigInt.from(6)).gcd(coprimeB.scale(BigInt.from(10))),
+        ).equals(PolyZ.constant(BigInt.two));
+
+        final common = PolyZ([BigInt.from(3), BigInt.from(-2), BigInt.one]);
+        final withCommonA = (coprimeA * common).scale(BigInt.from(6));
+        final withCommonB = (coprimeB * common).scale(BigInt.from(10));
+        check(withCommonA.gcd(withCommonB)).equals(common.scale(BigInt.two));
+      },
+    );
   });
 
   group('PolyQ exact rational polynomials', () {

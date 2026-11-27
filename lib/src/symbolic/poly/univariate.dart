@@ -242,6 +242,11 @@ final class PolyZ {
     final contentGcd = content().gcd(other.content());
     var a = primitivePart();
     var b = other.primitivePart();
+    if (a.degree >= 2 &&
+        b.degree >= 2 &&
+        _areCoprimeModPrime(a.coeffs, b.coeffs)) {
+      return PolyZ.constant(contentGcd);
+    }
     while (!b.isZero) {
       if (b.isConstant) {
         return PolyZ.constant(contentGcd);
@@ -632,6 +637,18 @@ final class PolyQ {
   String toString() => 'PolyQ($coeffs)';
 }
 
+bool _areCoprimeModPrime(List<BigInt> aCoeffs, List<BigInt> bCoeffs) {
+  const p = 32749;
+  final bigP = BigInt.from(p);
+  final degA = aCoeffs.length - 1;
+  final degB = bCoeffs.length - 1;
+  if (degA < 0 || degB < 0) return false;
+  final a = [for (final c in aCoeffs) (c % bigP).toInt()];
+  final b = [for (final c in bCoeffs) (c % bigP).toInt()];
+  if (a[degA] == 0 || b[degB] == 0) return false;
+  return _polyGcdModPrimeIsOne(a, degA, b, degB, p);
+}
+
 bool _isSquareFreeModPrime(List<BigInt> coeffs) {
   const p = 32749;
   final bigP = BigInt.from(p);
@@ -654,9 +671,26 @@ bool _isSquareFreeModPrime(List<BigInt> coeffs) {
   }
   if (degB < n - 1) return false;
 
-  var degA = n;
+  return _polyGcdModPrimeIsOne(a, n, b, degB, p);
+}
+
+bool _polyGcdModPrimeIsOne(
+  List<int> a,
+  int degA,
+  List<int> b,
+  int degB,
+  int p,
+) {
   var curA = a;
   var curB = b;
+  if (degA < degB) {
+    final tmp = curA;
+    curA = curB;
+    curB = tmp;
+    final tmpD = degA;
+    degA = degB;
+    degB = tmpD;
+  }
   while (degB > 0) {
     final invLeadB = _modInv(curB[degB], p);
     var remDeg = degA;
