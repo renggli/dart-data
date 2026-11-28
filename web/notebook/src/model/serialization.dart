@@ -6,13 +6,14 @@ import 'value.dart';
 /// Serializes a [CalcValue] to a JSON-compatible map for worker messaging and
 /// snapshot persistence.
 Map<String, Object?> valueToJson(CalcValue value) => switch (value) {
-  ExprValue(:final expr) => {'type': 'expr', 'expr': expr.toString()},
+  ExprValue(:final expr) => {'type': 'expr', 'expr': _exprToJson(expr)},
   StringValue(:final value) => {'type': 'string', 'value': value},
   BoolValue(:final value) => {'type': 'bool', 'value': value},
   VectorValue(:final vector) => {
     'type': 'vector',
     'elements': [
-      for (var i = 0; i < vector.length; i++) vector.getUnchecked(i).toString(),
+      for (var i = 0; i < vector.length; i++)
+        _exprToJson(vector.getUnchecked(i)),
     ],
   },
   MatrixValue(:final matrix) => {
@@ -21,7 +22,7 @@ Map<String, Object?> valueToJson(CalcValue value) => switch (value) {
       for (var r = 0; r < matrix.rowCount; r++)
         [
           for (var c = 0; c < matrix.colCount; c++)
-            matrix.getUnchecked(r, c).toString(),
+            _exprToJson(matrix.getUnchecked(r, c)),
         ],
     ],
   },
@@ -94,6 +95,48 @@ Map<String, Object?> valueToJson(CalcValue value) => switch (value) {
     'message': message,
     'title': ?title,
   },
+  SliderValue(
+    :final key,
+    :final symbol,
+    :final label,
+    :final min,
+    :final max,
+    :final step,
+    :final defaultValue,
+    :final value,
+  ) =>
+    {
+      'type': 'slider',
+      'key': key,
+      'symbol': ?symbol,
+      'label': ?label,
+      'min': min,
+      'max': max,
+      'step': step,
+      'defaultValue': defaultValue,
+      'value': value,
+    },
+  InputValue(
+    :final key,
+    :final symbol,
+    :final label,
+    :final defaultSource,
+    :final source,
+    :final evaluated,
+  ) =>
+    {
+      'type': 'input',
+      'key': key,
+      'symbol': ?symbol,
+      'label': ?label,
+      'defaultSource': defaultSource,
+      'source': source,
+      'evaluated': valueToJson(evaluated),
+    },
+  ControlGroupValue(:final controls) => {
+    'type': 'controls',
+    'controls': [for (final c in controls) valueToJson(c)],
+  },
   ErrorValue(:final message, :final offset, :final suggestion, :final source) =>
     {
       'type': 'error',
@@ -109,21 +152,20 @@ CalcValue valueFromJson(Map<String, Object?> json) {
   final type = json['type']! as String;
   switch (type) {
     case 'expr':
-      return ExprValue(Expr.parse(json['expr']! as String));
+      return ExprValue(_exprFromJson(json['expr']));
     case 'string':
       return StringValue(json['value']! as String);
     case 'bool':
       return BoolValue(json['value']! as bool);
     case 'vector':
       final elements = [
-        for (final s in json['elements']! as List<Object?>)
-          Expr.parse(s! as String),
+        for (final s in json['elements']! as List<Object?>) _exprFromJson(s),
       ];
       return VectorValue(Vector<Expr>.fromList(elements, type: exprDataType));
     case 'matrix':
       final rows = [
         for (final row in json['rows']! as List<Object?>)
-          [for (final s in row! as List<Object?>) Expr.parse(s! as String)],
+          [for (final s in row! as List<Object?>) _exprFromJson(s)],
       ];
       return MatrixValue(Matrix<Expr>.fromRows(rows, type: exprDataType));
     case 'list':
@@ -180,6 +222,31 @@ CalcValue valueFromJson(Map<String, Object?> json) {
         json['message']! as String,
         title: json['title'] as String?,
       );
+    case 'slider':
+      return SliderValue(
+        key: json['key'] as String? ?? '',
+        symbol: json['symbol'] as String?,
+        label: json['label'] as String?,
+        min: (json['min']! as num).toDouble(),
+        max: (json['max']! as num).toDouble(),
+        step: (json['step']! as num).toDouble(),
+        defaultValue: (json['defaultValue']! as num).toDouble(),
+        value: (json['value']! as num).toDouble(),
+      );
+    case 'input':
+      return InputValue(
+        key: json['key'] as String? ?? '',
+        symbol: json['symbol'] as String?,
+        label: json['label'] as String?,
+        defaultSource: json['defaultSource']! as String,
+        source: json['source']! as String,
+        evaluated: valueFromJson(json['evaluated']! as Map<String, Object?>),
+      );
+    case 'controls':
+      return ControlGroupValue([
+        for (final c in json['controls']! as List<Object?>)
+          valueFromJson(c! as Map<String, Object?>) as ControlValue,
+      ]);
     case 'error':
       return ErrorValue(
         json['message']! as String,
@@ -190,4 +257,46 @@ CalcValue valueFromJson(Map<String, Object?> json) {
     default:
       throw FormatException('Unknown CalcValue type: $type');
   }
+}
+
+bool _needsStructuralEncoding(Expr expr) => switch (expr) {
+  Mul(:final factors) =>
+    factors.whereType<Number>().length > 1 ||
+        factors.any(_needsStructuralEncoding),
+  Pow(:final base, :final exponent) =>
+    (base is Number && exponent is Number) ||
+        _needsStructuralEncoding(base) ||
+        _needsStructuralEncoding(exponent),
+  _ => false,
+};
+
+Object _exprToJson(Expr expr) {
+  if (!_needsStructuralEncoding(expr)) return expr.toString();
+  return switch (expr) {
+    Mul(:final factors) => {
+      'k': 'mul',
+      'f': [for (final f in factors) _exprToJson(f)],
+    },
+    Pow(:final base, :final exponent) => {
+      'k': 'pow',
+      'b': _exprToJson(base),
+      'e': _exprToJson(exponent),
+    },
+    _ => expr.toString(),
+  };
+}
+
+Expr _exprFromJson(Object? raw) {
+  if (raw is String) return Expr.parse(raw);
+  if (raw is Map) {
+    final map = raw.cast<String, Object?>();
+    switch (map['k']) {
+      case 'mul':
+        final rawFactors = map['f']! as List<Object?>;
+        return Mul.raw([for (final f in rawFactors) _exprFromJson(f)]);
+      case 'pow':
+        return Pow.raw(_exprFromJson(map['b']), _exprFromJson(map['e']));
+    }
+  }
+  throw FormatException('Invalid serialized expression: $raw');
 }

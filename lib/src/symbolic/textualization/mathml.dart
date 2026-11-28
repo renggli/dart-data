@@ -195,7 +195,7 @@ String _formatMulProductMathMl(List<Expr> factors, int decimalPlaces) {
     case [IntegerNumber(isNegativeOne: true), ...final rest]:
       final operand = switch (rest) {
         [final single] => single,
-        _ => Mul.of(rest),
+        _ => Mul.raw(rest),
       };
       return '<mrow><mo form="prefix">&#x2212;</mo>${_formatNegOperand(operand, decimalPlaces)}</mrow>';
     default:

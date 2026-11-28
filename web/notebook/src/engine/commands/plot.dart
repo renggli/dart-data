@@ -4,6 +4,61 @@ import '../../language/signature.dart';
 import '../../model/value.dart';
 import '../commands.dart';
 
+void _validatePlot(
+  List<Expr> exprs,
+  Set<String> allowedVars, {
+  required PlotKind kind,
+  required String xVar,
+  String? yVar,
+  String? zVar,
+}) {
+  final unbound = <String>{};
+  for (final expr in exprs) {
+    unbound.addAll(expr.freeVariables.difference(allowedVars));
+  }
+  if (unbound.isNotEmpty) {
+    final sorted = unbound.toList()..sort();
+    final quoted = sorted.map((v) => "'$v'").join(', ');
+    final noun = sorted.length == 1 ? 'variable' : 'variables';
+    final pronoun = sorted.length == 1 ? 'it' : 'them';
+    throw ArgumentBindingException(
+      'Unbound $noun $quoted in plot expression. Define $pronoun first.',
+    );
+  }
+  for (final expr in exprs) {
+    switch (kind) {
+      case PlotKind.function2d || PlotKind.parametric2d:
+        expr.toFunction1D(xVar);
+      case PlotKind.complex2d || PlotKind.complex3d:
+        expr.toComplexFunction1D(xVar);
+      case PlotKind.surface3d ||
+          PlotKind.heatmap2d ||
+          PlotKind.vectorField2d ||
+          PlotKind.ode2d:
+        expr.toVectorFunction([xVar, yVar ?? 'y']);
+      case PlotKind.vectorField3d:
+        expr.toVectorFunction([xVar, yVar ?? 'y', zVar ?? 'z']);
+    }
+  }
+}
+
+({String xVar, String yVar}) _inferVars2D(
+  Set<String> vars, {
+  String? explicitX,
+  String? explicitY,
+}) {
+  if (explicitX != null && explicitY != null) {
+    return (xVar: explicitX, yVar: explicitY);
+  }
+  final remaining = vars.toList()..sort();
+  final xVar =
+      explicitX ?? (vars.contains('x') ? 'x' : remaining.firstOrNull ?? 'x');
+  remaining.remove(xVar);
+  final yVar =
+      explicitY ?? (vars.contains('y') ? 'y' : remaining.firstOrNull ?? 'y');
+  return (xVar: xVar, yVar: yVar);
+}
+
 final List<Command> plotCommands = [
   Command(
     name: 'plot',
@@ -41,6 +96,7 @@ final List<Command> plotCommands = [
       final v = inferVariable(exprs.first, args.symbolOrNull('var'));
       final xRange = args.numericRange('x');
       final yRange = args.numericRangeOrNull('y');
+      _validatePlot(exprs, {v}, kind: PlotKind.function2d, xVar: v);
 
       return PlotValue(
         expressions: exprs,
@@ -81,6 +137,12 @@ final List<Command> plotCommands = [
       final yExpr = args.expr('yExpr');
       final tVar = args.symbolOrNull('var') ?? inferVariable(xExpr);
       final tRange = args.numericRange('t');
+      _validatePlot(
+        [xExpr, yExpr],
+        {tVar},
+        kind: PlotKind.parametric2d,
+        xVar: tVar,
+      );
 
       return PlotValue(
         expressions: [xExpr, yExpr],
@@ -129,14 +191,23 @@ final List<Command> plotCommands = [
     buildChipCall: (input, _) => 'plot3d($input)',
     run: (args, _) {
       final expr = args.expr('expr');
-      final vars = expr.freeVariables.toList()..sort();
-      final xVar =
-          args.symbolOrNull('xVar') ?? (vars.isNotEmpty ? vars[0] : 'x');
-      final yVar =
-          args.symbolOrNull('yVar') ?? (vars.length > 1 ? vars[1] : 'y');
+      final inferred = _inferVars2D(
+        expr.freeVariables,
+        explicitX: args.symbolOrNull('xVar'),
+        explicitY: args.symbolOrNull('yVar'),
+      );
+      final xVar = inferred.xVar;
+      final yVar = inferred.yVar;
       final xRange = args.numericRange('x');
       final yRange = args.numericRange('y');
       final grid = args.intVal('grid').clamp(12, 128);
+      _validatePlot(
+        [expr],
+        {xVar, yVar},
+        kind: PlotKind.surface3d,
+        xVar: xVar,
+        yVar: yVar,
+      );
 
       return PlotValue(
         expressions: [expr],
@@ -184,9 +255,10 @@ final List<Command> plotCommands = [
     examples: ['plotcomplex((z^2 - 1)/(z + 2), z, re: -3..3, im: -3..3)'],
     run: (args, _) {
       final expr = args.expr('expr');
-      final zVar = args.symbolOrNull('var') ?? inferVariable(expr, null);
+      final zVar = args.symbolOrNull('var') ?? inferVariable(expr);
       final reRange = args.numericRange('re');
       final imRange = args.numericRange('im');
+      _validatePlot([expr], {zVar}, kind: PlotKind.complex2d, xVar: zVar);
 
       return PlotValue(
         expressions: [expr],
@@ -229,10 +301,11 @@ final List<Command> plotCommands = [
     examples: ['plotcomplex3d(1/(z^2 + 1), z, re: -2..2, im: -2..2)'],
     run: (args, _) {
       final expr = args.expr('expr');
-      final zVar = args.symbolOrNull('var') ?? inferVariable(expr, null);
+      final zVar = args.symbolOrNull('var') ?? inferVariable(expr);
       final reRange = args.numericRange('re');
       final imRange = args.numericRange('im');
       final grid = args.intVal('grid').clamp(12, 128);
+      _validatePlot([expr], {zVar}, kind: PlotKind.complex3d, xVar: zVar);
 
       return PlotValue(
         expressions: [expr],
@@ -284,6 +357,13 @@ final List<Command> plotCommands = [
       final y0 = args.doubleVal('y0');
       final tRange = args.numericRange('t');
       final method = args.stringVal('method');
+      _validatePlot(
+        [rhs],
+        {tVar, yVar},
+        kind: PlotKind.ode2d,
+        xVar: tVar,
+        yVar: yVar,
+      );
 
       return PlotValue(
         expressions: [rhs],
@@ -332,15 +412,23 @@ final List<Command> plotCommands = [
     run: (args, _) {
       final uExpr = args.expr('uExpr');
       final vExpr = args.expr('vExpr');
-      final vars = {...uExpr.freeVariables, ...vExpr.freeVariables}.toList()
-        ..sort();
-      final xVar =
-          args.symbolOrNull('xVar') ?? (vars.isNotEmpty ? vars[0] : 'x');
-      final yVar =
-          args.symbolOrNull('yVar') ?? (vars.length > 1 ? vars[1] : 'y');
+      final inferred = _inferVars2D(
+        {...uExpr.freeVariables, ...vExpr.freeVariables},
+        explicitX: args.symbolOrNull('xVar'),
+        explicitY: args.symbolOrNull('yVar'),
+      );
+      final xVar = inferred.xVar;
+      final yVar = inferred.yVar;
       final xRange = args.numericRange('x');
       final yRange = args.numericRange('y');
       final grid = args.intVal('grid').clamp(4, 32);
+      _validatePlot(
+        [uExpr, vExpr],
+        {xVar, yVar},
+        kind: PlotKind.vectorField2d,
+        xVar: xVar,
+        yVar: yVar,
+      );
 
       return PlotValue(
         expressions: [uExpr, vExpr],
@@ -384,14 +472,23 @@ final List<Command> plotCommands = [
     examples: ['heatmap(sin(x)*cos(y), x, y, x: -pi..pi, y: -pi..pi)'],
     run: (args, _) {
       final expr = args.expr('expr');
-      final vars = expr.freeVariables.toList()..sort();
-      final xVar =
-          args.symbolOrNull('xVar') ?? (vars.isNotEmpty ? vars[0] : 'x');
-      final yVar =
-          args.symbolOrNull('yVar') ?? (vars.length > 1 ? vars[1] : 'y');
+      final inferred = _inferVars2D(
+        expr.freeVariables,
+        explicitX: args.symbolOrNull('xVar'),
+        explicitY: args.symbolOrNull('yVar'),
+      );
+      final xVar = inferred.xVar;
+      final yVar = inferred.yVar;
       final xRange = args.numericRange('x');
       final yRange = args.numericRange('y');
       final grid = args.intVal('grid').clamp(16, 200);
+      _validatePlot(
+        [expr],
+        {xVar, yVar},
+        kind: PlotKind.heatmap2d,
+        xVar: xVar,
+        yVar: yVar,
+      );
 
       return PlotValue(
         expressions: [expr],
@@ -445,6 +542,14 @@ final List<Command> plotCommands = [
       final xRange = args.numericRange('x');
       final yRange = args.numericRange('y');
       final grid = args.intVal('grid').clamp(3, 10);
+      _validatePlot(
+        [vxExpr, vyExpr, vzExpr],
+        {xVar, yVar, args.symbolOrNull('zVar') ?? 'z'},
+        kind: PlotKind.vectorField3d,
+        xVar: xVar,
+        yVar: yVar,
+        zVar: args.symbolOrNull('zVar') ?? 'z',
+      );
 
       return PlotValue(
         expressions: [vxExpr, vyExpr, vzExpr],

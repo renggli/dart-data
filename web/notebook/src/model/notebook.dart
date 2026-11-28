@@ -65,24 +65,39 @@ final class MathCell extends NotebookCell {
     required super.source,
     required this.id,
     this.value,
-    this.assignedSymbol,
-    this.definedFunction,
+    Set<String>? assignedSymbols,
+    String? assignedSymbol,
+    Set<String>? definedFunctions,
+    String? definedFunction,
     this.referencedResults = const {},
     this.referencedSymbols = const {},
+    Map<String, Object?>? controlValues,
     this.stale = false,
     this.collapsed = false,
     this.preserveForm = false,
-  });
+  }) : assignedSymbols = assignedSymbols ?? {?assignedSymbol},
+       definedFunctions = definedFunctions ?? {?definedFunction},
+       controlValues = controlValues ?? {};
 
   factory fromJson(Map<String, Object?> json) {
     final rawVal = json['value'] as Map<String, Object?>?;
+    final rawAssigned = json['assignedSymbols'] as List<Object?>?;
+    final singleAssigned = json['assignedSymbol'] as String?;
+    final rawDefined = json['definedFunctions'] as List<Object?>?;
+    final singleDefined = json['definedFunction'] as String?;
+    final rawControls =
+        json['controlValues'] as Map<String, Object?>? ?? const {};
     return MathCell(
       uid: json['uid']! as String,
       source: json['source']! as String,
       id: (json['id']! as num).toInt(),
       value: rawVal == null ? null : valueFromJson(rawVal),
-      assignedSymbol: json['assignedSymbol'] as String?,
-      definedFunction: json['definedFunction'] as String?,
+      assignedSymbols: rawAssigned != null
+          ? {for (final s in rawAssigned) s! as String}
+          : {?singleAssigned},
+      definedFunctions: rawDefined != null
+          ? {for (final f in rawDefined) f! as String}
+          : {?singleDefined},
       referencedResults: {
         for (final r in json['referencedResults'] as List<Object?>? ?? const [])
           (r! as num).toInt(),
@@ -91,6 +106,7 @@ final class MathCell extends NotebookCell {
         for (final s in json['referencedSymbols'] as List<Object?>? ?? const [])
           s! as String,
       },
+      controlValues: Map<String, Object?>.of(rawControls),
       stale: json['stale'] as bool? ?? false,
       collapsed: json['collapsed'] as bool? ?? false,
       preserveForm: json['preserveForm'] as bool? ?? false,
@@ -99,13 +115,20 @@ final class MathCell extends NotebookCell {
 
   final int id;
   CalcValue? value;
-  String? assignedSymbol;
-  String? definedFunction;
+  Set<String> assignedSymbols;
+  Set<String> definedFunctions;
   Set<int> referencedResults;
   Set<String> referencedSymbols;
+  Map<String, Object?> controlValues;
   bool stale;
   bool collapsed;
   bool preserveForm;
+
+  String? get assignedSymbol => assignedSymbols.firstOrNull;
+  set assignedSymbol(String? name) => assignedSymbols = {?name};
+
+  String? get definedFunction => definedFunctions.firstOrNull;
+  set definedFunction(String? name) => definedFunctions = {?name};
 
   @override
   Map<String, Object?> toJson() => {
@@ -114,10 +137,12 @@ final class MathCell extends NotebookCell {
     'id': id,
     'source': source,
     if (value != null) 'value': valueToJson(value!),
-    if (assignedSymbol != null) 'assignedSymbol': assignedSymbol,
-    if (definedFunction != null) 'definedFunction': definedFunction,
+    if (assignedSymbols.isNotEmpty) 'assignedSymbols': assignedSymbols.toList(),
+    if (definedFunctions.isNotEmpty)
+      'definedFunctions': definedFunctions.toList(),
     'referencedResults': referencedResults.toList(),
     'referencedSymbols': referencedSymbols.toList(),
+    if (controlValues.isNotEmpty) 'controlValues': controlValues,
     'stale': stale,
     'collapsed': collapsed,
     'preserveForm': preserveForm,
@@ -256,12 +281,8 @@ final class NotebookDocument {
           if (hit) {
             cell.stale = true;
             dirtyResults.add(cell.id);
-            if (cell.assignedSymbol != null) {
-              dirtySymbols.add(cell.assignedSymbol!);
-            }
-            if (cell.definedFunction != null) {
-              dirtySymbols.add(cell.definedFunction!);
-            }
+            dirtySymbols.addAll(cell.assignedSymbols);
+            dirtySymbols.addAll(cell.definedFunctions);
             changed = true;
           }
         } else if (cell is MarkdownCell && !cell.stale) {
@@ -303,6 +324,8 @@ final class NotebookDocument {
 
     final lines = markdown.replaceAll('\r\n', '\n').split('\n');
     final mdBuf = <String>[];
+    var inCodeFence = false;
+    var inDisplayMath = false;
 
     void flushMarkdown() {
       final text = mdBuf.join('\n').trim();
@@ -315,6 +338,22 @@ final class NotebookDocument {
     var i = 0;
     while (i < lines.length) {
       final trimmed = lines[i].trim();
+      if (inCodeFence) {
+        mdBuf.add(lines[i]);
+        if (trimmed.startsWith('```')) {
+          inCodeFence = false;
+        }
+        i++;
+        continue;
+      }
+      if (inDisplayMath) {
+        mdBuf.add(lines[i]);
+        if (trimmed == r'$$') {
+          inDisplayMath = false;
+        }
+        i++;
+        continue;
+      }
       if (trimmed == '```math') {
         flushMarkdown();
         i++;
@@ -329,6 +368,13 @@ final class NotebookDocument {
           insertMathCell(code);
         }
         continue;
+      }
+      if (trimmed.startsWith('```')) {
+        inCodeFence = true;
+      } else if (trimmed == r'$$') {
+        inDisplayMath = true;
+      } else if (_atxHeadingPattern.hasMatch(trimmed)) {
+        flushMarkdown();
       }
       mdBuf.add(lines[i]);
       i++;
@@ -384,4 +430,6 @@ final class NotebookDocument {
       env.settings = loaded.settings;
     }
   }
+
+  static final RegExp _atxHeadingPattern = RegExp(r'^#{1,6}\s+');
 }

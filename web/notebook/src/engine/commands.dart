@@ -6,6 +6,7 @@ import '../model/value.dart';
 import 'commands/algebra.dart';
 import 'commands/calculus.dart';
 import 'commands/complex.dart';
+import 'commands/interactive.dart';
 import 'commands/linear.dart';
 import 'commands/numbers.dart';
 import 'commands/numeric.dart';
@@ -17,6 +18,7 @@ enum CommandCategory {
   algebra('Algebra'),
   calculus('Calculus'),
   plot('Plotting'),
+  interactive('Interactive'),
   numeric('Numeric'),
   linear('Linear Algebra'),
   complex('Complex'),
@@ -71,6 +73,7 @@ final class CommandRegistry {
       ...algebraCommands,
       ...calculusCommands,
       ...plotCommands,
+      ...interactiveCommands,
       ...numericCommands,
       ...linearCommands,
       ...complexCommands,

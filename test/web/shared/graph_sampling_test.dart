@@ -122,6 +122,10 @@ void main() {
       );
       check(vec.showVectors).isTrue;
       check(vec.samples.length).equals(25);
+      final resampled = vec.resampler!(domain, cols: 240, rows: 180);
+      check(resampled.cols).equals(5);
+      check(resampled.rows).equals(5);
+      check(resampled.samples.length).equals(25);
     });
   });
 

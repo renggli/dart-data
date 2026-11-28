@@ -10,21 +10,27 @@ import 'commands.dart';
 
 /// Result of evaluating a notebook math cell.
 final class EvalResult {
-  const new({
+  new({
     required this.value,
-    this.assignedSymbol,
-    this.definedFunction,
+    Set<String>? assignedSymbols,
+    String? assignedSymbol,
+    Set<String>? definedFunctions,
+    String? definedFunction,
     this.preserveForm = false,
     this.referencedResults = const {},
     this.referencedSymbols = const {},
-  });
+  }) : assignedSymbols = assignedSymbols ?? {?assignedSymbol},
+       definedFunctions = definedFunctions ?? {?definedFunction};
 
   final CalcValue value;
-  final String? assignedSymbol;
-  final String? definedFunction;
+  final Set<String> assignedSymbols;
+  final Set<String> definedFunctions;
   final bool preserveForm;
   final Set<int> referencedResults;
   final Set<String> referencedSymbols;
+
+  String? get assignedSymbol => assignedSymbols.firstOrNull;
+  String? get definedFunction => definedFunctions.firstOrNull;
 }
 
 /// Callback resolving `r[n]` / `r[-n]` cell references during evaluation.
@@ -55,10 +61,11 @@ final class NotebookEvaluator implements EvaluatorContext {
     ResultLookup? lookupResult,
     bool forceApprox = false,
     int? currentMathId,
+    Map<String, Object?> controlOverrides = const {},
   }) {
     final trimmed = source.trim();
     if (trimmed.isEmpty) {
-      return const EvalResult(value: InfoValue(''));
+      return EvalResult(value: const InfoValue(''));
     }
 
     final referencedResults = <int>{};
@@ -70,14 +77,20 @@ final class NotebookEvaluator implements EvaluatorContext {
           ? currentMathId + index
           : index;
       referencedResults.add(targetId);
-      final val = lookupResult?.call(targetId);
-      if (val == null) {
+      final raw = lookupResult?.call(targetId);
+      if (raw == null) {
         throw ArgumentBindingException(
           'Undefined result reference r[$index]',
           offset: offset,
         );
       }
-      return val;
+      return switch (raw) {
+        SliderValue(:final unwrapped) => unwrapped,
+        InputValue(:final unwrapped) => unwrapped,
+        ControlGroupValue(:final controls) when controls.isNotEmpty =>
+          controls.last.unwrapped,
+        _ => raw,
+      };
     }
 
     final grammar = CalcGrammar(
@@ -86,11 +99,15 @@ final class NotebookEvaluator implements EvaluatorContext {
 
     try {
       final stmt = grammar.parse(trimmed);
+      var controlCounter = 0;
       final result = _evalStatement(
         stmt,
+        grammar: grammar,
         resolveRef: resolveRef,
         referencedSymbols: referencedSymbols,
         onPreserveForm: () => preserveForm = true,
+        controlOverrides: controlOverrides,
+        nextControlKey: () => 'ctrl-${controlCounter++}',
       );
 
       var val = result.value;
@@ -105,8 +122,8 @@ final class NotebookEvaluator implements EvaluatorContext {
 
       return EvalResult(
         value: val,
-        assignedSymbol: result.assignedSymbol,
-        definedFunction: result.definedFunction,
+        assignedSymbols: result.assignedSymbols,
+        definedFunctions: result.definedFunctions,
         preserveForm: preserveForm,
         referencedResults: referencedResults,
         referencedSymbols: referencedSymbols,
@@ -151,34 +168,70 @@ final class NotebookEvaluator implements EvaluatorContext {
         referencedResults: referencedResults,
         referencedSymbols: referencedSymbols,
       );
+    } on UnsupportedError catch (e) {
+      return EvalResult(
+        value: ErrorValue(e.message ?? '$e', source: trimmed),
+        referencedResults: referencedResults,
+        referencedSymbols: referencedSymbols,
+      );
     }
   }
 
-  ({CalcValue value, String? assignedSymbol, String? definedFunction})
+  ({CalcValue value, Set<String> assignedSymbols, Set<String> definedFunctions})
   _evalStatement(
     CalcStatement stmt, {
+    required CalcGrammar grammar,
     required CalcValue Function(int index, int offset) resolveRef,
     required Set<String> referencedSymbols,
     required void Function() onPreserveForm,
+    required Map<String, Object?> controlOverrides,
+    required String Function() nextControlKey,
     Map<String, CalcValue> localScope = const {},
   }) {
     switch (stmt) {
       case AssignmentStatement(:final name, :final value):
+        var rhsPreserveForm = false;
         final evaluated = _evalNode(
           value,
           resolveRef: resolveRef,
           referencedSymbols: referencedSymbols,
-          onPreserveForm: onPreserveForm,
+          onPreserveForm: () {
+            rhsPreserveForm = true;
+            onPreserveForm();
+          },
           localScope: localScope,
         );
+        if (evaluated is ControlValue) {
+          final bound = _bindControl(
+            evaluated,
+            key: name,
+            symbol: name,
+            grammar: grammar,
+            resolveRef: resolveRef,
+            referencedSymbols: referencedSymbols,
+            onPreserveForm: onPreserveForm,
+            controlOverrides: controlOverrides,
+          );
+          env.variables[name] = bound.unwrapped;
+          return (
+            value: bound,
+            assignedSymbols: {name},
+            definedFunctions: const {},
+          );
+        }
         final simplified =
-            (env.settings.autoSimplify &&
+            (!rhsPreserveForm &&
+                env.settings.autoSimplify &&
                 evaluated is ExprValue &&
                 evaluated.expr is! Relational)
             ? ExprValue(evaluated.expr.simplify(assumptions: assumptions))
             : evaluated;
         env.variables[name] = simplified;
-        return (value: simplified, assignedSymbol: name, definedFunction: null);
+        return (
+          value: simplified,
+          assignedSymbols: {name},
+          definedFunctions: const {},
+        );
 
       case FunctionDefStatement(:final name, :final params, :final body):
         final fn = UserFunction(
@@ -190,37 +243,170 @@ final class NotebookEvaluator implements EvaluatorContext {
         env.functions[name] = fn;
         return (
           value: InfoValue('Defined ${fn.formatSignature()}'),
-          assignedSymbol: null,
-          definedFunction: name,
+          assignedSymbols: const {},
+          definedFunctions: {name},
         );
 
       case EvalStatement(:final node):
-        final val = _evalNode(
+        var val = _evalNode(
           node,
           resolveRef: resolveRef,
           referencedSymbols: referencedSymbols,
           onPreserveForm: onPreserveForm,
           localScope: localScope,
         );
-        return (value: val, assignedSymbol: null, definedFunction: null);
-
-      case MultiStatement(:final statements):
-        late ({
-          CalcValue value,
-          String? assignedSymbol,
-          String? definedFunction,
-        })
-        last;
-        for (final s in statements) {
-          last = _evalStatement(
-            s,
+        if (val is ControlValue) {
+          val = _bindControl(
+            val,
+            key: nextControlKey(),
+            symbol: null,
+            grammar: grammar,
             resolveRef: resolveRef,
             referencedSymbols: referencedSymbols,
             onPreserveForm: onPreserveForm,
-            localScope: localScope,
+            controlOverrides: controlOverrides,
           );
         }
-        return last;
+        return (
+          value: val,
+          assignedSymbols: const {},
+          definedFunctions: const {},
+        );
+
+      case MultiStatement(:final statements):
+        final assigned = <String>{};
+        final defined = <String>{};
+        final controls = <ControlValue>[];
+        late CalcValue lastVal;
+        for (final s in statements) {
+          final res = _evalStatement(
+            s,
+            grammar: grammar,
+            resolveRef: resolveRef,
+            referencedSymbols: referencedSymbols,
+            onPreserveForm: onPreserveForm,
+            controlOverrides: controlOverrides,
+            nextControlKey: nextControlKey,
+            localScope: localScope,
+          );
+          assigned.addAll(res.assignedSymbols);
+          defined.addAll(res.definedFunctions);
+          lastVal = res.value;
+          if (res.value case final ControlValue ctrl) {
+            controls.add(ctrl);
+          } else if (res.value case ControlGroupValue(controls: final group)) {
+            controls.addAll(group);
+          }
+        }
+        final outVal = controls.length >= 2
+            ? ControlGroupValue(controls)
+            : lastVal;
+        return (
+          value: outVal,
+          assignedSymbols: assigned,
+          definedFunctions: defined,
+        );
+    }
+  }
+
+  ControlValue _bindControl(
+    ControlValue raw, {
+    required String key,
+    required String? symbol,
+    required CalcGrammar grammar,
+    required CalcValue Function(int index, int offset) resolveRef,
+    required Set<String> referencedSymbols,
+    required void Function() onPreserveForm,
+    required Map<String, Object?> controlOverrides,
+  }) {
+    final overrideVal = controlOverrides[key];
+    switch (raw) {
+      case SliderValue():
+        final nextVal = overrideVal is num
+            ? overrideVal.toDouble().clamp(raw.min, raw.max)
+            : raw.value;
+        return raw.copyWith(
+          key: key,
+          symbol: symbol,
+          label: raw.label ?? symbol ?? key,
+          value: nextVal,
+        );
+      case InputValue():
+        if (overrideVal is String) {
+          final evaluated = _evalInputFormula(
+            overrideVal,
+            grammar: grammar,
+            resolveRef: resolveRef,
+            referencedSymbols: referencedSymbols,
+            onPreserveForm: onPreserveForm,
+          );
+          return raw.copyWith(
+            key: key,
+            symbol: symbol,
+            label: raw.label ?? symbol ?? key,
+            source: overrideVal,
+            evaluated: evaluated,
+          );
+        }
+        return raw.copyWith(
+          key: key,
+          symbol: symbol,
+          label: raw.label ?? symbol ?? key,
+        );
+    }
+  }
+
+  CalcValue _evalInputFormula(
+    String rawSource, {
+    required CalcGrammar grammar,
+    required CalcValue Function(int index, int offset) resolveRef,
+    required Set<String> referencedSymbols,
+    required void Function() onPreserveForm,
+  }) {
+    final trimmed = rawSource.trim();
+    if (trimmed.isEmpty) {
+      return ExprValue(IntegerNumber.zero);
+    }
+    try {
+      final stmt = grammar.parse(trimmed);
+      final CalcNode node;
+      if (stmt is EvalStatement) {
+        node = stmt.node;
+      } else {
+        return const ErrorValue('Formula input expects a single expression');
+      }
+      final evaluated = _evalNode(
+        node,
+        resolveRef: resolveRef,
+        referencedSymbols: referencedSymbols,
+        onPreserveForm: onPreserveForm,
+      );
+      if (evaluated is ControlValue || evaluated is ControlGroupValue) {
+        return const ErrorValue(
+          'Nested controls are not supported inside input()',
+        );
+      }
+      if (env.settings.approxMode && evaluated is ExprValue) {
+        return ExprValue(evaluated.expr.approximate());
+      }
+      if (env.settings.autoSimplify &&
+          evaluated is ExprValue &&
+          evaluated.expr is! Relational) {
+        return ExprValue(evaluated.expr.simplify(assumptions: assumptions));
+      }
+      return evaluated;
+    } on CalcParseException catch (e) {
+      return ErrorValue(e.message, offset: e.offset, source: trimmed);
+    } on ArgumentBindingException catch (e) {
+      return ErrorValue(e.message, offset: e.offset, source: trimmed);
+    } on FormatException catch (e) {
+      return ErrorValue(e.message, offset: e.offset, source: trimmed);
+    } on ArgumentError catch (e) {
+      return ErrorValue('${e.message ?? e}', source: trimmed);
+    } on StateError catch (e) {
+      return ErrorValue(e.message, source: trimmed);
+    } on UnsupportedError catch (e) {
+      return ErrorValue(e.message ?? '$e', source: trimmed);
     }
   }
 
@@ -248,8 +434,8 @@ final class NotebookEvaluator implements EvaluatorContext {
       case SymbolNode(:final name):
         if (localScope.containsKey(name)) return localScope[name]!;
         if (boundSymbols.contains(name)) return ExprValue(Variable(name));
+        referencedSymbols.add(name);
         if (env.variables.containsKey(name)) {
-          referencedSymbols.add(name);
           return env.variables[name]!;
         }
         return ExprValue(Variable(name));

@@ -525,6 +525,219 @@ final class PlotValue extends CalcValue {
   );
 }
 
+/// Interactive control output binding a variable or expression in a notebook
+/// cell.
+sealed class ControlValue extends CalcValue {
+  const new({required this.key, this.symbol, this.label});
+
+  /// Unique key within the containing cell's control map.
+  final String key;
+
+  /// Bound variable name, if assigned via `name := ...`.
+  final String? symbol;
+
+  /// Optional human-readable label.
+  final String? label;
+
+  /// Underlying mathematical value exposed to dependents and `r[id]`.
+  CalcValue get unwrapped;
+}
+
+/// Interactive numeric slider control (`slider(min..max, default: ..., step: ..., label: ...)`).
+final class SliderValue extends ControlValue {
+  const new({
+    required super.key,
+    required this.min,
+    required this.max,
+    required this.step,
+    required this.defaultValue,
+    required this.value,
+    super.symbol,
+    super.label,
+  });
+
+  final double min;
+  final double max;
+  final double step;
+  final double defaultValue;
+  final double value;
+
+  @override
+  String get kind => 'slider';
+
+  @override
+  bool get isExact => false;
+
+  /// Numeric expression representation of [value] for binding into `env`.
+  Expr get exprValue {
+    final rounded = value.roundToDouble();
+    if ((value - rounded).abs() <= 1e-12 * math.max(1.0, value.abs()) &&
+        value.abs() < 1e12) {
+      return IntegerNumber.of(rounded.round());
+    }
+    return RealNumber.fromDouble(value);
+  }
+
+  @override
+  CalcValue get unwrapped => ExprValue(exprValue);
+
+  SliderValue copyWith({
+    String? key,
+    String? symbol,
+    String? label,
+    double? value,
+  }) => SliderValue(
+    key: key ?? this.key,
+    symbol: symbol ?? this.symbol,
+    label: label ?? this.label,
+    min: min,
+    max: max,
+    step: step,
+    defaultValue: defaultValue,
+    value: (value ?? this.value).clamp(min, max),
+  );
+
+  @override
+  String toCanonicalText() => unwrapped.toCanonicalText();
+
+  @override
+  String toMathMl({bool display = false, bool root = true}) =>
+      unwrapped.toMathMl(display: display, root: root);
+
+  @override
+  String toLatex() => unwrapped.toLatex();
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is SliderValue &&
+          key == other.key &&
+          symbol == other.symbol &&
+          label == other.label &&
+          min == other.min &&
+          max == other.max &&
+          step == other.step &&
+          defaultValue == other.defaultValue &&
+          value == other.value);
+
+  @override
+  int get hashCode => Object.hash(
+    SliderValue,
+    key,
+    symbol,
+    label,
+    min,
+    max,
+    step,
+    defaultValue,
+    value,
+  );
+}
+
+/// Interactive formula/value input box (`input(defaultExpr, label: ...)`).
+final class InputValue extends ControlValue {
+  const new({
+    required super.key,
+    required this.defaultSource,
+    required this.source,
+    required this.evaluated,
+    super.symbol,
+    super.label,
+  });
+
+  final String defaultSource;
+  final String source;
+  final CalcValue evaluated;
+
+  @override
+  String get kind => 'input';
+
+  @override
+  bool get isExact => evaluated.isExact;
+
+  @override
+  CalcValue get unwrapped => evaluated;
+
+  InputValue copyWith({
+    String? key,
+    String? symbol,
+    String? label,
+    String? source,
+    CalcValue? evaluated,
+  }) => InputValue(
+    key: key ?? this.key,
+    symbol: symbol ?? this.symbol,
+    label: label ?? this.label,
+    defaultSource: defaultSource,
+    source: source ?? this.source,
+    evaluated: evaluated ?? this.evaluated,
+  );
+
+  @override
+  String toCanonicalText() => evaluated.toCanonicalText();
+
+  @override
+  String toMathMl({bool display = false, bool root = true}) =>
+      evaluated.toMathMl(display: display, root: root);
+
+  @override
+  String toLatex() => evaluated.toLatex();
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is InputValue &&
+          key == other.key &&
+          symbol == other.symbol &&
+          label == other.label &&
+          defaultSource == other.defaultSource &&
+          source == other.source &&
+          evaluated == other.evaluated);
+
+  @override
+  int get hashCode => Object.hash(
+    InputValue,
+    key,
+    symbol,
+    label,
+    defaultSource,
+    source,
+    evaluated,
+  );
+}
+
+/// Multiple interactive controls produced by statements within a single cell.
+final class ControlGroupValue extends CalcValue {
+  const new(this.controls);
+
+  final List<ControlValue> controls;
+
+  @override
+  String get kind => 'controls';
+
+  @override
+  bool get isExact => controls.every((c) => c.isExact);
+
+  @override
+  String toCanonicalText() => controls.last.toCanonicalText();
+
+  @override
+  String toMathMl({bool display = false, bool root = true}) =>
+      controls.last.toMathMl(display: display, root: root);
+
+  @override
+  String toLatex() => controls.last.toLatex();
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is ControlGroupValue &&
+          const ListEquality<ControlValue>().equals(controls, other.controls));
+
+  @override
+  int get hashCode => Object.hash(ControlGroupValue, Object.hashAll(controls));
+}
+
 /// Informational text message value.
 final class InfoValue extends CalcValue {
   const new(this.message, {this.title});

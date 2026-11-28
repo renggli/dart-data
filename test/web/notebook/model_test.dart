@@ -3,6 +3,7 @@ import 'package:data/symbolic.dart';
 import 'package:test/scaffolding.dart';
 
 import '../../../web/notebook/src/model/notebook.dart';
+import '../../../web/notebook/src/model/serialization.dart';
 import '../../../web/notebook/src/model/value.dart';
 
 void main() {
@@ -51,5 +52,64 @@ void main() {
       final doc3 = NotebookDocument()..loadFromJson(doc.toJson());
       check(doc3.cells.length).equals(2);
     });
+
+    test('splits headings to the top of adjacent markdown cells', () {
+      const md = '''
+# Document Title
+
+Intro paragraph.
+
+## First Section
+
+```python
+# comment inside code fence
+x = 1
+```
+
+Trailing prose.
+
+## Second Section
+
+Follow-up prose.
+
+```math
+1 + 1
+```
+''';
+      final doc = NotebookDocument()..loadFromMarkdown(md);
+      check(doc.cells.length).equals(4);
+      check(doc.cells[0]).isA<MarkdownCell>();
+      check(doc.cells[0].source)
+        ..startsWith('# Document Title')
+        ..contains('Intro paragraph.');
+      check(doc.cells[1]).isA<MarkdownCell>();
+      check(doc.cells[1].source)
+        ..startsWith('## First Section')
+        ..contains('# comment inside code fence')
+        ..contains('Trailing prose.');
+      check(doc.cells[2]).isA<MarkdownCell>();
+      check(doc.cells[2].source)
+        ..startsWith('## Second Section')
+        ..contains('Follow-up prose.');
+      check(doc.cells[3]).isA<MathCell>();
+      check(doc.cells[3].source).equals('1 + 1');
+
+      final reloaded = NotebookDocument()..loadFromMarkdown(doc.toMarkdown());
+      check(reloaded.cells.length).equals(4);
+      check(reloaded.cells[2].source).equals(doc.cells[2].source);
+    });
+
+    test(
+      'serialization preserves factored integer and rational AST structure',
+      () {
+        for (final raw in ['12', '-12', '360', '12/25']) {
+          final factored = Expr.parse(raw).factor();
+          final roundTripped =
+              valueFromJson(valueToJson(ExprValue(factored))) as ExprValue;
+          check(roundTripped.expr.toMathMl()).equals(factored.toMathMl());
+          check(roundTripped.expr.toLatex()).equals(factored.toLatex());
+        }
+      },
+    );
   });
 }

@@ -50,7 +50,7 @@ final class PlotView {
   static const double maxHeight = 900.0;
 
   /// Backing plot specification.
-  final PlotValue plot;
+  PlotValue plot;
 
   /// Invoked when the user finishes resizing the plot vertically.
   final void Function(double height)? onHeightChanged;
@@ -61,6 +61,24 @@ final class PlotView {
   late final GraphWidget _widget;
 
   double get height => _widget.height;
+
+  /// Updates the mounted graph widget in-place when [nextPlot] shares the same
+  /// dimensionality and title, returning `false` if a full rebuild is needed.
+  bool update(PlotValue nextPlot) {
+    if (nextPlot.plotKind != plot.plotKind || nextPlot.title != plot.title) {
+      return false;
+    }
+    if (nextPlot == plot) return true;
+    plot = nextPlot;
+    final scene3d = _reconstructScene3D(nextPlot);
+    if (scene3d != null) {
+      _widget.setScene3D(scene3d, preserveView: true);
+    } else {
+      final scene2d = _reconstructScene2D(nextPlot);
+      _widget.setScene2D(scene2d, preserveView: false);
+    }
+    return true;
+  }
 
   /// Triggers a layout-aware re-render.
   void render() => _widget.resize();
@@ -328,6 +346,14 @@ Scene2D _reconstructScene2D(PlotValue plot) {
       'bdf2' => OdeMethod.bdf2,
       _ => OdeMethod.dormandPrince45,
     };
+    const sampleCount = 400;
+    final span = plot.maxX - plot.minX;
+    final tEval = span == 0.0
+        ? null
+        : [
+            for (var i = 0; i < sampleCount; i++)
+              plot.minX + span * (i / (sampleCount - 1)),
+          ];
     final sol = solveOde(
       f: (double t, Vector<double> y) => Vector.fromList([
         f(Vector.fromList([t, y[0]])),
@@ -336,6 +362,8 @@ Scene2D _reconstructScene2D(PlotValue plot) {
       tEnd: plot.maxX,
       y0: Vector.fromList([plot.odeY0 ?? 1.0]),
       method: method,
+      maxStep: math.max(1e-6, span.abs() / 100),
+      tEval: tEval,
     );
     return Scene2D(
       datasets: [

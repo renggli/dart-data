@@ -10,6 +10,7 @@ import '../model/value.dart';
 import 'cell_menu.dart';
 import 'chips.dart';
 import 'code_editor.dart';
+import 'control_view.dart';
 import 'highlighter.dart';
 import 'icons.dart';
 import 'plot_view.dart';
@@ -29,6 +30,7 @@ final class MathCellView {
     required this.isFocused,
     required this.onFocus,
     required this.onRun,
+    required this.onControlChanged,
     required this.onInsertFollowUp,
     required this.onInsertMathBelow,
     required this.onInsertTextBelow,
@@ -57,6 +59,8 @@ final class MathCellView {
     required bool approx,
   })
   onRun;
+  final void Function(String key, Object? value, {required bool recordUndo})
+  onControlChanged;
   final void Function(String call) onInsertFollowUp;
   final void Function() onInsertMathBelow;
   final void Function() onInsertTextBelow;
@@ -76,6 +80,7 @@ final class MathCellView {
 
   CodeEditor? _editor;
   PlotView? _plotView;
+  ControlView? _controlView;
   CalcValue? _renderedValue;
 
   /// Latest edited source text (falling back to persisted `cell.source`).
@@ -133,8 +138,27 @@ final class MathCellView {
     }
 
     if (valueChanged) {
-      _rebuildOutputSlot();
-      _plotView?.render();
+      final nextVal = nextCell.value;
+      var updatedInPlace = false;
+      if (nextVal is PlotValue && _plotView != null) {
+        try {
+          updatedInPlace = _plotView!.update(nextVal);
+        } on Object {
+          updatedInPlace = false;
+        }
+      } else if (nextVal != null && _controlView != null) {
+        updatedInPlace = _controlView!.tryUpdateInPlace(
+          nextVal,
+          digits: env.settings.digits,
+        );
+      }
+
+      if (updatedInPlace) {
+        _renderedValue = nextVal;
+      } else {
+        _rebuildOutputSlot();
+        _plotView?.render();
+      }
     }
     _rebuildChipsSlot();
   }
@@ -145,6 +169,8 @@ final class MathCellView {
 
   void dispose() {
     _menu.dispose();
+    _controlView?.dispose();
+    _controlView = null;
     _plotView?.dispose();
     _plotView = null;
   }
@@ -242,6 +268,8 @@ final class MathCellView {
   }
 
   void _rebuildOutputSlot() {
+    _controlView?.dispose();
+    _controlView = null;
     _plotView?.dispose();
     _plotView = null;
     _outputSlot.innerHTML = ''.toJS;
@@ -256,16 +284,32 @@ final class MathCellView {
 
     switch (val) {
       case PlotValue():
-        final pv = PlotView(
+        try {
+          final pv = PlotView(
+            val,
+            initialHeight: initialPlotHeight,
+            onHeightChanged: (h) {
+              initialPlotHeight = h;
+              onPlotHeightChanged?.call(h);
+            },
+          );
+          _plotView = pv;
+          _outputSlot.append(pv.root);
+        } on Object catch (e) {
+          final err = (web.document.createElement('div') as web.HTMLDivElement)
+            ..className = 'nb-output-error'
+            ..textContent = '$e';
+          _outputSlot.append(err);
+        }
+
+      case SliderValue() || InputValue() || ControlGroupValue():
+        final cv = ControlView(
           val,
-          initialHeight: initialPlotHeight,
-          onHeightChanged: (h) {
-            initialPlotHeight = h;
-            onPlotHeightChanged?.call(h);
-          },
+          digits: env.settings.digits,
+          onChanged: onControlChanged,
         );
-        _plotView = pv;
-        _outputSlot.append(pv.root);
+        _controlView = cv;
+        _outputSlot.append(cv.root);
 
       case ErrorValue(:final message, :final suggestion):
         final err = (web.document.createElement('div') as web.HTMLDivElement)

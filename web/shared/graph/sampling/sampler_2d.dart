@@ -336,7 +336,7 @@ Field2DDataset sampleVectorField2D({
       fn: fn,
       domain: nextDomain,
       cols: safeCols,
-      rows: rows ?? safeRows,
+      rows: safeRows,
       colormap: colormap,
       showRaster: showRaster,
     ),

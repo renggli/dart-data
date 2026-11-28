@@ -30,6 +30,8 @@ final class NotebookView {
 
   List<NotebookExample> _examples = const [];
   String? _focusedUid;
+  String? _mountedSignature;
+  web.HTMLSpanElement? _staleBannerMsg;
   final Map<String, MathCellView> _mathViews = {};
   final Map<String, MarkdownCellView> _mdViews = {};
   final Map<String, double> _plotHeights = {};
@@ -119,21 +121,55 @@ final class NotebookView {
       _focusedUid = null;
     }
 
-    final scrollY = web.window.scrollY;
-    root.replaceChildren(<JSAny>[].toJS);
-
-    // Minimal stale banner only when downstream cells need recomputation
     final staleCount = doc.cells
         .where(
           (c) => (c is MathCell && c.stale) || (c is MarkdownCell && c.stale),
         )
         .length;
+
+    final nextSignature = doc.cells.isEmpty
+        ? ''
+        : '${staleCount > 0 ? 'S' : ''}|'
+              '${doc.cells.map((c) => '${c is MathCell ? 'M' : 'T'}:${c.uid}').join(',')}';
+
+    // Update mounted views in-place when structure hasn't changed so live
+    // slider drags, formula inputs, and WebGL plots never lose DOM state.
+    if (doc.cells.isNotEmpty &&
+        nextSignature == _mountedSignature &&
+        focusEditorUid == null) {
+      if (staleCount > 0 && _staleBannerMsg != null) {
+        _staleBannerMsg!.textContent =
+            '$staleCount dependent cell${staleCount == 1 ? '' : 's'} out of date';
+      }
+      for (final cell in doc.cells) {
+        final isActive = cell.uid == _focusedUid;
+        switch (cell) {
+          case MarkdownCell():
+            _mdViews[cell.uid]
+              ?..update(cell, doc)
+              ..setEditing(isActive);
+          case MathCell():
+            _mathViews[cell.uid]
+              ?..update(cell, doc.env, plotHeight: _plotHeights[cell.uid])
+              ..setFocused(isActive);
+        }
+      }
+      return;
+    }
+
+    _mountedSignature = nextSignature;
+    _staleBannerMsg = null;
+
+    final scrollY = web.window.scrollY;
+    root.replaceChildren(<JSAny>[].toJS);
+
     if (staleCount > 0) {
       final banner = (web.document.createElement('div') as web.HTMLDivElement)
         ..className = 'nb-stale-banner';
       final msg = (web.document.createElement('span') as web.HTMLSpanElement)
         ..textContent =
             '$staleCount dependent cell${staleCount == 1 ? '' : 's'} out of date';
+      _staleBannerMsg = msg;
       final btn =
           (web.document.createElement('button') as web.HTMLButtonElement)
             ..type = 'button'
@@ -260,6 +296,8 @@ final class NotebookView {
                       focusCell(cell.uid);
                     }
                   },
+              onControlChanged: (key, value, {required recordUndo}) => client
+                  .updateControl(cell.uid, key, value, recordUndo: recordUndo),
               onInsertFollowUp: (call) async {
                 final idx = client.document.indexOfUid(cell.uid);
                 final insertAt = idx >= 0
@@ -345,6 +383,7 @@ final class NotebookView {
         final el = target as web.Element;
         // Keep focus when clicking inside a cell, modal, drawer, header, or sidebar
         if (el.closest('.nb-cell') != null ||
+            el.closest('.nb-ctrl-group') != null ||
             el.closest('.nb-modal') != null ||
             el.closest('.nb-right-sidebar') != null ||
             el.closest('.app-header') != null ||

@@ -146,7 +146,7 @@ String _formatMulProductLatex(List<Expr> factors, int decimalPlaces) {
     case [IntegerNumber(isNegativeOne: true), ...final rest]:
       final operand = switch (rest) {
         [final single] => single,
-        _ => Mul.of(rest),
+        _ => Mul.raw(rest),
       };
       return '-${_formatNegOperand(operand, decimalPlaces)}';
     default:

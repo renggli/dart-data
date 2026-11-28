@@ -157,7 +157,10 @@ final class CalcGrammar {
 
     return singleStmt
         .plusSeparated(sep)
-        .skip(before: _anyTrivia, after: _anyTrivia)
+        .skip(
+          before: _anyTrivia,
+          after: seq2(_htrim(char(';')).star(), _anyTrivia),
+        )
         .end()
         .map((list) {
           final stmts = list.elements;

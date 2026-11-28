@@ -62,8 +62,8 @@ final List<Command> algebraCommands = [
     signature: const FunctionSignature(
       positional: [ParamSpec.positional('expr')],
     ),
-    doc: 'Factors a polynomial over the integers/rationals.',
-    examples: ['factor(x^3 - 1)', 'factor(x^2 - 5*x + 6)'],
+    doc: 'Factors an integer, rational, or polynomial over the integers/rationals.',
+    examples: ['factor(360)', 'factor(x^3 - 1)', 'factor(x^2 - 5*x + 6)'],
     preserveForm: true,
     chipLabel: 'Factor',
     appliesTo: (v) => v is ExprValue,

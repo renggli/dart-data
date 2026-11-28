@@ -63,7 +63,7 @@ diff(sin(x), x)
     test('renders all curated example MathML without fallback and evaluates all code blocks', () {
       final rawJson = File('web/notebook/examples.json').readAsStringSync();
       final examples = NotebookExample.parseJson(rawJson);
-      check(examples.length).equals(10);
+      check(examples.length).equals(11);
       for (final example in examples) {
         final doc = NotebookDocument()..loadFromMarkdown(example.markdown);
         final evaluator = NotebookEvaluator(env: doc.env);
@@ -107,6 +107,14 @@ diff(sin(x), x)
                 }
               }
             case MarkdownCell():
+              final lines = cell.source.split('\n');
+              for (var i = 1; i < lines.length; i++) {
+                check(
+                  RegExp(r'^#{1,6}\s+').hasMatch(lines[i].trim()),
+                  because:
+                      '${example.id} heading at line $i of MarkdownCell: ${cell.source}',
+                ).isFalse;
+              }
               final html = MarkdownRenderer.renderToHtml(cell.source, doc);
               check(
                 html.contains('nb-math-fallback'),

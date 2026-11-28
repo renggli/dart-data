@@ -1024,6 +1024,106 @@ body.nb-body.sidebar-collapsed .main-content.nb-main {
   white-space: pre-wrap;
 }
 
+/* Interactive Slider & Formula Input Controls */
+.nb-ctrl-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.nb-ctrl-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+}
+
+.nb-ctrl-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.nb-ctrl-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.nb-ctrl-readout-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.nb-ctrl-num {
+  width: 78px;
+  padding: 3px 8px;
+  font-size: 12.5px;
+  text-align: right;
+}
+
+.nb-ctrl-reset {
+  width: 24px;
+  height: 24px;
+}
+
+.nb-ctrl-reset[hidden] {
+  display: none !important;
+}
+
+.nb-ctrl-slider-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.nb-ctrl-slider {
+  flex: 1;
+  min-width: 0;
+}
+
+.nb-ctrl-bound {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.nb-ctrl-input-body {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.nb-ctrl-input {
+  flex: 1;
+  min-width: 180px;
+  font-size: 13px;
+  padding: 6px 10px;
+}
+
+.nb-ctrl-input.has-error {
+  border-color: var(--accent-red);
+}
+
+.nb-ctrl-preview {
+  display: inline-flex;
+  align-items: center;
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+.nb-ctrl-error {
+  font-size: 12px;
+  color: var(--accent-red);
+}
+
 /* Markdown Prose & MathML */
 .nb-md-prose {
   font-size: 15.5px;

@@ -67,6 +67,10 @@ final class Renderer2D extends GraphRenderer {
   bool get _hasResamplableField =>
       _scene.datasets.any((d) => d is Field2DDataset && d.resampler != null);
 
+  bool get _hasResamplableRaster => _scene.datasets.any(
+    (d) => d is Field2DDataset && d.showRaster && d.resampler != null,
+  );
+
   @override
   void onStyleOrVisibilityChanged() {
     _staticHudDirty = true;
@@ -85,14 +89,15 @@ final class Renderer2D extends GraphRenderer {
       _viewBounds = _applyEqualAspect(_defaultBounds);
     }
     if (width > 1 && height > 1) {
-      if (_hasResamplableField) {
+      if (_hasResamplableRaster) {
         _scheduleProgressiveRefinement();
         return;
       }
       if (!preserveView &&
-          (_viewBounds.xMin < computed.xMin ||
+          (_hasResamplableField ||
+              _viewBounds.xMin < computed.xMin ||
               _viewBounds.xMax > computed.xMax)) {
-        _resampleForViewport(resampleFields: false);
+        _resampleForViewport(resampleFields: _hasResamplableField);
       }
     }
     _syncTextures();
@@ -105,11 +110,11 @@ final class Renderer2D extends GraphRenderer {
     _cancelRefinement();
     _viewBounds = _applyEqualAspect(_defaultBounds);
     _staticHudDirty = true;
-    if (_hasResamplableField) {
+    if (_hasResamplableRaster) {
       _scheduleProgressiveRefinement();
       return;
     }
-    _resampleForViewport(resampleFields: false);
+    _resampleForViewport(resampleFields: _hasResamplableField);
     render();
   }
 
@@ -138,11 +143,11 @@ final class Renderer2D extends GraphRenderer {
       y2Max: y2Max,
     );
     _staticHudDirty = true;
-    if (_hasResamplableField) {
+    if (_hasResamplableRaster) {
       _scheduleProgressiveRefinement();
       return;
     }
-    _resampleForViewport(resampleFields: false);
+    _resampleForViewport(resampleFields: _hasResamplableField);
     render();
   }
 
@@ -162,8 +167,11 @@ final class Renderer2D extends GraphRenderer {
         if (_scene.equalAspect) {
           _viewBounds = _applyEqualAspect(_defaultBounds);
         }
-        _scheduleProgressiveRefinement();
-        return;
+        if (_hasResamplableRaster) {
+          _scheduleProgressiveRefinement();
+          return;
+        }
+        _resampleForViewport(resampleFields: true);
       }
     }
     render();
@@ -774,6 +782,8 @@ void main() {
       plot.height / math.max(2, ds.rows),
     );
     final maxArrowLen = math.max(8.0, cellPx * 0.78);
+    final scaleX = plot.width / _viewBounds.xSpan;
+    final scaleY = plot.height / _viewBounds.ySpan;
 
     ctx.lineWidth = 1.4;
     for (final s in ds.samples) {
@@ -788,16 +798,18 @@ void main() {
       final px = _dataToPxX(s.x, plot);
       final py = _dataToPxY(s.y, plot, ds.yAxis);
       final len = maxArrowLen * (0.25 + 0.75 * t);
-      final angle = math.atan2(-s.v, s.u);
+      final angle = math.atan2(-s.v * scaleY, s.u * scaleX);
       final dx = math.cos(angle) * len;
       final dy = math.sin(angle) * len;
-      final tx = px + dx;
-      final ty = py + dy;
+      final sx = px - 0.5 * dx;
+      final sy = py - 0.5 * dy;
+      final tx = px + 0.5 * dx;
+      final ty = py + 0.5 * dy;
 
       ctx.strokeStyle = color.toJS;
       ctx.fillStyle = color.toJS;
       ctx.beginPath();
-      ctx.moveTo(px, py);
+      ctx.moveTo(sx, sy);
       ctx.lineTo(tx, ty);
       ctx.stroke();
 
@@ -1267,8 +1279,11 @@ void main() {
       if (_hudCanvas.hasPointerCapture(e.pointerId)) {
         _hudCanvas.releasePointerCapture(e.pointerId);
       }
-      if (wasDragging && _hasResamplableField) {
+      if (wasDragging && _hasResamplableRaster) {
         _scheduleProgressiveRefinement();
+      } else if (wasDragging && _hasResamplableField) {
+        _resampleForViewport(resampleFields: true);
+        render();
       }
     }).toJS;
 
@@ -1311,11 +1326,11 @@ void main() {
         y2Max: y2Max,
       );
       _staticHudDirty = true;
-      if (_hasResamplableField) {
+      if (_hasResamplableRaster) {
         _scheduleProgressiveRefinement();
         return;
       }
-      _resampleForViewport(resampleFields: false);
+      _resampleForViewport(resampleFields: _hasResamplableField);
       render();
     }).toJS;
 

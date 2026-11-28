@@ -192,6 +192,18 @@ final class EngineClient {
     return res['evaluatedUid'] as String?;
   }
 
+  Future<void> updateControl(
+    String uid,
+    String key,
+    Object? value, {
+    bool recordUndo = false,
+  }) => _request('updateControl', {
+    'uid': uid,
+    'key': key,
+    'value': value,
+    'recordUndo': recordUndo,
+  });
+
   Future<String?> insertMarkdown(String source, {int? index}) async {
     final res = await _request('insertMarkdown', {
       'source': source,

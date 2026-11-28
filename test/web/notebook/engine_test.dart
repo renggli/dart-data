@@ -258,5 +258,62 @@ void main() {
       check((x0 - 6.0).abs() < 1e-6).isTrue;
       check((y0 - 4.0).abs() < 1e-6).isTrue;
     });
+
+    test('validates unbound plot variables, trailing semicolons, and interactive controls', () {
+      final eval = NotebookEvaluator();
+
+      final errPlot = eval.evaluate('plot(sin(u * x), x)').value;
+      check(errPlot).isA<ErrorValue>();
+      check(errPlot.toCanonicalText()).contains("'u'");
+
+      final errPlot3d = eval.evaluate('plot3d(k * sin(x) * cos(y))').value;
+      check(errPlot3d).isA<ErrorValue>();
+      check(errPlot3d.toCanonicalText()).contains("'k'");
+
+      final semiRes = eval.evaluate('x0 := 3;').value;
+      check(semiRes).equals(ExprValue(IntegerNumber.of(3)));
+
+      final sRes = eval.evaluate(
+        "a := slider(-1..1, default: 0, label: 'value a');",
+      );
+      check(sRes.assignedSymbols).unorderedEquals({'a'});
+      final sVal = sRes.value as SliderValue;
+      check(sVal.label).equals('value a');
+      check(sVal.value).equals(0.0);
+      check(eval.env.variables['a']).equals(ExprValue(IntegerNumber.zero));
+
+      final multiRes = eval.evaluate(
+        "p := slider(1..5, default: 2, step: 1);\nq := input(pi, label: 'value: q');",
+      );
+      check(multiRes.assignedSymbols).unorderedEquals({'p', 'q'});
+      check(multiRes.value).isA<ControlGroupValue>();
+      final group = multiRes.value as ControlGroupValue;
+      check(group.controls.length).equals(2);
+      check(eval.env.variables['p']).equals(ExprValue(IntegerNumber.two));
+      check(eval.env.variables['q']).equals(const ExprValue(Constant.pi));
+    });
+
+    test(
+      'preserves integer factorization across direct calls and assignments',
+      () {
+        final eval = NotebookEvaluator();
+
+        final f360 = eval.evaluate('factor(360)');
+        check(f360.preserveForm).isTrue;
+        check(f360.value.toMathMl())
+            .contains('<msup><mn>2</mn><mn>3</mn></msup>');
+        check(f360.value.toLatex()).equals(r'{2}^{3} \cdot {3}^{2} \cdot 5');
+
+        final fNeg12 = eval.evaluate('factor(-12)');
+        check(fNeg12.value.toLatex()).equals(r'-{2}^{2} \cdot 3');
+        check(fNeg12.value.toMathMl()).contains('&#x2212;');
+        check(fNeg12.value.toMathMl())
+            .contains('<msup><mn>2</mn><mn>2</mn></msup>');
+
+        final assigned = eval.evaluate('a := factor(12)');
+        check(assigned.value.toLatex()).equals(r'{2}^{2} \cdot 3');
+        check(eval.env.variables['a']!.toLatex()).equals(r'{2}^{2} \cdot 3');
+      },
+    );
   });
 }
