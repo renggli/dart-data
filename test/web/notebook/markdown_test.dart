@@ -60,74 +60,78 @@ diff(sin(x), x)
       check(refs.symbols).unorderedEquals({'alpha'});
     });
 
-    test('renders all curated example MathML without fallback and evaluates all code blocks', () {
-      final rawJson = File('web/notebook/examples.json').readAsStringSync();
-      final examples = NotebookExample.parseJson(rawJson);
-      check(examples.length).equals(11);
-      for (final example in examples) {
-        final doc = NotebookDocument()..loadFromMarkdown(example.markdown);
-        final evaluator = NotebookEvaluator(env: doc.env);
-        for (final cell in doc.cells) {
-          switch (cell) {
-            case MathCell():
-              final res = evaluator.evaluate(
-                cell.source,
-                lookupResult: doc.lookupResult,
-                currentMathId: cell.id,
-              );
-              cell
-                ..value = res.value
-                ..assignedSymbol = res.assignedSymbol
-                ..definedFunction = res.definedFunction;
-              check(
-                res.value is ErrorValue,
-                because: '${example.id}: ${cell.source} (${res.value})',
-              ).isFalse;
-              if (res.value case final PlotValue plot) {
-                for (final expr in plot.expressions) {
-                  if (plot.isComplex) {
-                    expr.toComplexFunction1D(plot.variable);
-                  } else if (plot.plotKind == PlotKind.surface3d ||
-                      plot.plotKind == PlotKind.heatmap2d ||
-                      plot.plotKind == PlotKind.vectorField2d ||
-                      plot.plotKind == PlotKind.ode2d) {
-                    expr.toVectorFunction([
-                      plot.variable,
-                      plot.yVariable ?? 'y',
-                    ]);
-                  } else if (plot.plotKind == PlotKind.vectorField3d) {
-                    expr.toVectorFunction([
-                      plot.variable,
-                      plot.yVariable ?? 'y',
-                      'z',
-                    ]);
-                  } else {
-                    expr.toFunction1D(plot.variable);
+    test(
+      'renders all curated example MathML without fallback and evaluates all code blocks',
+      testOn: 'vm',
+      () {
+        final rawJson = File('web/notebook/examples.json').readAsStringSync();
+        final examples = NotebookExample.parseJson(rawJson);
+        check(examples.length).equals(11);
+        for (final example in examples) {
+          final doc = NotebookDocument()..loadFromMarkdown(example.markdown);
+          final evaluator = NotebookEvaluator(env: doc.env);
+          for (final cell in doc.cells) {
+            switch (cell) {
+              case MathCell():
+                final res = evaluator.evaluate(
+                  cell.source,
+                  lookupResult: doc.lookupResult,
+                  currentMathId: cell.id,
+                );
+                cell
+                  ..value = res.value
+                  ..assignedSymbol = res.assignedSymbol
+                  ..definedFunction = res.definedFunction;
+                check(
+                  res.value is ErrorValue,
+                  because: '${example.id}: ${cell.source} (${res.value})',
+                ).isFalse;
+                if (res.value case final PlotValue plot) {
+                  for (final expr in plot.expressions) {
+                    if (plot.isComplex) {
+                      expr.toComplexFunction1D(plot.variable);
+                    } else if (plot.plotKind == PlotKind.surface3d ||
+                        plot.plotKind == PlotKind.heatmap2d ||
+                        plot.plotKind == PlotKind.vectorField2d ||
+                        plot.plotKind == PlotKind.ode2d) {
+                      expr.toVectorFunction([
+                        plot.variable,
+                        plot.yVariable ?? 'y',
+                      ]);
+                    } else if (plot.plotKind == PlotKind.vectorField3d) {
+                      expr.toVectorFunction([
+                        plot.variable,
+                        plot.yVariable ?? 'y',
+                        'z',
+                      ]);
+                    } else {
+                      expr.toFunction1D(plot.variable);
+                    }
                   }
                 }
-              }
-            case MarkdownCell():
-              final lines = cell.source.split('\n');
-              for (var i = 1; i < lines.length; i++) {
+              case MarkdownCell():
+                final lines = cell.source.split('\n');
+                for (var i = 1; i < lines.length; i++) {
+                  check(
+                    RegExp(r'^#{1,6}\s+').hasMatch(lines[i].trim()),
+                    because:
+                        '${example.id} heading at line $i of MarkdownCell: ${cell.source}',
+                  ).isFalse;
+                }
+                final html = MarkdownRenderer.renderToHtml(cell.source, doc);
                 check(
-                  RegExp(r'^#{1,6}\s+').hasMatch(lines[i].trim()),
-                  because:
-                      '${example.id} heading at line $i of MarkdownCell: ${cell.source}',
+                  html.contains('nb-math-fallback'),
+                  because: '${example.id} markdown cell: ${cell.source}',
                 ).isFalse;
-              }
-              final html = MarkdownRenderer.renderToHtml(cell.source, doc);
-              check(
-                html.contains('nb-math-fallback'),
-                because: '${example.id} markdown cell: ${cell.source}',
-              ).isFalse;
-              check(
-                html.contains('nb-interp-missing'),
-                because: '${example.id} missing interp: ${cell.source}',
-              ).isFalse;
+                check(
+                  html.contains('nb-interp-missing'),
+                  because: '${example.id} missing interp: ${cell.source}',
+                ).isFalse;
+            }
           }
         }
-      }
-    });
+      },
+    );
 
     test('escapeHtml escapes reserved HTML characters safely', () {
       check(

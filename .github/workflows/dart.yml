@@ -34,7 +34,24 @@ jobs:
       - name: "VM Tests"
         run: dart test --platform vm
       - name: "Chrome Tests"
-        run: dart test --platform chrome
+        run: |
+          trap 'rm -f test/.chrome_bundle_test.dart' EXIT
+          python3 -c '
+          import pathlib, re
+          tests = sorted(pathlib.Path("test").rglob("*_test.dart"))
+          included = [
+              p.relative_to("test").as_posix()
+              for p in tests
+              if not re.search(r"@TestOn\s*\(\s*[\x27\"]vm[\x27\"]\s*\)", p.read_text())
+          ]
+          lines = ["import \x27package:test/scaffolding.dart\x27;"]
+          lines += [f"import \x27{rel}\x27 as t{i};" for i, rel in enumerate(included)]
+          lines.append("void main() {")
+          lines += [f"  group(\x27{rel}\x27, t{i}.main);" for i, rel in enumerate(included)]
+          lines.append("}")
+          pathlib.Path("test/.chrome_bundle_test.dart").write_text("\n".join(lines) + "\n")
+          '
+          dart test --platform chrome test/.chrome_bundle_test.dart
       - name: "Collect coverage"
         run: |
           dart pub global activate coverage
