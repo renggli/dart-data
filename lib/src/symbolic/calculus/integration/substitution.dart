@@ -354,6 +354,7 @@ Expr? tryUSubstitution(
 
   final uName = freshIntegrationVar('_u', expr, variable, depth);
   final uVar = Variable(uName);
+  final sizeWeight = expr.nodeCount > 80 ? 4 : (expr.nodeCount > 40 ? 2 : 1);
 
   var triedCandidates = 0;
   for (final candidate in candidates) {
@@ -369,7 +370,7 @@ Expr? tryUSubstitution(
     if (gPrime is Number && gPrime.isZero) continue;
 
     for (final variant in exprVariants) {
-      if (isIntegrationBudgetExhausted()) return null;
+      if (consumeIntegrationWork(sizeWeight)) return null;
       final quot = (variant / gPrime).simplify(assumptions: assumptions);
       var replaced = _replaceUCandidate(quot, candidate, uVar, variable);
       var fU = replaced.simplify(assumptions: assumptions);
@@ -382,8 +383,8 @@ Expr? tryUSubstitution(
         }
       }
       if (fU.dependsOn(variable) &&
-          !isIntegrationBudgetExhausted() &&
-          !exceedsNodeBudget(replaced, 350)) {
+          !exceedsNodeBudget(replaced, 350) &&
+          !consumeIntegrationWork(sizeWeight * 2)) {
         fU = replaced.expand().simplify(assumptions: assumptions);
       }
       if (fU.dependsOn(variable) &&
@@ -405,13 +406,13 @@ Expr? tryUSubstitution(
         );
         final (_, qDen) = splitNumeratorDenominator(quot);
         var normQuot = quot;
-        if (hasNestedFrac && !exceedsNodeBudget(quot, 350)) {
+        if (hasNestedFrac && !consumeIntegrationWork(sizeWeight * 2)) {
           normQuot = quot
               .together(assumptions: assumptions)
               .cancel(assumptions: assumptions);
         } else if (!hasNestedFrac &&
             qDen.dependsOn(variable) &&
-            !exceedsNodeBudget(quot, 350)) {
+            !consumeIntegrationWork(sizeWeight * 2)) {
           normQuot = quot.cancel(assumptions: assumptions);
         }
         if (normQuot != quot) {
@@ -423,14 +424,14 @@ Expr? tryUSubstitution(
           );
           fU = normReplaced.simplify(assumptions: assumptions);
           if (fU.dependsOn(variable) &&
-              !isIntegrationBudgetExhausted() &&
-              !exceedsNodeBudget(normReplaced, 350)) {
+              !exceedsNodeBudget(normReplaced, 350) &&
+              !consumeIntegrationWork(sizeWeight * 2)) {
             fU = normReplaced.expand().simplify(assumptions: assumptions);
           }
         }
         if (fU.dependsOn(variable) &&
-            !isIntegrationBudgetExhausted() &&
-            !exceedsNodeBudget(normQuot, 350)) {
+            !exceedsNodeBudget(normQuot, 350) &&
+            !consumeIntegrationWork(sizeWeight * 2)) {
           fU =
               _tryLinearTranscendentalReplace(
                 normQuot: normQuot,

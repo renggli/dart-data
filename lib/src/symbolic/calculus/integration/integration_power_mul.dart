@@ -1003,25 +1003,49 @@ Expr antiDerivMul(
       }
       final distDepth = hasVarDen ? (depth >= 1 ? depth : 1) : depth;
       final distTerms = <Expr>[];
+      var distFailed = false;
       for (final t in terms) {
         if (isIntegrationBudgetExhausted()) {
           return unsupportedIntegral(original, variable);
         }
-        distTerms.add(
-          antiDerivative(
-            (t * otherExpr).simplify(assumptions: assumptions),
-            variable,
-            assumptions: assumptions,
-            depth: distDepth,
-          ),
+        final termInt = antiDerivative(
+          (t * otherExpr).simplify(assumptions: assumptions),
+          variable,
+          assumptions: assumptions,
+          depth: distDepth,
         );
+        if (hasVarDen && termInt is Integral) {
+          distFailed = true;
+          break;
+        }
+        distTerms.add(termInt);
       }
-      final distSum = Add.of(distTerms).simplify(assumptions: assumptions);
-      final distHasIntegral = hasUnevaluatedIntegral(distSum, variable);
-      if (!distHasIntegral) {
-        return distSum;
+      if (!distFailed) {
+        final distSum = Add.of(distTerms).simplify(assumptions: assumptions);
+        final distHasIntegral = hasUnevaluatedIntegral(distSum, variable);
+        if (!distHasIntegral) {
+          return distSum;
+        }
+        if (!hasVarDen) {
+          if (depth == 0) {
+            final distAdd =
+                Add.of([
+                      for (final t in terms)
+                        (t * otherExpr).simplify(assumptions: assumptions),
+                    ])
+                    .expand(assumptions: assumptions)
+                    .simplify(assumptions: assumptions);
+            final paired = tryAdditiveProductRule(
+              distAdd,
+              variable,
+              assumptions: assumptions,
+            );
+            if (paired != null) return paired;
+          }
+          return distSum;
+        }
       }
-      if (depth == 0) {
+      if (depth == 0 && !isIntegrationBudgetExhausted()) {
         final distAdd = Add.of([
           for (final t in terms)
             (t * otherExpr).simplify(assumptions: assumptions),
@@ -1032,9 +1056,6 @@ Expr antiDerivMul(
           assumptions: assumptions,
         );
         if (paired != null) return paired;
-      }
-      if (!hasVarDen) {
-        return distSum;
       }
       break;
     }
@@ -1097,13 +1118,13 @@ Expr? tryAdditiveProductRule(
 
   final candList = candidates.take(8).toList();
   for (final c in candList) {
-    if (isIntegrationBudgetExhausted()) return null;
+    if (consumeIntegrationWork()) return null;
     final rawDiff = (c.derivative(variable, assumptions: assumptions) - expr)
         .simplify(assumptions: assumptions);
     if (rawDiff is Number && rawDiff.isZero) {
       return c.simplify(assumptions: assumptions);
     }
-    if (!exceedsNodeBudget(rawDiff, 300)) {
+    if (!exceedsNodeBudget(rawDiff, 300) && !consumeIntegrationWork(2)) {
       final diff = rawDiff
           .expand(assumptions: assumptions)
           .simplify(assumptions: assumptions);
@@ -1114,7 +1135,7 @@ Expr? tryAdditiveProductRule(
   }
   for (var i = 0; i < candList.length; i++) {
     for (var j = i; j < candList.length; j++) {
-      if (isIntegrationBudgetExhausted()) return null;
+      if (consumeIntegrationWork(2)) return null;
       final prod = (candList[i] * candList[j]).simplify(
         assumptions: assumptions,
       );
