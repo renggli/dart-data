@@ -1,5 +1,6 @@
 import 'package:data/symbolic.dart';
 
+import '../../../shared/html.dart';
 import '../engine/commands.dart';
 import '../language/lexer.dart';
 import '../model/environment.dart';
@@ -38,7 +39,7 @@ final class SyntaxHighlighter {
 
     for (var i = 0; i < tokens.length; i++) {
       final tok = tokens[i];
-      final escaped = _escapeHtml(tok.text);
+      final escaped = escapeHtml(tok.text);
 
       if (_isOpenBracket(tok.kind)) {
         final cls = StringBuffer('tok-bracket-${depth % 3}');
@@ -89,12 +90,12 @@ final class SyntaxHighlighter {
       final trimmed = line.trim();
       if (trimmed == '```math') {
         inMathBlock = true;
-        out.add('<span class="tok-comment">${_escapeHtml(line)}</span>');
+        out.add('<span class="tok-comment">${escapeHtml(line)}</span>');
         continue;
       }
       if (trimmed == '```' && inMathBlock) {
         inMathBlock = false;
-        out.add('<span class="tok-comment">${_escapeHtml(line)}</span>');
+        out.add('<span class="tok-comment">${escapeHtml(line)}</span>');
         continue;
       }
       if (inMathBlock) {
@@ -102,11 +103,11 @@ final class SyntaxHighlighter {
         continue;
       }
       if (trimmed.startsWith('#')) {
-        out.add('<span class="tok-command">${_escapeHtml(line)}</span>');
+        out.add('<span class="tok-command">${escapeHtml(line)}</span>');
         continue;
       }
       if (trimmed.startsWith('>')) {
-        out.add('<span class="tok-comment">${_escapeHtml(line)}</span>');
+        out.add('<span class="tok-comment">${escapeHtml(line)}</span>');
         continue;
       }
       out.add(_highlightMarkdownInline(line));
@@ -123,7 +124,7 @@ final class SyntaxHighlighter {
         final end = line.indexOf('}}', i + 2);
         if (end != -1) {
           buf.write(
-            '<span class="tok-result-ref">${_escapeHtml(line.substring(i, end + 2))}</span>',
+            '<span class="tok-result-ref">${escapeHtml(line.substring(i, end + 2))}</span>',
           );
           i = end + 2;
           continue;
@@ -134,7 +135,7 @@ final class SyntaxHighlighter {
         final end = line.indexOf(r'$', i + 1);
         if (end != -1) {
           buf.write(
-            '<span class="tok-math-func">${_escapeHtml(line.substring(i, end + 1))}</span>',
+            '<span class="tok-math-func">${escapeHtml(line.substring(i, end + 1))}</span>',
           );
           i = end + 1;
           continue;
@@ -145,13 +146,13 @@ final class SyntaxHighlighter {
         final end = line.indexOf('`', i + 1);
         if (end != -1) {
           buf.write(
-            '<span class="tok-string">${_escapeHtml(line.substring(i, end + 1))}</span>',
+            '<span class="tok-string">${escapeHtml(line.substring(i, end + 1))}</span>',
           );
           i = end + 1;
           continue;
         }
       }
-      buf.write(_escapeHtml(line[i]));
+      buf.write(escapeHtml(line[i]));
       i++;
     }
     return buf.toString();
@@ -222,11 +223,4 @@ final class SyntaxHighlighter {
     TokenKind.error => 'tok-error',
     _ => null,
   };
-
-  static String _escapeHtml(String text) => text
-      .replaceAll('&', '&amp;')
-      .replaceAll('<', '&lt;')
-      .replaceAll('>', '&gt;')
-      .replaceAll('"', '&quot;')
-      .replaceAll("'", '&#39;');
 }

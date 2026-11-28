@@ -74,17 +74,11 @@ final List<Command> calculusCommands = [
       positional: [
         ParamSpec.positional('expr'),
         ParamSpec.optional('var', type: ParamType.symbol),
-      ],
-      named: [
-        ParamSpec.named('from', type: ParamType.expr),
-        ParamSpec.named('to', type: ParamType.expr),
+        ParamSpec.optional('range', type: ParamType.range),
       ],
     ),
     doc: 'Computes the indefinite or definite symbolic integral.',
-    examples: [
-      'integrate(x * exp(x), x)',
-      'integrate(sin(x), x, from: 0, to: pi)',
-    ],
+    examples: ['integrate(x * exp(x), x)', 'integrate(sin(x), x, 0..pi)'],
     chipLabel: '∫ dx',
     appliesTo: (v) => v is ExprValue,
     buildChipCall: (input, v) {
@@ -94,15 +88,14 @@ final List<Command> calculusCommands = [
     run: (args, ctx) {
       final expr = args.expr('expr');
       final v = inferVariable(expr, args.symbolOrNull('var'));
-      final from = args.exprOrNull('from');
-      final to = args.exprOrNull('to');
-      if ((from == null) != (to == null)) {
-        throw const ArgumentBindingException(
-          'Definite integration requires both from: and to: bounds',
-        );
-      }
-      final res = (from != null && to != null)
-          ? expr.integrate(v, from: from, to: to, assumptions: ctx.assumptions)
+      final range = args.rangeOrNull('range');
+      final res = range != null
+          ? expr.integrate(
+              v,
+              from: range.start,
+              to: range.end,
+              assumptions: ctx.assumptions,
+            )
           : expr.integrate(v, assumptions: ctx.assumptions);
       return ExprValue(res.simplify(assumptions: ctx.assumptions));
     },
@@ -114,36 +107,26 @@ final List<Command> calculusCommands = [
       positional: [
         ParamSpec.positional('expr'),
         ParamSpec.positional('vars', type: ParamType.symbolList),
-      ],
-      named: [
-        ParamSpec.named('from', type: ParamType.exprList),
-        ParamSpec.named('to', type: ParamType.exprList),
+        ParamSpec.optional('ranges', type: ParamType.rangeList),
       ],
     ),
     doc: 'Computes an iterated (multiple) indefinite or definite integral.',
     examples: [
       'mintegrate(x * y, [x, y])',
-      'mintegrate(x * y, [y, x], from: [0, 0], to: [x, 1])',
+      'mintegrate(x * y, [y, x], [0..x, 0..1])',
     ],
     run: (args, ctx) {
       final expr = args.expr('expr');
       final vars = args.symbolList('vars');
-      final fromList = args.has('from') ? args.exprList('from') : null;
-      final toList = args.has('to') ? args.exprList('to') : null;
-      if ((fromList == null) != (toList == null)) {
-        throw const ArgumentBindingException(
-          'mintegrate requires both from: and to: lists when specifying bounds',
-        );
-      }
-      if (fromList != null &&
-          (fromList.length != vars.length || toList!.length != vars.length)) {
+      final ranges = args.rangeListOrNull('ranges');
+      if (ranges != null && ranges.length != vars.length) {
         throw ArgumentBindingException(
-          'mintegrate from: and to: lists must match variable count (${vars.length})',
+          'mintegrate ranges list must match variable count (${vars.length})',
         );
       }
       final bounds = <IntegrationBound>[
         for (var i = 0; i < vars.length; i++)
-          (variable: vars[i], from: fromList?[i], to: toList?[i]),
+          (variable: vars[i], from: ranges?[i].start, to: ranges?[i].end),
       ];
       return ExprValue(
         expr
@@ -257,21 +240,19 @@ final List<Command> calculusCommands = [
       positional: [
         ParamSpec.positional('expr'),
         ParamSpec.positional('var', type: ParamType.symbol),
-      ],
-      named: [
-        ParamSpec.named('from', type: ParamType.expr, required: true),
-        ParamSpec.named('to', type: ParamType.expr, required: true),
+        ParamSpec.positional('range', type: ParamType.range),
       ],
     ),
-    doc: 'Evaluates a symbolic summation from `from:` to `to:`.',
-    examples: ['sum(k^2, k, from: 1, to: n)'],
+    doc: 'Evaluates a symbolic summation over `start..end`.',
+    examples: ['sum(k^2, k, 1..n)'],
     run: (args, ctx) {
       final expr = args.expr('expr');
       final v = args.symbol('var');
-      final from = args.expr('from');
-      final to = args.expr('to');
+      final range = args.range('range');
       return ExprValue(
-        expr.sum(v, from, to).simplify(assumptions: ctx.assumptions),
+        expr
+            .sum(v, range.start, range.end)
+            .simplify(assumptions: ctx.assumptions),
       );
     },
   ),
@@ -282,20 +263,18 @@ final List<Command> calculusCommands = [
       positional: [
         ParamSpec.positional('expr'),
         ParamSpec.positional('var', type: ParamType.symbol),
-      ],
-      named: [
-        ParamSpec.named('from', type: ParamType.expr, required: true),
-        ParamSpec.named('to', type: ParamType.expr, required: true),
+        ParamSpec.positional('range', type: ParamType.range),
       ],
     ),
-    doc: 'Represents or evaluates a symbolic product from `from:` to `to:`.',
-    examples: ['product(k, k, from: 1, to: n)'],
+    doc: 'Represents or evaluates a symbolic product over `start..end`.',
+    examples: ['product(k, k, 1..n)'],
     run: (args, ctx) {
       final expr = args.expr('expr');
       final v = args.symbol('var');
-      final from = args.expr('from');
-      final to = args.expr('to');
-      return ExprValue(expr.product(v, from, to, assumptions: ctx.assumptions));
+      final range = args.range('range');
+      return ExprValue(
+        expr.product(v, range.start, range.end, assumptions: ctx.assumptions),
+      );
     },
   ),
   Command(

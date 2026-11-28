@@ -281,41 +281,75 @@ String formatProperty(num Function() getter, {int precision = 4}) {
   }
 }
 
-/// Initializes sidebar collapse/expand toggle controls with localStorage persistence.
-void setupSidebarToggle({void Function()? onToggled}) {
-  final collapseBtn = web.document.querySelector('#sidebar-collapse-btn');
-  final expandBtn = web.document.querySelector('#sidebar-expand-btn');
+/// Mobile viewport width threshold in CSS pixels aligned with `shared/style.css`.
+const int mobileBreakpoint = 767;
 
-  void setCollapsed(bool collapsed) {
-    if (collapsed) {
-      web.document.body?.classList.add('sidebar-collapsed');
-      web.window.localStorage.setItem('data_sidebar_collapsed', 'true');
-    } else {
-      web.document.body?.classList.remove('sidebar-collapsed');
-      web.window.localStorage.setItem('data_sidebar_collapsed', 'false');
-    }
-    onToggled?.call();
+/// Whether the current viewport width is at or below [mobileBreakpoint].
+bool isMobileViewport() => web.window.innerWidth <= mobileBreakpoint;
+
+/// Whether the left application sidebar is currently collapsed.
+bool isSidebarCollapsed() =>
+    web.document.body?.classList.contains('sidebar-collapsed') ?? true;
+
+/// Programmatically sets the left application sidebar's collapsed state,
+/// persisting to `localStorage` on desktop and notifying listeners.
+void setSidebarCollapsed(bool collapsed, {bool persist = true}) {
+  final body = web.document.body;
+  if (body == null) return;
+  body.classList.toggle('sidebar-collapsed', collapsed);
+  if (persist && !isMobileViewport()) {
+    web.window.localStorage.setItem(
+      'data_sidebar_collapsed',
+      collapsed ? 'true' : 'false',
+    );
+  }
+  web.window.dispatchEvent(web.CustomEvent('sidebar-change'));
+}
+
+/// Triggers a browser file download with [filename], [content], and [mimeType].
+void downloadFile(String filename, String content, String mimeType) {
+  final blob = web.Blob(
+    [content.toJS].toJS,
+    web.BlobPropertyBag(type: mimeType),
+  );
+  final url = web.URL.createObjectURL(blob);
+  final a = (web.document.createElement('a') as web.HTMLAnchorElement)
+    ..href = url
+    ..download = filename;
+  a.click();
+  web.URL.revokeObjectURL(url);
+}
+
+/// Subscribes to shared `[data-sidebar-toggle]` / `sidebar-change` events and
+/// invokes [onToggled] immediately and after the CSS transition settles.
+void setupSidebarToggle({void Function(bool collapsed)? onToggled}) {
+  void fire() {
+    final collapsed = isSidebarCollapsed();
+    onToggled?.call(collapsed);
     Future<void>.delayed(const Duration(milliseconds: 280), () {
-      onToggled?.call();
+      onToggled?.call(collapsed);
     });
   }
 
-  final stored = web.window.localStorage.getItem('data_sidebar_collapsed');
-  if (stored == 'true') {
-    web.document.body?.classList.add('sidebar-collapsed');
-  } else if (stored == 'false') {
-    web.document.body?.classList.remove('sidebar-collapsed');
-  }
-
-  collapseBtn?.addEventListener(
-    'click',
-    ((web.Event _) => setCollapsed(true)).toJS,
-  );
-  expandBtn?.addEventListener(
-    'click',
-    ((web.Event _) => setCollapsed(false)).toJS,
-  );
+  web.window.addEventListener('sidebar-change', ((web.Event _) => fire()).toJS);
 }
 
 /// Floating copy notification toast reference.
 web.HTMLDivElement? _copyToast;
+
+/// Safe floating-point viewport coordinates for [web.MouseEvent] and
+/// [web.PointerEvent], avoiding `package:web`'s `int` getter cast failures
+/// on fractional browser coordinates.
+extension MouseEventCoordinates on web.MouseEvent {
+  @JS('clientX')
+  external num get _rawClientX;
+
+  @JS('clientY')
+  external num get _rawClientY;
+
+  /// Floating-point viewport X coordinate.
+  double get clientXDouble => _rawClientX.toDouble();
+
+  /// Floating-point viewport Y coordinate.
+  double get clientYDouble => _rawClientY.toDouble();
+}

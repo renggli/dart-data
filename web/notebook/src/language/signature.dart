@@ -16,10 +16,12 @@ enum ParamType {
   integer,
   string,
   boolean,
+  range,
   vector,
   matrix,
   exprList,
   symbolList,
+  rangeList,
 }
 
 /// Specification of a single positional or named parameter.
@@ -99,6 +101,9 @@ final class FunctionSignature {
   }
 
   static String _formatDefault(Object value) {
+    if (value is NumericRange) {
+      return value.toString();
+    }
     if (value is double &&
         value.isFinite &&
         value == value.truncateToDouble()) {
@@ -233,6 +238,90 @@ final class BoundArgs {
     final v = _values[name];
     if (v is List<String>) return v;
     throw ArgumentBindingException("Expected list of symbols for '$name'");
+  }
+
+  RangeValue range(String name) {
+    final r = rangeOrNull(name);
+    if (r == null) {
+      throw ArgumentBindingException("Expected range for '$name'");
+    }
+    return r;
+  }
+
+  RangeValue? rangeOrNull(String name) {
+    final v = _values[name];
+    if (v == null) return null;
+    if (v is RangeValue) return v;
+    if (v is NumericRange) {
+      return RangeValue(
+        RealNumber.fromDouble(v.start),
+        RealNumber.fromDouble(v.end),
+      );
+    }
+    throw ArgumentBindingException("Expected range for '$name'");
+  }
+
+  ({double start, double end}) numericRange(
+    String name, {
+    bool allowInfinite = false,
+    bool requireOrdered = true,
+  }) {
+    final bounds = numericRangeOrNull(
+      name,
+      allowInfinite: allowInfinite,
+      requireOrdered: requireOrdered,
+    );
+    if (bounds == null) {
+      throw ArgumentBindingException("Expected numeric range for '$name'");
+    }
+    return bounds;
+  }
+
+  ({double start, double end})? numericRangeOrNull(
+    String name, {
+    bool allowInfinite = false,
+    bool requireOrdered = true,
+  }) {
+    final v = _values[name];
+    if (v == null) return null;
+    final ({double start, double end}) bounds;
+    if (v is NumericRange) {
+      if (!allowInfinite && (!v.start.isFinite || !v.end.isFinite)) {
+        throw ArgumentBindingException(
+          "Range endpoints for '$name' must be finite",
+        );
+      }
+      bounds = (start: v.start, end: v.end);
+    } else if (v is RangeValue) {
+      final converted = v.toNumericBounds(allowInfinite: allowInfinite);
+      if (converted == null) {
+        throw ArgumentBindingException(
+          "Range endpoints for '$name' must be real numbers",
+        );
+      }
+      bounds = converted;
+    } else {
+      throw ArgumentBindingException("Expected numeric range for '$name'");
+    }
+    if (requireOrdered && bounds.start >= bounds.end) {
+      throw ArgumentBindingException(
+        "Range '$name' must have start < end (got ${PlotValue.fmtBound(bounds.start)}..${PlotValue.fmtBound(bounds.end)})",
+      );
+    }
+    return bounds;
+  }
+
+  List<RangeValue> rangeList(String name) {
+    final v = _values[name];
+    if (v is List<RangeValue>) return v;
+    throw ArgumentBindingException("Expected list of ranges for '$name'");
+  }
+
+  List<RangeValue>? rangeListOrNull(String name) {
+    final v = _values[name];
+    if (v == null) return null;
+    if (v is List<RangeValue>) return v;
+    throw ArgumentBindingException("Expected list of ranges for '$name'");
   }
 }
 
@@ -542,6 +631,49 @@ final class ArgumentBinder {
         if (val is MatrixValue) return val.matrix;
         throw ArgumentBindingException(
           "Argument '$name' must be a matrix",
+          offset: node.offset,
+        );
+
+      case ParamType.range:
+        final val = eval(node, boundSymbols: scopedSymbols);
+        if (val is RangeValue) return val;
+        throw ArgumentBindingException(
+          "Argument '$name' must be a range (e.g. -2..2)",
+          offset: node.offset,
+        );
+
+      case ParamType.rangeList:
+        if (node is VectorLiteralNode) {
+          final out = <RangeValue>[];
+          for (final el in node.elements) {
+            final val = eval(el, boundSymbols: scopedSymbols);
+            if (val is RangeValue) {
+              out.add(val);
+            } else {
+              throw ArgumentBindingException(
+                "All elements of '$name' must be ranges (e.g. 0..1)",
+                offset: el.offset,
+              );
+            }
+          }
+          return out;
+        }
+        final val = eval(node, boundSymbols: scopedSymbols);
+        if (val is RangeValue) return <RangeValue>[val];
+        if (val is ListValue) {
+          return [
+            for (final el in val.elements)
+              if (el is RangeValue)
+                el
+              else
+                throw ArgumentBindingException(
+                  "All elements of '$name' must be ranges (e.g. 0..1)",
+                  offset: node.offset,
+                ),
+          ];
+        }
+        throw ArgumentBindingException(
+          "Argument '$name' must be a range or list of ranges",
           offset: node.offset,
         );
 

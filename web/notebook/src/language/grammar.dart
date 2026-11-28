@@ -196,8 +196,8 @@ final class CalcGrammar {
       char(']'),
     ).token().map((tok) => ResultRefNode(int.parse(tok.value.$3), tok.start));
 
-    // Number literal
-    final numberLit = ExprSyntax.numberTokenParser.token().map(
+    // Number literal (avoid swallowing the first `.` of a `..` range operator)
+    final numberLit = _numberParser().token().map(
       (tok) => ExprLeafNode(tok.value, tok.start),
     );
 
@@ -371,7 +371,10 @@ final class CalcGrammar {
       ..left(_htrim(char('/')), (a, _, b) => BinaryOpNode('/', a, b, a.offset));
     if (implicitMultiplication) {
       mulGroup.left(
-        anyOf('+-*/^)=<>!,;:]\r\n').trim().not(),
+        <Parser<Object>>[
+          string('..'),
+          anyOf('+-*/^)=<>!,;:]\r\n'),
+        ].toChoiceParser().trim().not(),
         (a, _, b) => BinaryOpNode('*', a, b, a.offset),
       );
     }
@@ -380,6 +383,17 @@ final class CalcGrammar {
     builder.group()
       ..left(_htrim(char('+')), (a, _, b) => BinaryOpNode('+', a, b, a.offset))
       ..left(_htrim(char('-')), (a, _, b) => BinaryOpNode('-', a, b, a.offset));
+
+    // Range (start..end), looser than arithmetic and tighter than relational
+    builder.group().left(_htrim(string('..')).token(), (a, op, b) {
+      if (a is RangeNode) {
+        throw CalcParseException(
+          'Chained range operator .. is not allowed',
+          offset: op.start,
+        );
+      }
+      return RangeNode(a, b, op.start);
+    });
 
     // Relational (=, ==, !=, <=, >=, <, >)
     builder.group()
@@ -403,6 +417,26 @@ final class CalcGrammar {
       );
 
     return resolve(builder.build());
+  }
+
+  static Parser<Expr> _numberParser() {
+    final exponent = seq3(
+      anyOf('eE'),
+      anyOf('+-').optional(),
+      digit().plusString(),
+    ).flatten();
+    final intWithOptFrac = seq2<String, void>(
+      digit().plusString(),
+      seq2<String, void>(
+        char('.'),
+        char('.').not() & digit().starString(),
+      ).optional(),
+    );
+    final leadingFrac = seq2<String, String>(char('.'), digit().plusString());
+    return seq2<Object, String?>(
+      <Parser<Object>>[intWithOptFrac, leadingFrac].toChoiceParser(),
+      exponent.optional(),
+    ).flatten().map((raw) => ExprSyntax.numberTokenParser.parse(raw).value);
   }
 
   static String _unescape(String c) => switch (c) {

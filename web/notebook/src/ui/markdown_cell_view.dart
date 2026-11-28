@@ -4,12 +4,14 @@ import 'package:web/web.dart' as web;
 
 import '../engine/commands.dart';
 import '../model/notebook.dart';
+import 'cell_menu.dart';
 import 'code_editor.dart';
 import 'icons.dart';
 import 'markdown_render.dart';
 
 /// Document-first view for a [MarkdownCell]: pure prose + MathML at rest,
-/// revealing an inline [CodeEditor] and floating toolbar only while editing.
+/// revealing an inline [CodeEditor] while editing and a compact Mathematica-
+/// inspired cell bracket + overflow menu (`⋯`).
 ///
 /// Supports in-place [setEditing] toggling without rebuilding sibling cells.
 final class MarkdownCellView {
@@ -20,6 +22,8 @@ final class MarkdownCellView {
     required this.isEditing,
     required this.onStartEdit,
     required this.onCommit,
+    required this.onInsertMathBelow,
+    required this.onInsertTextBelow,
     required this.onMoveUp,
     required this.onMoveDown,
     required this.onConvertToMath,
@@ -35,13 +39,15 @@ final class MarkdownCellView {
 
   final void Function() onStartEdit;
   final void Function(String source, {required bool advance}) onCommit;
+  final void Function() onInsertMathBelow;
+  final void Function() onInsertTextBelow;
   final void Function() onMoveUp;
   final void Function() onMoveDown;
   final void Function() onConvertToMath;
   final void Function() onDelete;
 
   late final web.HTMLDivElement root;
-  late final web.HTMLDivElement _toolbar;
+  late final CellActionMenu _menu;
   late final web.HTMLDivElement _contentSlot;
   CodeEditor? _editor;
 
@@ -62,9 +68,9 @@ final class MarkdownCellView {
       if (editing && focusInput) focusEditor(moveToEnd: moveToEnd);
       return;
     }
+    if (!editing) _menu.close();
     isEditing = editing;
     root.classList.toggle('focused', editing);
-    _toolbar.style.display = editing ? 'flex' : 'none';
     _rebuildContentSlot();
     if (editing && focusInput) {
       focusEditor(moveToEnd: moveToEnd);
@@ -81,6 +87,8 @@ final class MarkdownCellView {
     }
   }
 
+  void dispose() => _menu.dispose();
+
   void _buildDom() {
     root = (web.document.createElement('div') as web.HTMLDivElement)
       ..className = isEditing
@@ -88,13 +96,25 @@ final class MarkdownCellView {
           : (cell.stale ? 'nb-cell nb-cell-md stale' : 'nb-cell nb-cell-md')
       ..setAttribute('data-uid', cell.uid);
 
-    _toolbar = _buildToolbar()..style.display = isEditing ? 'flex' : 'none';
+    final row = (web.document.createElement('div') as web.HTMLDivElement)
+      ..className = 'nb-cell-row';
+
     _contentSlot = (web.document.createElement('div') as web.HTMLDivElement)
       ..className = 'nb-md-slot';
 
+    final controls = _buildControls();
+
+    row
+      ..append(_contentSlot)
+      ..append(controls);
+
+    final bracket = (web.document.createElement('div') as web.HTMLDivElement)
+      ..className = 'nb-cell-bracket'
+      ..setAttribute('aria-hidden', 'true');
+
     root
-      ..append(_toolbar)
-      ..append(_contentSlot);
+      ..append(row)
+      ..append(bracket);
 
     _rebuildContentSlot();
   }
@@ -136,53 +156,44 @@ final class MarkdownCellView {
     }
   }
 
-  web.HTMLDivElement _buildToolbar() {
-    final bar = (web.document.createElement('div') as web.HTMLDivElement)
-      ..className = 'nb-contextual-bar';
+  web.HTMLDivElement _buildControls() {
+    final wrap = (web.document.createElement('div') as web.HTMLDivElement)
+      ..className = 'nb-cell-controls';
 
-    bar
-      ..append(
-        _btn(
-          'Done (Shift+Enter)',
-          NbIcons.check,
-          () => onCommit(currentSource, advance: false),
+    _menu = CellActionMenu(
+      cellRoot: root,
+      buildItems: () => [
+        CellMenuAction(
+          isEditing ? 'Render preview' : 'Edit text',
+          isEditing ? NbIcons.check : NbIcons.pencil,
+          () {
+            if (isEditing) {
+              onCommit(currentSource, advance: false);
+            } else {
+              onStartEdit();
+            }
+          },
+          shortcut: isEditing ? '⇧↵' : null,
         ),
-      )
-      ..append(_btn('Move up', NbIcons.arrowUp, onMoveUp))
-      ..append(_btn('Move down', NbIcons.arrowDown, onMoveDown))
-      ..append(_textBtn('Math', 'Convert to Math cell', onConvertToMath))
-      ..append(_btn('Delete cell', NbIcons.trash, onDelete));
+        const CellMenuDivider(),
+        CellMenuAction('Insert math below', NbIcons.plus, onInsertMathBelow),
+        CellMenuAction(
+          'Insert text below',
+          NbIcons.fileText,
+          onInsertTextBelow,
+        ),
+        const CellMenuDivider(),
+        CellMenuAction('Move up', NbIcons.arrowUp, onMoveUp),
+        CellMenuAction('Move down', NbIcons.arrowDown, onMoveDown),
+        CellMenuAction('Convert to Math', NbIcons.play, onConvertToMath),
+        const CellMenuDivider(),
+        CellMenuAction('Delete cell', NbIcons.trash, onDelete, danger: true),
+      ],
+    );
 
-    return bar;
-  }
-
-  web.HTMLButtonElement _btn(String title, String svg, void Function() onTap) {
-    final b = (web.document.createElement('button') as web.HTMLButtonElement)
-      ..type = 'button'
-      ..className = 'icon-btn'
-      ..title = title
-      ..innerHTML = svg.toJS;
-    b.onmousedown = ((web.MouseEvent e) {
-      e.preventDefault();
-      onTap();
-    }).toJS;
-    return b;
-  }
-
-  web.HTMLButtonElement _textBtn(
-    String label,
-    String title,
-    void Function() onTap,
-  ) {
-    final b = (web.document.createElement('button') as web.HTMLButtonElement)
-      ..type = 'button'
-      ..className = 'nb-bar-text-btn'
-      ..title = title
-      ..textContent = label;
-    b.onmousedown = ((web.MouseEvent e) {
-      e.preventDefault();
-      onTap();
-    }).toJS;
-    return b;
+    wrap
+      ..append(_menu.button)
+      ..append(_menu.popup);
+    return wrap;
   }
 }

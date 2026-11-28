@@ -17,8 +17,8 @@ void main() {
   group('CalcLexer', () {
     test('covers entire input without gaps and classifies tokens', () {
       const src =
-          "plot(sin(x), from: -π, to: π, title: 'Wave') // comment\n"
-          'r[1] + true';
+          "plot(sin(x), x, x: -π..π, title: 'Wave') // comment\n"
+          'r[1] + true + 2..5 + 2.5..5.5';
       final tokens = CalcLexer.tokenize(
         src,
         commands: {'plot'},
@@ -37,8 +37,17 @@ void main() {
       check(tokens.any((t) => t.kind == TokenKind.mathFunc && t.text == 'sin'))
           .isTrue;
       check(
-        tokens.any((t) => t.kind == TokenKind.paramLabel && t.text == 'from'),
+        tokens.any((t) => t.kind == TokenKind.paramLabel && t.text == 'title'),
       ).isTrue;
+      check(
+        tokens
+            .where((t) => t.kind == TokenKind.operator && t.text == '..')
+            .length,
+      ).equals(3);
+      check(tokens.any((t) => t.kind == TokenKind.number && t.text == '2'))
+          .isTrue;
+      check(tokens.any((t) => t.kind == TokenKind.number && t.text == '2.5'))
+          .isTrue;
       check(tokens.any((t) => t.kind == TokenKind.constant && t.text == 'π'))
           .isTrue;
       check(tokens.any((t) => t.kind == TokenKind.string && t.text == "'Wave'"))
@@ -59,15 +68,25 @@ void main() {
   group('CalcGrammar', () {
     final grammar = CalcGrammar();
 
-    test('parses positional and named arguments', () {
-      final stmt = grammar.parse('integrate(sin(x), x, from: 0, to: pi)');
+    test('parses range expressions, named arguments, and precedence', () {
+      final stmt = grammar.parse(
+        'plotcomplex((z^2 - 1)/(z + 2), z, re: -2..2)',
+      );
       check(stmt).isA<EvalStatement>();
       final call = (stmt as EvalStatement).node as CallNode;
-      check(call.name).equals('integrate');
+      check(call.name).equals('plotcomplex');
       check(call.positionalArgs.length).equals(2);
-      check(call.namedArgs.length).equals(2);
-      check(call.namedArgs[0].name).equals('from');
-      check(call.namedArgs[1].name).equals('to');
+      check(call.namedArgs.length).equals(1);
+      check(call.namedArgs[0].name).equals('re');
+      check(call.namedArgs[0].value).isA<RangeNode>();
+
+      final rangeStmt = grammar.parse('a + 1..2 * pi') as EvalStatement;
+      check(rangeStmt.node).isA<RangeNode>();
+      final rng = rangeStmt.node as RangeNode;
+      check(rng.start).isA<BinaryOpNode>();
+      check(rng.end).isA<BinaryOpNode>();
+
+      check(() => grammar.parse('1..2..3')).throws<CalcParseException>();
     });
 
     test(
@@ -110,8 +129,11 @@ void main() {
         ParamSpec.optional('var', type: ParamType.symbol),
       ],
       named: [
-        ParamSpec.named('from', type: ParamType.number, defaultValue: -5.0),
-        ParamSpec.named('to', type: ParamType.number, defaultValue: 5.0),
+        ParamSpec.named(
+          'range',
+          type: ParamType.range,
+          defaultValue: NumericRange(-5.0, 5.0),
+        ),
         ParamSpec.named(
           'direction',
           type: ParamType.string,
@@ -130,12 +152,16 @@ void main() {
           UnaryOpNode(op: '-', :final operand) => ExprValue(
             -(evalNode(operand, boundSymbols: boundSymbols) as ExprValue).expr,
           ),
+          RangeNode(:final start, :final end) => RangeValue(
+            (evalNode(start, boundSymbols: boundSymbols) as ExprValue).expr,
+            (evalNode(end, boundSymbols: boundSymbols) as ExprValue).expr,
+          ),
           _ => throw ArgumentBindingException('Unsupported node: $node'),
         };
 
     test('formats signature and binds defaults', () {
       check(sig.format('limit'))
-          .equals('limit(expr, [var], {from: -5, to: 5, direction: both})');
+          .equals('limit(expr, [var], {range: -5..5, direction: both})');
       final bound = ArgumentBinder.bind(
         'limit',
         sig,
@@ -145,7 +171,7 @@ void main() {
       );
       check(bound.expr('expr')).equals(const Variable('x'));
       check(bound.symbolOrNull('var')).isNull;
-      check(bound.doubleVal('from')).equals(-5.0);
+      check(bound.numericRange('range')).equals((start: -5.0, end: 5.0));
       check(bound.stringVal('direction')).equals('right');
     });
 
@@ -182,11 +208,12 @@ void main() {
   });
 
   group('CalcValue serialization', () {
-    test('round-trips ExprValue, StringValue, BoolValue, and ListValue', () {
+    test('round-trips ExprValue, StringValue, BoolValue, RangeValue, and ListValue', () {
       final values = <CalcValue>[
         ExprValue(Expr.parse('x^2 + 1')),
         const StringValue('hello'),
         const BoolValue(true),
+        RangeValue(IntegerNumber.of(-2), IntegerNumber.two),
         ListValue([ExprValue(IntegerNumber.two), const BoolValue(false)]),
       ];
       for (final v in values) {
@@ -200,43 +227,118 @@ void main() {
     final registry = CommandRegistry();
     final env = Environment();
 
-    test(
-      'suggests commands, math functions, named params, and enum values',
-      () {
-        final topRes = NotebookCompletion.suggest(
-          'cheb',
-          4,
-          registry: registry,
-          env: env,
-        );
-        check(topRes.items.any((i) => i.label == 'chebyshevT')).isTrue;
+    test('suggests commands, math functions, named params, and enum values in context', () {
+      final topRes = NotebookCompletion.suggest(
+        'cheb',
+        4,
+        registry: registry,
+        env: env,
+      );
+      check(topRes.items.any((i) => i.label == 'chebyshevT')).isTrue;
+      check(topRes.items.first.cursorBackOffset).equals(1);
 
-        const srcNamed = 'integrate(sin(x), x, ';
-        final namedRes = NotebookCompletion.suggest(
-          srcNamed,
-          srcNamed.length,
-          registry: registry,
-          env: env,
-        );
-        check(namedRes.items.any((i) => i.label == 'from:')).isTrue;
-        check(namedRes.items.any((i) => i.label == 'to:')).isTrue;
-        check(namedRes.signatureHint?.functionName).equals('integrate');
+      const srcNamed = 'plotcomplex(z^2, z, ';
+      final namedRes = NotebookCompletion.suggest(
+        srcNamed,
+        srcNamed.length,
+        registry: registry,
+        env: env,
+      );
+      check(namedRes.items.any((i) => i.label == 're:')).isTrue;
+      check(namedRes.items.any((i) => i.label == 'im:')).isTrue;
+      check(namedRes.signatureHint?.functionName).equals('plotcomplex');
 
-        const srcEnum = "limit(1/x, x, 0, direction: 'r";
-        final enumRes = NotebookCompletion.suggest(
-          srcEnum,
-          srcEnum.length,
+      const srcEnum = "limit(1/x, x, 0, direction: 'r";
+      final enumRes = NotebookCompletion.suggest(
+        srcEnum,
+        srcEnum.length,
+        registry: registry,
+        env: env,
+      );
+      check(enumRes.items.any((i) => i.label == "'right'")).isTrue;
+      check(enumRes.signatureHint?.activeParamName).equals('direction');
+
+      // Context suppression checks:
+      // 1. Inside comment -> empty
+      const commentSrc = 'x + 1 // pl';
+      check(
+        NotebookCompletion.suggest(
+          commentSrc,
+          commentSrc.length,
           registry: registry,
           env: env,
-        );
-        check(enumRes.items.any((i) => i.label == "'right'")).isTrue;
-        check(enumRes.signatureHint?.activeParamName).equals('direction');
-      },
-    );
+        ).items,
+      ).isEmpty;
+
+      // 2. Inside non-enum string -> empty items
+      const strSrc = "plot(sin(x), title: 'si";
+      check(
+        NotebookCompletion.suggest(
+          strSrc,
+          strSrc.length,
+          registry: registry,
+          env: env,
+        ).items,
+      ).isEmpty;
+
+      // 3. Inside function definition head -> empty
+      const fnHeadSrc = 'f(x, p';
+      const fnHeadFull = 'f(x, pl) := x';
+      check(
+        NotebookCompletion.suggest(
+          fnHeadFull,
+          fnHeadSrc.length,
+          registry: registry,
+          env: env,
+        ).items,
+      ).isEmpty;
+
+      // 4. Before required first positional arg in plot(|) -> no named params
+      const reqPosSrc = 'plot(';
+      check(
+        NotebookCompletion.suggest(
+          reqPosSrc,
+          reqPosSrc.length,
+          registry: registry,
+          env: env,
+        ).items,
+      ).isEmpty;
+
+      // 5. After param: value slot (`re: `) -> no other named param labels
+      const afterColonSrc = 'plotcomplex(z^2, z, re: ';
+      final afterColonRes = NotebookCompletion.suggest(
+        afterColonSrc,
+        afterColonSrc.length,
+        registry: registry,
+        env: env,
+      );
+      check(afterColonRes.items.any((i) => i.kind == CompletionKind.paramLabel))
+          .isFalse;
+      check(afterColonRes.signatureHint?.activeParamName).equals('re');
+
+      // 6. Nested call suppresses top-level plot/session commands & deduplicates
+      const nestedSrc = 'sin(plo';
+      final nestedRes = NotebookCompletion.suggest(
+        nestedSrc,
+        nestedSrc.length,
+        registry: registry,
+        env: env,
+      );
+      check(nestedRes.items.any((i) => i.label == 'plot')).isFalse;
+
+      const dedupSrc = 'ab';
+      final dedupRes = NotebookCompletion.suggest(
+        dedupSrc,
+        dedupSrc.length,
+        registry: registry,
+        env: env,
+      );
+      check(dedupRes.items.where((i) => i.label == 'abs').length).equals(1);
+    });
 
     test('highlights math and markdown into .tok-* spans', () {
       final mathHtml = SyntaxHighlighter.highlightMathHtml(
-        'plot(sin(x), from: 0)',
+        'plot(sin(x), x: -2..2)',
         registry: registry,
         env: env,
         cursorOffset: 4,

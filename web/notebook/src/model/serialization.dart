@@ -39,6 +39,11 @@ Map<String, Object?> valueToJson(CalcValue value) => switch (value) {
         entry.key.toString(): entry.value.toString(),
     },
   },
+  RangeValue(:final start, :final end) => {
+    'type': 'range',
+    'start': start.toString(),
+    'end': end.toString(),
+  },
   PlotValue(
     :final expressions,
     :final variable,
@@ -136,6 +141,11 @@ CalcValue valueFromJson(Map<String, Object?> json) {
           int.parse(entry.key): Expr.parse(entry.value! as String),
       };
       return SeriesValue(PowerSeries(variable, point, coeffs, order));
+    case 'range':
+      return RangeValue(
+        Expr.parse(json['start']! as String),
+        Expr.parse(json['end']! as String),
+      );
     case 'plot':
       return PlotValue(
         expressions: [

@@ -14,6 +14,7 @@ import '../shared/graph/model/dataset_3d.dart';
 import '../shared/graph/sampling/sampler_2d.dart';
 import '../shared/graph/sampling/sampler_3d.dart';
 import '../shared/graph/ui/graph_widget.dart';
+import '../shared/html.dart';
 import '../shared/utils.dart';
 import 'algebra.dart';
 import 'presets.dart';
@@ -213,7 +214,7 @@ void main() {
   initDom();
   initGlobalCopyHandler();
   buildSidebar();
-  setupSidebarToggle(onToggled: () => plotGraph?.resize());
+  setupSidebarToggle(onToggled: (_) => plotGraph?.resize());
   attachEventListeners();
   loadFromUrlHash();
 }
@@ -873,7 +874,7 @@ void updateDomainSelectors(List<String> vars) {
 
       final label = web.document.createElement('span') as web.HTMLSpanElement
         ..className = 'domain-var-label'
-        ..innerHTML = '<math><mi>${_escapeHtml(v)}</mi><mo>∈</mo></math>'.toJS;
+        ..innerHTML = '<math><mi>${escapeHtml(v)}</mi><mo>∈</mo></math>'.toJS;
 
       final select =
           web.document.createElement('select') as web.HTMLSelectElement
@@ -1544,14 +1545,14 @@ String _highlightDisassembly(String listing) {
   for (final line in listing.split('\n')) {
     if (_bcCommentLinePattern.firstMatch(line) case final m?) {
       out.add(
-        '${_escapeHtml(m.group(1)!)}'
-        '<span class="bc-comment">${_escapeHtml(m.group(2)!)}</span>',
+        '${escapeHtml(m.group(1)!)}'
+        '<span class="bc-comment">${escapeHtml(m.group(2)!)}</span>',
       );
       continue;
     }
     if (_bcInstrLinePattern.firstMatch(line) case final m?) {
-      final idxPart = _escapeHtml(m.group(1)!);
-      final opPart = _escapeHtml(m.group(2)!);
+      final idxPart = escapeHtml(m.group(1)!);
+      final opPart = escapeHtml(m.group(2)!);
       final rest = m.group(3)!;
       final semiIdx = rest.indexOf(';');
       final codePart = semiIdx >= 0 ? rest.substring(0, semiIdx) : rest;
@@ -1559,7 +1560,7 @@ String _highlightDisassembly(String listing) {
       final highlightedCode = _highlightNumbers(codePart);
       final highlightedComment = commentPart.isEmpty
           ? ''
-          : '<span class="bc-comment">${_escapeHtml(commentPart)}</span>';
+          : '<span class="bc-comment">${escapeHtml(commentPart)}</span>';
       out.add(
         '<span class="bc-idx">$idxPart</span>'
         '<span class="bc-op">$opPart</span>'
@@ -1567,7 +1568,7 @@ String _highlightDisassembly(String listing) {
       );
       continue;
     }
-    out.add(_escapeHtml(line));
+    out.add(escapeHtml(line));
   }
   return out.join('\n');
 }
@@ -1577,23 +1578,16 @@ String _highlightNumbers(String text) {
   var last = 0;
   for (final m in _bcNumPattern.allMatches(text)) {
     if (m.start > last) {
-      buf.write(_escapeHtml(text.substring(last, m.start)));
+      buf.write(escapeHtml(text.substring(last, m.start)));
     }
-    buf.write('<span class="bc-num">${_escapeHtml(m.group(0)!)}</span>');
+    buf.write('<span class="bc-num">${escapeHtml(m.group(0)!)}</span>');
     last = m.end;
   }
   if (last < text.length) {
-    buf.write(_escapeHtml(text.substring(last)));
+    buf.write(escapeHtml(text.substring(last)));
   }
   return buf.toString();
 }
-
-String _escapeHtml(String text) => text
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;')
-    .replaceAll("'", '&#39;');
 
 String _formatRealConstant(double v) {
   if (v.isNaN) return 'NaN';

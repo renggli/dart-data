@@ -3,6 +3,7 @@ import 'dart:js_interop';
 
 import 'package:web/web.dart' as web;
 
+import '../../../shared/html.dart';
 import '../engine/commands.dart';
 import '../language/completion.dart';
 import '../language/grammar.dart';
@@ -172,6 +173,8 @@ final class CodeEditor {
     _textarea.onkeydown = ((web.KeyboardEvent e) {
       if (_handlePopupKey(e)) return;
 
+      if (mode == CodeEditorMode.math && _handleDelimiterKey(e)) return;
+
       if (e.key == 'Enter') {
         if (e.altKey) {
           e.preventDefault();
@@ -204,6 +207,136 @@ final class CodeEditor {
     }).toJS;
 
     _syncHighlightAndSize();
+  }
+
+  static const Map<String, String> _delimiterPairs = {
+    '(': ')',
+    '[': ']',
+    '{': '}',
+    "'": "'",
+    '"': '"',
+  };
+
+  static const Set<String> _closingDelimiters = {')', ']', '}', "'", '"'};
+
+  bool _handleDelimiterKey(web.KeyboardEvent e) {
+    if (e.ctrlKey || e.metaKey || e.altKey) return false;
+
+    final start = _textarea.selectionStart;
+    final end = _textarea.selectionEnd;
+    final text = _textarea.value;
+
+    // Backspace between an empty delimiter pair deletes both characters.
+    if (e.key == 'Backspace' &&
+        start == end &&
+        start > 0 &&
+        end < text.length) {
+      final prev = text[start - 1];
+      final next = text[start];
+      if (_delimiterPairs[prev] == next) {
+        e.preventDefault();
+        final updated =
+            '${text.substring(0, start - 1)}${text.substring(start + 1)}';
+        _setValueAndCursor(updated, start - 1, start - 1);
+        return true;
+      }
+      return false;
+    }
+
+    final key = e.key;
+    final close = _delimiterPairs[key];
+
+    // Wrap non-empty selection in matching delimiter pair.
+    if (close != null && start != end) {
+      e.preventDefault();
+      final selected = text.substring(start, end);
+      final updated =
+          '${text.substring(0, start)}$key$selected$close${text.substring(end)}';
+      _setValueAndCursor(updated, start + 1, end + 1);
+      return true;
+    }
+
+    // Skip over existing matching closing delimiter when cursor is right before it.
+    if (_closingDelimiters.contains(key) &&
+        start == end &&
+        start < text.length &&
+        text[start] == key) {
+      e.preventDefault();
+      _textarea.setSelectionRange(start + 1, start + 1);
+      _syncHighlightAndSize();
+      _refreshCompletion();
+      return true;
+    }
+
+    // Auto-close delimiter at collapsed cursor when followed by whitespace,
+    // end-of-text, or structural punctuation.
+    if (close != null && start == end) {
+      final nextOk =
+          start == text.length || _isAutoCloseRightChar(text.codeUnitAt(start));
+      if (!nextOk) return false;
+      if (key == "'" || key == '"') {
+        if (start > 0 && _isWordOrNumChar(text.codeUnitAt(start - 1))) {
+          return false;
+        }
+        if (_isInsideUnclosedQuote(text.substring(0, start), key)) {
+          return false;
+        }
+      }
+      e.preventDefault();
+      final updated =
+          '${text.substring(0, start)}$key$close${text.substring(start)}';
+      _setValueAndCursor(updated, start + 1, start + 1);
+      return true;
+    }
+
+    return false;
+  }
+
+  void _setValueAndCursor(String next, int selStart, int selEnd) {
+    _textarea.value = next;
+    _textarea.setSelectionRange(selStart, selEnd);
+    setError(null);
+    _syncHighlightAndSize();
+    _refreshCompletion();
+    onChange?.call(next);
+  }
+
+  static bool _isAutoCloseRightChar(int ch) =>
+      ch == 32 ||
+      ch == 9 ||
+      ch == 10 ||
+      ch == 13 ||
+      ch == 41 /* ) */ ||
+      ch == 93 /* ] */ ||
+      ch == 125 /* } */ ||
+      ch == 44 /* , */ ||
+      ch == 59 /* ; */ ||
+      ch == 58 /* : */;
+
+  static bool _isWordOrNumChar(int ch) =>
+      (ch >= 65 && ch <= 90) ||
+      (ch >= 97 && ch <= 122) ||
+      (ch >= 48 && ch <= 57) ||
+      ch == 95;
+
+  static bool _isInsideUnclosedQuote(String before, String quote) {
+    final code = quote.codeUnitAt(0);
+    var inQuote = false;
+    var i = 0;
+    while (i < before.length) {
+      final c = before.codeUnitAt(i);
+      if (inQuote && c == 92 /* \ */ ) {
+        i += 2;
+        continue;
+      }
+      if (c == code) {
+        inQuote = !inQuote;
+      } else if (c == 10 || c == 13) {
+        inQuote = false;
+      }
+      i++;
+    }
+    return inQuote;
   }
 
   bool _handlePopupKey(web.KeyboardEvent e) {
@@ -284,13 +417,13 @@ final class CodeEditor {
     }
     final active = hint.activeParamName;
     final sigHtml = active == null
-        ? _escapeHtml(hint.signatureText)
-        : _escapeHtml(hint.signatureText).replaceFirst(
-            _escapeHtml(active),
-            '<strong>${_escapeHtml(active)}</strong>',
+        ? escapeHtml(hint.signatureText)
+        : escapeHtml(hint.signatureText).replaceFirst(
+            escapeHtml(active),
+            '<strong>${escapeHtml(active)}</strong>',
           );
     _sigBar.innerHTML =
-        '<span class="nb-sig-fn">$sigHtml</span><span class="nb-sig-doc">${_escapeHtml(hint.doc)}</span>'
+        '<span class="nb-sig-fn">$sigHtml</span><span class="nb-sig-doc">${escapeHtml(hint.doc)}</span>'
             .toJS;
     _sigBar.style.display = 'flex';
   }
@@ -311,8 +444,8 @@ final class CodeEditor {
                 ? 'nb-popup-item active'
                 : 'nb-popup-item';
       row.innerHTML =
-          '<span class="nb-popup-label">${_escapeHtml(item.label)}</span>'
-                  '<span class="nb-popup-detail">${_escapeHtml(item.detail)}</span>'
+          '<span class="nb-popup-label">${escapeHtml(item.label)}</span>'
+                  '<span class="nb-popup-detail">${escapeHtml(item.detail)}</span>'
               .toJS;
       row.onmousedown = ((web.MouseEvent e) {
         e.preventDefault();
@@ -328,7 +461,11 @@ final class CodeEditor {
     final before = text.substring(0, comp.replaceStart);
     final after = text.substring(comp.replaceEnd);
     final next = '$before${item.insertText}$after';
-    final nextCursor = before.length + item.insertText.length;
+    final nextCursor =
+        (before.length + item.insertText.length - item.cursorBackOffset).clamp(
+          0,
+          next.length,
+        );
     _textarea.value = next;
     _textarea.setSelectionRange(nextCursor, nextCursor);
     _hidePopup();
@@ -342,11 +479,4 @@ final class CodeEditor {
     _popup.style.display = 'none';
     _sigBar.style.display = 'none';
   }
-
-  static String _escapeHtml(String text) => text
-      .replaceAll('&', '&amp;')
-      .replaceAll('<', '&lt;')
-      .replaceAll('>', '&gt;')
-      .replaceAll('"', '&quot;')
-      .replaceAll("'", '&#39;');
 }

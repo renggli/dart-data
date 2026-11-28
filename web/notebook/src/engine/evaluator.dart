@@ -388,6 +388,31 @@ final class NotebookEvaluator implements EvaluatorContext {
           localScope: localScope,
           boundSymbols: boundSymbols,
         );
+
+      case RangeNode(:final start, :final end):
+        final sv = _evalNode(
+          start,
+          resolveRef: resolveRef,
+          referencedSymbols: referencedSymbols,
+          onPreserveForm: onPreserveForm,
+          localScope: localScope,
+          boundSymbols: boundSymbols,
+        );
+        final ev = _evalNode(
+          end,
+          resolveRef: resolveRef,
+          referencedSymbols: referencedSymbols,
+          onPreserveForm: onPreserveForm,
+          localScope: localScope,
+          boundSymbols: boundSymbols,
+        );
+        if (sv is! ExprValue || ev is! ExprValue) {
+          throw ArgumentBindingException(
+            'Range bounds must be symbolic expressions',
+            offset: node.offset,
+          );
+        }
+        return RangeValue(sv.expr, ev.expr);
     }
   }
 

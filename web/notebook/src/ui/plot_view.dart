@@ -1,3 +1,4 @@
+import 'dart:js_interop';
 import 'dart:math' as math;
 
 import 'package:data/linear.dart';
@@ -14,12 +15,13 @@ import '../../../shared/graph/sampling/oklch.dart';
 import '../../../shared/graph/sampling/sampler_2d.dart';
 import '../../../shared/graph/sampling/sampler_3d.dart';
 import '../../../shared/graph/ui/graph_widget.dart';
+import '../../../shared/utils.dart';
 import '../model/value.dart';
 
 /// Interactive plot view inside a notebook cell powered by [GraphWidget].
 final class PlotView {
-  /// Creates a plot view for [plot].
-  new(this.plot) {
+  /// Creates a vertically resizable plot view for [plot].
+  new(this.plot, {double? initialHeight, this.onHeightChanged}) {
     root = (web.document.createElement('div') as web.HTMLDivElement)
       ..className = 'nb-plot';
 
@@ -30,23 +32,35 @@ final class PlotView {
       root.append(titleEl);
     }
 
+    final defaultH = plot.is3d ? 340.0 : 300.0;
+    final startH = (initialHeight ?? defaultH).clamp(minHeight, maxHeight);
     final scene3d = _reconstructScene3D(plot);
     if (scene3d != null) {
-      _widget = GraphWidget.view3d(scene3d, height: 340);
+      _widget = GraphWidget.view3d(scene3d, height: startH);
     } else {
       final scene2d = _reconstructScene2D(plot);
-      _widget = GraphWidget.view2d(scene2d, height: 300);
+      _widget = GraphWidget.view2d(scene2d, height: startH);
     }
-    root.append(_widget.element);
+    root
+      ..append(_widget.element)
+      ..append(_buildResizeHandle(defaultH));
   }
+
+  static const double minHeight = 160.0;
+  static const double maxHeight = 900.0;
 
   /// Backing plot specification.
   final PlotValue plot;
+
+  /// Invoked when the user finishes resizing the plot vertically.
+  final void Function(double height)? onHeightChanged;
 
   /// Root DOM element mounted inside the cell output.
   late final web.HTMLDivElement root;
 
   late final GraphWidget _widget;
+
+  double get height => _widget.height;
 
   /// Triggers a layout-aware re-render.
   void render() => _widget.resize();
@@ -56,6 +70,58 @@ final class PlotView {
 
   /// Disposes the underlying graph widget.
   void dispose() => _widget.dispose();
+
+  web.HTMLDivElement _buildResizeHandle(double defaultHeight) {
+    final handle = (web.document.createElement('div') as web.HTMLDivElement)
+      ..className = 'nb-plot-resize-handle'
+      ..title = 'Drag to resize plot height (double-click to reset)';
+    final pill = (web.document.createElement('span') as web.HTMLSpanElement)
+      ..className = 'nb-plot-resize-pill';
+    handle.append(pill);
+
+    var dragging = false;
+    var startY = 0.0;
+    var startH = _widget.height;
+
+    handle.onpointerdown = ((web.PointerEvent e) {
+      e.preventDefault();
+      dragging = true;
+      startY = e.clientYDouble;
+      startH = _widget.height;
+      handle.setPointerCapture(e.pointerId);
+      handle.classList.add('dragging');
+      web.document.body?.classList.add('nb-resizing-plot');
+    }).toJS;
+
+    handle.onpointermove = ((web.PointerEvent e) {
+      if (!dragging) return;
+      final dy = e.clientYDouble - startY;
+      final nextH = (startH + dy).clamp(minHeight, maxHeight);
+      _widget.setHeight(nextH);
+    }).toJS;
+
+    void endDrag(web.PointerEvent e) {
+      if (!dragging) return;
+      dragging = false;
+      handle.classList.remove('dragging');
+      web.document.body?.classList.remove('nb-resizing-plot');
+      try {
+        handle.releasePointerCapture(e.pointerId);
+      } on Object {
+        // Ignore if pointer capture already released
+      }
+      onHeightChanged?.call(_widget.height);
+    }
+
+    handle.onpointerup = endDrag.toJS;
+    handle.onpointercancel = endDrag.toJS;
+    handle.ondblclick = ((web.MouseEvent _) {
+      _widget.setHeight(defaultHeight);
+      onHeightChanged?.call(defaultHeight);
+    }).toJS;
+
+    return handle;
+  }
 }
 
 Scene3D? _reconstructScene3D(PlotValue plot) {
@@ -193,6 +259,7 @@ Scene2D _reconstructScene2D(PlotValue plot) {
       tMin: plot.minT ?? plot.minX,
       tMax: plot.maxT ?? plot.maxX,
       color: defaultGraphPalette[0],
+      samples: 720,
     );
     return Scene2D(datasets: [ds], equalAspect: true);
   }

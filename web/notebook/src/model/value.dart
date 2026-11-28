@@ -278,6 +278,65 @@ final class ListValue extends CalcValue {
   int get hashCode => Object.hash(ListValue, Object.hashAll(elements));
 }
 
+/// Interval/range value `start..end`.
+final class RangeValue extends CalcValue {
+  const new(this.start, this.end);
+
+  final Expr start;
+  final Expr end;
+
+  @override
+  String get kind => 'range';
+
+  @override
+  bool get isExact => !_containsRealNumber(start) && !_containsRealNumber(end);
+
+  /// Evaluates both endpoints to floating-point bounds, or `null` if either
+  /// endpoint does not evaluate to a real number (or infinity when
+  /// [allowInfinite] is `true`).
+  ({double start, double end})? toNumericBounds({bool allowInfinite = false}) {
+    final s = _exprToDouble(start, allowInfinite: allowInfinite);
+    final e = _exprToDouble(end, allowInfinite: allowInfinite);
+    if (s == null || e == null) return null;
+    return (start: s, end: e);
+  }
+
+  @override
+  String toCanonicalText() => '$start..$end';
+
+  @override
+  String toMathMl({bool display = false, bool root = true}) {
+    final inner =
+        '<mrow>${start.toMathMl(root: false)}<mo>..</mo>${end.toMathMl(root: false)}</mrow>';
+    if (!root) return inner;
+    final attr = display ? ' display="block"' : '';
+    return '<math$attr>$inner</math>';
+  }
+
+  @override
+  String toLatex() => '${start.toLatex()} \\mathbin{..} ${end.toLatex()}';
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is RangeValue && start == other.start && end == other.end);
+
+  @override
+  int get hashCode => Object.hash(RangeValue, start, end);
+}
+
+/// Lightweight compile-time range specification for parameter defaults.
+final class NumericRange {
+  const new(this.start, this.end);
+
+  final double start;
+  final double end;
+
+  @override
+  String toString() =>
+      '${PlotValue.fmtBound(start)}..${PlotValue.fmtBound(end)}';
+}
+
 /// Truncated power series value wrapping [PowerSeries].
 final class SeriesValue extends CalcValue {
   const new(this.series);
@@ -384,25 +443,25 @@ final class PlotValue extends CalcValue {
   @override
   String toCanonicalText() {
     if (plotKind == PlotKind.complex3d && expressions.isNotEmpty) {
-      return 'plotcomplex3d(${expressions.first}, $variable, reFrom: ${fmtBound(minX)}, reTo: ${fmtBound(maxX)}, imFrom: ${fmtBound(minY)}, imTo: ${fmtBound(maxY)})';
+      return 'plotcomplex3d(${expressions.first}, $variable, re: ${fmtBound(minX)}..${fmtBound(maxX)}, im: ${fmtBound(minY)}..${fmtBound(maxY)})';
     }
     if (plotKind == PlotKind.surface3d && expressions.isNotEmpty) {
-      return 'plot3d(${expressions.first}, $variable, ${yVariable ?? 'y'}, xFrom: ${fmtBound(minX)}, xTo: ${fmtBound(maxX)}, yFrom: ${fmtBound(minY)}, yTo: ${fmtBound(maxY)})';
+      return 'plot3d(${expressions.first}, $variable, ${yVariable ?? 'y'}, x: ${fmtBound(minX)}..${fmtBound(maxX)}, y: ${fmtBound(minY)}..${fmtBound(maxY)})';
     }
     if ((plotKind == PlotKind.complex2d || isComplex) &&
         expressions.isNotEmpty) {
-      return 'plotcomplex(${expressions.first}, $variable, reFrom: ${fmtBound(minX)}, reTo: ${fmtBound(maxX)}, imFrom: ${fmtBound(minY)}, imTo: ${fmtBound(maxY)})';
+      return 'plotcomplex(${expressions.first}, $variable, re: ${fmtBound(minX)}..${fmtBound(maxX)}, im: ${fmtBound(minY)}..${fmtBound(maxY)})';
     }
     if ((plotKind == PlotKind.parametric2d || isParametric) &&
         expressions.length >= 2) {
       final t0 = minT ?? minX;
       final t1 = maxT ?? maxX;
-      return 'parametric(${expressions[0]}, ${expressions[1]}, $variable, from: ${fmtBound(t0)}, to: ${fmtBound(t1)})';
+      return 'parametric(${expressions[0]}, ${expressions[1]}, $variable, t: ${fmtBound(t0)}..${fmtBound(t1)})';
     }
     if (expressions.length == 1) {
-      return 'plot(${expressions.first}, $variable, from: ${fmtBound(minX)}, to: ${fmtBound(maxX)})';
+      return 'plot(${expressions.first}, $variable, x: ${fmtBound(minX)}..${fmtBound(maxX)})';
     }
-    return 'plot([${expressions.join(', ')}], $variable, from: ${fmtBound(minX)}, to: ${fmtBound(maxX)})';
+    return 'plot([${expressions.join(', ')}], $variable, x: ${fmtBound(minX)}..${fmtBound(maxX)})';
   }
 
   @override
@@ -571,6 +630,30 @@ String _formatComplexDigits(double re, double im, int digits) {
 }
 
 bool _containsRealNumber(Expr expr) => expr.anyNode((n) => n is RealNumber);
+
+double? _exprToDouble(Expr expr, {bool allowInfinite = false}) {
+  if (expr == Constant.infinity) {
+    return allowInfinite ? double.infinity : null;
+  }
+  if (expr == -Constant.infinity) {
+    return allowInfinite ? double.negativeInfinity : null;
+  }
+  final approx = expr.approximate();
+  if (approx == Constant.infinity) {
+    return allowInfinite ? double.infinity : null;
+  }
+  if (approx == -Constant.infinity) {
+    return allowInfinite ? double.negativeInfinity : null;
+  }
+  return switch (approx) {
+    RealNumber(:final value) =>
+      value.isFinite || (allowInfinite && value.isInfinite) ? value : null,
+    IntegerNumber(:final value) => value.toDouble(),
+    FractionNumber(:final numerator, :final denominator) =>
+      numerator.toDouble() / denominator.toDouble(),
+    _ => null,
+  };
+}
 
 String _escapeXml(String text) => text
     .replaceAll('&', '&amp;')

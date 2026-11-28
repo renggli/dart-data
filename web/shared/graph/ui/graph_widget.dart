@@ -4,6 +4,7 @@ import 'dart:math' as math;
 
 import 'package:web/web.dart' as web;
 
+import '../../utils.dart';
 import '../model/dataset.dart';
 import '../model/dataset_2d.dart';
 import '../model/dataset_3d.dart';
@@ -56,7 +57,8 @@ class GraphWidget {
     required double height,
     required bool showLegend,
     required bool showToolbar,
-  }) : _showLegend = showLegend {
+  }) : _height = height,
+       _showLegend = showLegend {
     element = web.document.createElement('div') as web.HTMLDivElement
       ..className = 'graph-root';
 
@@ -109,6 +111,7 @@ class GraphWidget {
   late final web.MutationObserver _themeObserver;
 
   GraphTheme _theme;
+  double _height;
   final bool _showLegend;
   GraphRenderer? _renderer;
   Scene2D? _scene2d;
@@ -162,6 +165,16 @@ class GraphWidget {
   void setTheme(GraphTheme theme) {
     _theme = theme;
     _renderer?.setTheme(theme);
+  }
+
+  /// Current viewport height in CSS pixels.
+  double get height => _height;
+
+  /// Updates the viewport height in CSS pixels and resizes the renderer.
+  void setHeight(double height) {
+    _height = height;
+    _viewport.style.height = '${height.round()}px';
+    resize();
   }
 
   /// Triggers a layout-aware canvas resize.
@@ -387,14 +400,14 @@ class GraphWidget {
 
     _onContextMenuJs = ((web.MouseEvent e) {
       e.preventDefault();
-      _openContextMenu(e.clientX.toDouble(), e.clientY.toDouble());
+      _openContextMenu(e.clientXDouble, e.clientYDouble);
     }).toJS;
     _viewport.addEventListener('contextmenu', _onContextMenuJs);
 
     _onTouchDownJs = ((web.PointerEvent e) {
       if (e.pointerType != 'touch') return;
-      _touchStartX = e.clientX.toDouble();
-      _touchStartY = e.clientY.toDouble();
+      _touchStartX = e.clientXDouble;
+      _touchStartY = e.clientYDouble;
       _longPressTimer?.cancel();
       _longPressTimer = Timer(const Duration(milliseconds: 480), () {
         _openContextMenu(_touchStartX, _touchStartY);
@@ -402,8 +415,8 @@ class GraphWidget {
     }).toJS;
     _onTouchMoveJs = ((web.PointerEvent e) {
       if (_longPressTimer == null) return;
-      final dx = e.clientX.toDouble() - _touchStartX;
-      final dy = e.clientY.toDouble() - _touchStartY;
+      final dx = e.clientXDouble - _touchStartX;
+      final dy = e.clientYDouble - _touchStartY;
       if (dx * dx + dy * dy > 64.0) {
         _longPressTimer?.cancel();
         _longPressTimer = null;

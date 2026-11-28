@@ -229,3 +229,14 @@ final class BinaryOpNode extends CalcNode {
   @override
   String toString() => '($left $op $right)';
 }
+
+/// Range literal node (`start..end`).
+final class RangeNode extends CalcNode {
+  const new(this.start, this.end, int offset) : super(offset);
+
+  final CalcNode start;
+  final CalcNode end;
+
+  @override
+  String toString() => '$start..$end';
+}

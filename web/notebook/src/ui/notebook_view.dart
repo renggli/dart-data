@@ -3,6 +3,8 @@ import 'dart:js_interop';
 
 import 'package:web/web.dart' as web;
 
+import '../../../shared/html.dart';
+import '../model/examples.dart';
 import '../model/notebook.dart';
 import '../worker/engine_client.dart';
 import 'markdown_cell_view.dart';
@@ -14,7 +16,7 @@ import 'math_cell_view.dart';
 /// Focus changes update only the affected cells in-place so plots never
 /// flicker and scroll position stays stable.
 final class NotebookView {
-  new(this.client, {this.onFocusChanged}) {
+  new(this.client, {this.onFocusChanged, this.onLoadExample}) {
     root = (web.document.createElement('div') as web.HTMLDivElement)
       ..className = 'nb-document';
     _attachOutsideClickBlur();
@@ -23,13 +25,31 @@ final class NotebookView {
 
   final EngineClient client;
   final void Function()? onFocusChanged;
+  final void Function(NotebookExample example)? onLoadExample;
   late final web.HTMLDivElement root;
 
+  List<NotebookExample> _examples = const [];
   String? _focusedUid;
   final Map<String, MathCellView> _mathViews = {};
   final Map<String, MarkdownCellView> _mdViews = {};
+  final Map<String, double> _plotHeights = {};
 
   String? get focusedUid => _focusedUid;
+
+  /// Updates the curated examples displayed on the empty-notebook view.
+  void setExamples(List<NotebookExample> examples) {
+    _examples = examples;
+    if (client.document.cells.isEmpty) {
+      render();
+    }
+  }
+
+  /// Scrolls to [uid] and focuses it for editing.
+  void scrollToAndFocusCell(String uid) {
+    focusCell(uid);
+    final el = _mathViews[uid]?.root ?? _mdViews[uid]?.root;
+    el?.scrollIntoView();
+  }
 
   /// Switches focus to [uid] in-place without rebuilding the document DOM or
   /// recreating WebGL plots. Any unsaved Markdown draft on the previously
@@ -87,11 +107,12 @@ final class NotebookView {
     for (final uid in _mathViews.keys.toList()) {
       if (byUid[uid] is! MathCell) {
         _mathViews.remove(uid)?.dispose();
+        _plotHeights.remove(uid);
       }
     }
     for (final uid in _mdViews.keys.toList()) {
       if (byUid[uid] is! MarkdownCell) {
-        _mdViews.remove(uid);
+        _mdViews.remove(uid)?.dispose();
       }
     }
     if (_focusedUid != null && !byUid.containsKey(_focusedUid)) {
@@ -164,6 +185,25 @@ final class NotebookView {
                   focusCell(null);
                 }
               },
+              onInsertMathBelow: () async {
+                final idx = client.document.indexOfUid(cell.uid);
+                final insertAt = idx >= 0
+                    ? idx + 1
+                    : client.document.cells.length;
+                final nextUid = await client.evalCell('', index: insertAt);
+                focusCell(nextUid);
+              },
+              onInsertTextBelow: () async {
+                final idx = client.document.indexOfUid(cell.uid);
+                final insertAt = idx >= 0
+                    ? idx + 1
+                    : client.document.cells.length;
+                final nextUid = await client.insertMarkdown(
+                  '',
+                  index: insertAt,
+                );
+                focusCell(nextUid);
+              },
               onMoveUp: () async {
                 final idx = client.document.indexOfUid(cell.uid);
                 if (idx > 0) await client.moveCell(cell.uid, idx - 1);
@@ -198,6 +238,8 @@ final class NotebookView {
               env: doc.env,
               registry: client.registry,
               isFocused: isActive,
+              initialPlotHeight: _plotHeights[cell.uid],
+              onPlotHeightChanged: (h) => _plotHeights[cell.uid] = h,
               onFocus: () => focusCell(cell.uid),
               onRun:
                   (src, {required bool advance, required bool approx}) async {
@@ -226,6 +268,25 @@ final class NotebookView {
                 final nextUid = await client.evalCell(call, index: insertAt);
                 focusCell(nextUid);
               },
+              onInsertMathBelow: () async {
+                final idx = client.document.indexOfUid(cell.uid);
+                final insertAt = idx >= 0
+                    ? idx + 1
+                    : client.document.cells.length;
+                final nextUid = await client.evalCell('', index: insertAt);
+                focusCell(nextUid);
+              },
+              onInsertTextBelow: () async {
+                final idx = client.document.indexOfUid(cell.uid);
+                final insertAt = idx >= 0
+                    ? idx + 1
+                    : client.document.cells.length;
+                final nextUid = await client.insertMarkdown(
+                  '',
+                  index: insertAt,
+                );
+                focusCell(nextUid);
+              },
               onMoveUp: () async {
                 final idx = client.document.indexOfUid(cell.uid);
                 if (idx > 0) await client.moveCell(cell.uid, idx - 1);
@@ -249,7 +310,7 @@ final class NotebookView {
             _mathViews[cell.uid] = mathView;
             newlyMountedMath.add(mathView);
           } else {
-            mathView.update(cell, doc.env);
+            mathView.update(cell, doc.env, plotHeight: _plotHeights[cell.uid]);
             mathView.setFocused(isActive);
           }
           root.append(mathView.root);
@@ -285,7 +346,7 @@ final class NotebookView {
         // Keep focus when clicking inside a cell, modal, drawer, header, or sidebar
         if (el.closest('.nb-cell') != null ||
             el.closest('.nb-modal') != null ||
-            el.closest('.nb-drawer') != null ||
+            el.closest('.nb-right-sidebar') != null ||
             el.closest('.app-header') != null ||
             el.closest('.sidebar') != null ||
             el.closest('.nb-insert-divider') != null ||
@@ -387,7 +448,7 @@ final class NotebookView {
     final startMath =
         (web.document.createElement('button') as web.HTMLButtonElement)
           ..type = 'button'
-          ..className = 'nb-primary-btn'
+          ..className = 'btn btn-primary'
           ..textContent = 'New Math Cell';
     startMath.onclick = ((web.MouseEvent _) async {
       final uid = await client.evalCell('');
@@ -397,54 +458,48 @@ final class NotebookView {
     final startText =
         (web.document.createElement('button') as web.HTMLButtonElement)
           ..type = 'button'
-          ..className = 'nb-secondary-btn'
+          ..className = 'btn btn-secondary'
           ..textContent = 'New Text Cell';
     startText.onclick = ((web.MouseEvent _) async {
       final uid = await client.insertMarkdown('');
       focusCell(uid);
     }).toJS;
 
-    final loadSample =
-        (web.document.createElement('button') as web.HTMLButtonElement)
-          ..type = 'button'
-          ..className = 'nb-secondary-btn'
-          ..textContent = 'Load Calculus Tour';
-    loadSample.onclick = ((web.MouseEvent _) async {
-      await client.importMarkdown(_starterTemplate);
-      _focusedUid = null;
-      render();
-    }).toJS;
-
     row
       ..append(startMath)
-      ..append(startText)
-      ..append(loadSample);
+      ..append(startText);
     box
       ..append(heading)
       ..append(sub)
       ..append(row);
+
+    final examplesSection =
+        (web.document.createElement('section') as web.HTMLElement)
+          ..className = 'nb-empty-examples';
+    examplesSection.append(
+      (web.document.createElement('div') as web.HTMLDivElement)
+        ..className = 'nb-empty-examples-heading'
+        ..textContent = 'Example Notebooks',
+    );
+
+    final grid = (web.document.createElement('div') as web.HTMLDivElement)
+      ..className = 'nb-empty-examples-grid';
+    for (final ex in _examples) {
+      final card =
+          (web.document.createElement('button') as web.HTMLButtonElement)
+            ..type = 'button'
+            ..className = 'nb-empty-example-card';
+      card.innerHTML =
+          '<span class="nb-empty-example-cat">${escapeHtml(ex.category)}</span>'
+                  '<span class="nb-empty-example-title">${escapeHtml(ex.title)}</span>'
+                  '<span class="nb-empty-example-desc">${escapeHtml(ex.description)}</span>'
+              .toJS;
+      card.onclick = ((web.MouseEvent _) => onLoadExample?.call(ex)).toJS;
+      grid.append(card);
+    }
+    examplesSection.append(grid);
+    box.append(examplesSection);
+
     return box;
   }
-
-  static const String _starterTemplate = '''
-# Damped Harmonic Oscillator
-
-Consider a damped oscillation \$f(x) = exp(-x/5) * sin(2 * x)\$ for \$0 <= x <= 4 * pi\$.
-
-```math
-f(x) := exp(-x/5) * sin(2 * x)
-```
-
-Compute its exact derivative with respect to \$x\$:
-
-```math
-diff(f(x), x)
-```
-
-Using the live result, the rate of change is {{r[2]}}. Plotting \$f(x)\$ alongside its exponential envelope:
-
-```math
-plot([f(x), exp(-x/5), -exp(-x/5)], x, from: 0, to: 12)
-```
-''';
 }

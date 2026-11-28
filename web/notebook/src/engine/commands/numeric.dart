@@ -14,11 +14,10 @@ final List<Command> numericCommands = [
     signature: const FunctionSignature(
       positional: [
         ParamSpec.positional('expr'),
-        ParamSpec.optional('var', type: ParamType.symbol),
+        ParamSpec.positional('var', type: ParamType.symbol),
+        ParamSpec.positional('range', type: ParamType.range),
       ],
       named: [
-        ParamSpec.named('from', type: ParamType.number, required: true),
-        ParamSpec.named('to', type: ParamType.number, required: true),
         ParamSpec.named(
           'method',
           type: ParamType.string,
@@ -28,11 +27,16 @@ final List<Command> numericCommands = [
         ParamSpec.named('tol', type: ParamType.number, defaultValue: 1e-10),
       ],
     ),
-    doc: 'Computes a definite integral numerically.',
-    examples: ['nintegrate(exp(-x^2), x, from: 0, to: 1)'],
+    doc: 'Computes a definite integral numerically over `start..end`.',
+    examples: ['nintegrate(exp(-x^2), x, 0..1)'],
     run: (args, _) {
       final expr = args.expr('expr');
-      final v = inferVariable(expr, args.symbolOrNull('var'));
+      final v = args.symbol('var');
+      final range = args.numericRange(
+        'range',
+        allowInfinite: true,
+        requireOrdered: false,
+      );
       final fn = expr.toFunction1D(v);
       final method = switch (args.stringVal('method')) {
         'simpson' => IntegrationMethod.simpson,
@@ -40,8 +44,8 @@ final List<Command> numericCommands = [
       };
       final value = integrate(
         fn,
-        args.doubleVal('from'),
-        args.doubleVal('to'),
+        range.start,
+        range.end,
         method: method,
         tolerance: args.doubleVal('tol'),
       );
@@ -57,9 +61,8 @@ final List<Command> numericCommands = [
         ParamSpec.optional('var', type: ParamType.symbol),
       ],
       named: [
+        ParamSpec.named('range', type: ParamType.range),
         ParamSpec.named('guess', type: ParamType.number),
-        ParamSpec.named('from', type: ParamType.number),
-        ParamSpec.named('to', type: ParamType.number),
         ParamSpec.named(
           'method',
           type: ParamType.string,
@@ -70,7 +73,7 @@ final List<Command> numericCommands = [
       ],
     ),
     doc: 'Finds a numerical root of an equation or expression.',
-    examples: ['nsolve(cos(x) = x, x, from: 0, to: 1)'],
+    examples: ['nsolve(cos(x) = x, x, range: 0..1)'],
     run: (args, _) {
       final raw = args.expr('eq');
       final expr = raw is Relational && raw.op == RelOp.equal
@@ -78,8 +81,9 @@ final List<Command> numericCommands = [
           : raw;
       final v = inferVariable(expr, args.symbolOrNull('var'));
       final fn = expr.toFunction1D(v);
-      final a = args.doubleOrNull('from') ?? args.doubleOrNull('guess') ?? 0.0;
-      final b = args.doubleOrNull('to');
+      final range = args.numericRangeOrNull('range');
+      final a = range?.start ?? args.doubleOrNull('guess') ?? 0.0;
+      final b = range?.end;
       final method = switch (args.stringVal('method')) {
         'bisection' => RootMethod.bisection,
         'newtonRaphson' => RootMethod.newtonRaphson,
@@ -104,8 +108,11 @@ final List<Command> numericCommands = [
         ParamSpec.optional('var', type: ParamType.symbol),
       ],
       named: [
-        ParamSpec.named('from', type: ParamType.number, defaultValue: -5.0),
-        ParamSpec.named('to', type: ParamType.number, defaultValue: 5.0),
+        ParamSpec.named(
+          'range',
+          type: ParamType.range,
+          defaultValue: NumericRange(-5.0, 5.0),
+        ),
         ParamSpec.named('guess', type: ParamType.number),
         ParamSpec.named(
           'method',
@@ -117,14 +124,14 @@ final List<Command> numericCommands = [
       ],
     ),
     doc: 'Finds a local minimum of a 1D expression numerically.',
-    examples: ['nminimize(x^2 - 4*x + 5, x, from: 0, to: 5)'],
+    examples: ['nminimize(x^2 - 4*x + 5, x, range: 0..5)'],
     run: (args, _) {
       final expr = args.expr('expr');
       final v = inferVariable(expr, args.symbolOrNull('var'));
       final fn = expr.toFunction1D(v);
-      final from = args.doubleVal('from');
-      final to = args.doubleVal('to');
-      final guess = args.doubleOrNull('guess') ?? 0.5 * (from + to);
+      final range = args.numericRange('range');
+      final guess =
+          args.doubleOrNull('guess') ?? 0.5 * (range.start + range.end);
       final method = switch (args.stringVal('method')) {
         'nelderMead' => OptimizationMethod.nelderMead,
         'bfgs' => OptimizationMethod.bfgs,
@@ -134,8 +141,8 @@ final List<Command> numericCommands = [
       final res = minimize(
         (vec) => fn(vec[0]),
         initialPoint: Vector<double>.fromList([guess], type: DataType.float64),
-        a: from,
-        b: to,
+        a: range.start,
+        b: range.end,
         method: method,
         tolerance: args.doubleVal('tol'),
       );

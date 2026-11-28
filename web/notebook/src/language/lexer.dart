@@ -157,6 +157,22 @@ final class CalcLexer {
         }
       }
 
+      // Multi-char operators (check before leading-dot numbers so `..` scans first)
+      if (i + 1 < len) {
+        final two = source.substring(i, i + 2);
+        if (two == '..' ||
+            two == '**' ||
+            two == '<=' ||
+            two == '>=' ||
+            two == '!=' ||
+            two == '==' ||
+            two == '->') {
+          i += 2;
+          tokens.add(Token(TokenKind.operator, start, i, two));
+          continue;
+        }
+      }
+
       // Number literal
       if (_isDigit(ch) ||
           (ch == 46 /* . */ &&
@@ -212,21 +228,6 @@ final class CalcLexer {
             tokens.add(Token(TokenKind.colon, start, i, ':'));
           }
           continue;
-      }
-
-      // Multi-char operators
-      if (i + 1 < len) {
-        final two = source.substring(i, i + 2);
-        if (two == '**' ||
-            two == '<=' ||
-            two == '>=' ||
-            two == '!=' ||
-            two == '==' ||
-            two == '->') {
-          i += 2;
-          tokens.add(Token(TokenKind.operator, start, i, two));
-          continue;
-        }
       }
 
       // Single-char ASCII & Unicode operators
@@ -304,7 +305,9 @@ final class CalcLexer {
     while (i < len && _isDigit(source.codeUnitAt(i))) {
       i++;
     }
-    if (i < len && source.codeUnitAt(i) == 46 /* . */ ) {
+    if (i < len &&
+        source.codeUnitAt(i) == 46 /* . */ &&
+        !(i + 1 < len && source.codeUnitAt(i + 1) == 46 /* .. */ )) {
       i++;
       while (i < len && _isDigit(source.codeUnitAt(i))) {
         i++;

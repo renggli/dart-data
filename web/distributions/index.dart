@@ -307,7 +307,7 @@ void main() {
   // Render Sidebar & Setup Collapse Toggle
   buildSidebar();
   setupSidebarToggle(
-    onToggled: () {
+    onToggled: (_) {
       distGraph?.resize();
     },
   );

@@ -1,9 +1,17 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="en">
 <head>
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-S1VP1P3SH7"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-S1VP1P3SH7');
+  </script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Notebook — Symbolic Mathematics</title>
+  <meta name="description" content="Executable Markdown and symbolic mathematics notebook with live MathML rendering, 2D/3D/complex plotting, matrix algebra, symbolic ODEs, and system solving.">
   <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="stylesheet" href="../shared/style.css">
@@ -80,30 +88,23 @@
       <span id="nb-busy" class="nb-busy-badge"></span>
     </div>
     <div class="app-header-right">
+      <button id="nb-palette-btn" type="button" class="icon-btn" title="Command Palette (Cmd/Ctrl+K)" aria-label="Command Palette"></button>
       <button id="nb-undo" type="button" class="icon-btn" title="Undo (Cmd/Ctrl+Z)" aria-label="Undo" disabled></button>
       <button id="nb-redo" type="button" class="icon-btn" title="Redo (Cmd/Ctrl+Shift+Z)" aria-label="Redo" disabled></button>
-      <button id="nb-load-btn" type="button" class="icon-btn" title="Load notebook (.md or .json)" aria-label="Load notebook"></button>
-      <button id="nb-save-btn" type="button" class="icon-btn" title="Save notebook (.md)" aria-label="Save notebook"></button>
-      <button id="nb-clear-btn" type="button" class="icon-btn" title="Clear notebook" aria-label="Clear notebook"></button>
-      <button id="nb-palette-btn" type="button" class="icon-btn" title="Command Palette (Cmd/Ctrl+K)" aria-label="Command Palette"></button>
-      <button id="nb-matrix-btn" type="button" class="icon-btn" title="Insert Matrix" aria-label="Insert Matrix"></button>
-      <button id="nb-help-btn" type="button" class="icon-btn" title="Command Reference" aria-label="Command Reference"></button>
-      <button id="nb-settings-btn" type="button" class="icon-btn" title="Notebook Settings" aria-label="Notebook Settings"></button>
+      <button id="nb-help-btn" type="button" class="icon-btn" title="Reference Sidebar (Text &amp; Math)" aria-label="Reference Sidebar" aria-expanded="false" aria-controls="nb-right-sidebar"></button>
       <button id="nb-theme-btn" type="button" class="icon-btn" data-theme-toggle title="Toggle Theme" aria-label="Toggle Theme"></button>
     </div>
   </header>
 
-  <!-- Navigation Sidebar -->
-  <aside class="sidebar">
-    <nav class="sidebar-list">
-      <div class="group-heading">Document Outline</div>
-      <div id="nb-outline-list"></div>
-    </nav>
-  </aside>
+  <!-- Left Tabbed Sidebar (Files | Structure | Settings) -->
+  <aside class="sidebar nb-left-sidebar" id="nb-left-sidebar" aria-label="Notebook navigation"></aside>
 
   <!-- Main Content -->
   <main class="main-content nb-main">
     <div id="notebook-mount"></div>
   </main>
+
+  <!-- Right Tabbed Reference Sidebar (Text | Math) -->
+  <aside class="nb-right-sidebar" id="nb-right-sidebar" aria-label="Reference"></aside>
 </body>
 </html>

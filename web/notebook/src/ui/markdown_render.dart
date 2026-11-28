@@ -1,5 +1,6 @@
 import 'package:data/symbolic.dart';
 
+import '../../../shared/html.dart';
 import '../engine/commands.dart';
 import '../language/markdown.dart';
 import '../model/notebook.dart';
@@ -34,7 +35,7 @@ final class MarkdownRenderer {
     MdCodeBlock(:final language, :final code) =>
       language == 'math'
           ? '<pre class="nb-md-code"><code>${SyntaxHighlighter.highlightMathHtml(code, registry: registry, env: doc.env)}</code></pre>'
-          : '<pre class="nb-md-code"><code>${_escapeHtml(code)}</code></pre>',
+          : '<pre class="nb-md-code"><code>${escapeHtml(code)}</code></pre>',
     MdBlockquote(:final blocks) =>
       '<blockquote>${[for (final b in blocks) _renderBlock(b, doc, registry)].join('\n')}</blockquote>',
     MdUnorderedList(:final items) =>
@@ -62,23 +63,23 @@ final class MarkdownRenderer {
     MdInline inline,
     NotebookDocument doc,
   ) => switch (inline) {
-    MdText(:final text) => _escapeHtml(text),
+    MdText(:final text) => escapeHtml(text),
     MdBold(:final children) =>
       '<strong>${_renderInlines(children, doc)}</strong>',
     MdItalic(:final children) => '<em>${_renderInlines(children, doc)}</em>',
     MdStrike(:final children) => '<del>${_renderInlines(children, doc)}</del>',
-    MdCodeSpan(:final code) => '<code>${_escapeHtml(code)}</code>',
+    MdCodeSpan(:final code) => '<code>${escapeHtml(code)}</code>',
     MdLink(:final label, :final url) =>
-      '<a href="${_escapeHtml(url)}" target="_blank" rel="noopener noreferrer">${_renderInlines(label, doc)}</a>',
+      '<a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">${_renderInlines(label, doc)}</a>',
     MdInlineMath(:final exprText) => _renderMathMl(exprText, display: false),
     MdInterpolation(:final target, :final resultId, :final symbol) => () {
       final val = resultId != null
           ? doc.lookupResult(resultId)
           : (symbol != null ? doc.env.variables[symbol] : null);
       if (val == null) {
-        return '<span class="nb-interp nb-interp-missing" title="Unresolved: ${_escapeHtml(target)}">{{${_escapeHtml(target)}}}</span>';
+        return '<span class="nb-interp nb-interp-missing" title="Unresolved: ${escapeHtml(target)}">{{${escapeHtml(target)}}}</span>';
       }
-      return '<span class="nb-interp" title="${_escapeHtml(target)}">${val.toMathMl(display: false)}</span>';
+      return '<span class="nb-interp" title="${escapeHtml(target)}">${val.toMathMl(display: false)}</span>';
     }(),
   };
 
@@ -87,13 +88,6 @@ final class MarkdownRenderer {
     if (parsed != null) {
       return parsed.toMathMl(display: display);
     }
-    return '<code class="nb-math-fallback">${_escapeHtml(exprText)}</code>';
+    return '<code class="nb-math-fallback">${escapeHtml(exprText)}</code>';
   }
-
-  static String _escapeHtml(String text) => text
-      .replaceAll('&', '&amp;')
-      .replaceAll('<', '&lt;')
-      .replaceAll('>', '&gt;')
-      .replaceAll('"', '&quot;')
-      .replaceAll("'", '&#39;');
 }
